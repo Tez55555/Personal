@@ -50,7 +50,7 @@
   });
   /** additive soft glow sprite (caller sets 'lighter') */
   function glow(g, x, y, r, col, a) { if (a <= .003 || r <= 0) return; const o = g.globalAlpha; g.globalAlpha = o * Math.min(1, a); g.drawImage(spr(col), x - r, y - r, r * 2, r * 2); g.globalAlpha = o; }
-  let DT = 1 / 240;   // time span the current sample represents: light points are integrated over it as streaks
+  let DT = 1 / 240, FAST = false;   // FAST: heavy in-scene supersampling is running; skip detail that the blur erases   // time span the current sample represents: light points are integrated over it as streaks
   /** a light point that integrates its own screen motion (vx, vy px/s) over DT (caller sets 'lighter') */
   function lightDot(g, x, y, r, col, a, vx = 0, vy = 0) {
     if (a <= .004) return;
@@ -146,7 +146,7 @@
     gr.addColorStop(0, '#1A171D'); gr.addColorStop(.3, '#1F1A2B'); gr.addColorStop(.55, '#25203F'); gr.addColorStop(.8, '#2F2540'); gr.addColorStop(1, '#3A2B3D');
     g.fillStyle = gr; g.fillRect(-300, -1400, W + 600, H + 2800);
     g.save(); g.globalCompositeOperation = 'lighter'; glow(g, 300 - c.x / 6, 700 + oy, 900, '#6A3A40', .32); glow(g, 900 - c.x / 6, 760 + oy, 800, '#4A3A6A', .3); glow(g, 1500 - c.x / 6, 700 + oy, 900, '#6A3A40', .28); g.restore();
-    L.haze(g, T - c.x / 60, { y0: 60 + oy, y1: 900 + oy, color: '#7A6A8A', alpha: .07, speed: 6, seed: 17, scale: 2.6 });
+    if (!FAST) L.haze(g, T - c.x / 60, { y0: 60 + oy, y1: 900 + oy, color: '#7A6A8A', alpha: .07, speed: 6, seed: 17, scale: 2.6 });
     L.stars(g, T, { seed: 33, count: 46, x: -150, y: oy - 500, w: W + 300, h: 980, alpha: .32 });
     for (const f of FW) {
       const u = T - f.t; if (u < 0 || u > 2.6) continue;
@@ -261,7 +261,7 @@
     for (const m of MIDB) {
       if (m.x < a || m.x > b) continue;
       const br = m.kind ? .3 + .7 * (.5 + .5 * Math.sin(T * 5 - m.ph)) : .45 + .55 * L.noise1(T * 2.2 + m.ph, 3);
-      glow(g, m.x, m.y, 9, m.col, .22 * br); lightDot(g, m.x, m.y, 1.5, L.mix(m.col, '#FFFFFF', .35 * br), .35 + .45 * br, vx, vy);
+      if (!FAST) glow(g, m.x, m.y, 9, m.col, .22 * br); lightDot(g, m.x, m.y, 1.5, L.mix(m.col, '#FFFFFF', .35 * br), .35 + .45 * br, vx, vy);
     }
     g.restore();
   }
@@ -274,7 +274,7 @@
     const gr = g.createLinearGradient(0, 1662, 0, 2400); gr.addColorStop(0, '#201D21'); gr.addColorStop(1, '#141215');
     g.fillStyle = gr; g.fillRect(xL, 1662, xR - xL, 1400);
     g.fillStyle = 'rgba(140,135,131,.5)'; for (let x = xL; x < xR; x += 160) g.fillRect(x, 1918, 86, 7);
-    L.textureOverlay(g, 'powder', xL, 1662, xR - xL, 760, { alpha: .09, blend: 'overlay', scale: .5, seed: 9 });
+    if (!FAST) L.textureOverlay(g, 'powder', xL, 1662, xR - xL, 760, { alpha: .09, blend: 'overlay', scale: .5, seed: 9 });
   }
 
   /* ======================= BAR A: tri-vision on a rooftop ======================= */
@@ -969,10 +969,10 @@
     g.translate(W / 2, H / 2); g.rotate(c.roll); g.translate(-W / 2, -H / 2);
     drawSky(g, T, c);
     depth(g, c, 3, g2 => g2.drawImage(farCanvas(), FAR.x0, FAR.y0));
-    L.haze(g, T - c.x / (3 * 10), { y0: 400 - c.y / 3, y1: 1250 - c.y / 3, color: '#8C7FA8', alpha: .07, speed: 10, seed: 12 });
+    if (!FAST) L.haze(g, T - c.x / (3 * 10), { y0: 400 - c.y / 3, y1: 1250 - c.y / 3, color: '#8C7FA8', alpha: .07, speed: 10, seed: 12 });
     const zz = (z) => 1 + (c.zoom - 1) / z;
     depth(g, c, 1.7, g2 => drawMid(g2, T, c, -vel.x / 1.7 * zz(1.7), -vel.y / 1.7 * zz(1.7)));
-    L.haze(g, T - c.x / (1.7 * 16), { y0: 700 - c.y / 1.7, y1: 1700 - c.y / 1.7, color: '#FF9F6B', alpha: .05, speed: 16, seed: 14 });
+    if (!FAST) L.haze(g, T - c.x / (1.7 * 16), { y0: 700 - c.y / 1.7, y1: 1700 - c.y / 1.7, color: '#FF9F6B', alpha: .05, speed: 16, seed: 14 });
     const v1x = -vel.x * zz(1), v1y = -vel.y * zz(1);
     depth(g, c, 1, g2 => {
       drawStreet(g2, c);
@@ -1004,7 +1004,8 @@
       const vz = Math.abs(c1.zoom - c0.zoom) / (2 * h), van = (T > WBC && T < TC) ? 9000 : 0;
       const span = 1 / 240;   // spacing of the engine's motion-blur sub-frames (4 samples, 180° shutter)
       const speed = Math.max(Math.hypot(vel.x, vel.y) / NZ, vz * 1800, van);
-      const k = Math.min(8, Math.max(1, Math.ceil(speed * span / 14)));
+      const k = Math.min(6, Math.max(1, Math.ceil(speed * span / 16)));
+      FAST = k >= 4;
       if (k <= 1) { DT = span; frame(ctx, T, vel); return; }
       const [acc, tmp] = buffers(), a = acc.getContext('2d'), m = tmp.getContext('2d');
       a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, acc.width, acc.height); a.globalCompositeOperation = 'lighter'; a.globalAlpha = 1 / k;

@@ -45,14 +45,16 @@
     if (fog) { g.globalCompositeOperation = 'source-over'; g.fillStyle = `rgba(38,32,58,${fog})`; g.fillRect(x, y, w, h); }
     g.restore();
   }
-  function frameRect(g, x, y, w, h, t) {
+  function frameRect(g, x, y, w, h, t, blur) {
+    U.setBlur(g, blur || 0);
     g.fillStyle = '#161314'; g.fillRect(x - t, y - t, w + 2 * t, t); g.fillRect(x - t, y + h, w + 2 * t, t); g.fillRect(x - t, y, t, h); g.fillRect(x + w, y, t, h);
     g.fillStyle = 'rgba(140,135,131,.7)'; g.fillRect(x - t, y - t, w + 2 * t, 1.5);
+    g.filter = 'none';
   }
   function lampsOn(g, x, y, w, n, k, blur) {
     for (let i = 0; i < n; i++) {
       const lx = x + w * (i + .5) / n;
-      g.strokeStyle = '#121012'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(lx - 8, y); g.quadraticCurveTo(lx - 8, y - 14, lx, y - 12); g.stroke();
+      U.setBlur(g, blur); g.strokeStyle = '#121012'; g.lineWidth = 2.2; g.beginPath(); g.moveTo(lx - 8, y); g.quadraticCurveTo(lx - 8, y - 14, lx, y - 12); g.stroke(); g.filter = 'none';
       g.save(); g.globalCompositeOperation = 'lighter';
       const cg = g.createLinearGradient(0, y - 10, 0, y + 70); cg.addColorStop(0, 'rgba(244,246,255,.10)'); cg.addColorStop(1, 'rgba(244,246,255,0)');
       g.fillStyle = cg; g.beginPath(); g.moveTo(lx - 6, y - 9); g.lineTo(lx + 6, y - 9); g.lineTo(lx + 40, y + 70); g.lineTo(lx - 40, y + 70); g.closePath(); g.fill();
@@ -60,10 +62,13 @@
       g.restore();
     }
   }
-  function plate(g, x, y) {   // tiny MM media-owner plate (decorative at this scale)
-    g.fillStyle = C.ink; g.fillRect(x, y, 92, 28); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(x, y, 92, 1.2);
-    L.drawLogo(g, 'mark', { x: x + 5, y: y + 5, h: 18, anchor: 'topleft', way: 'reverse' });
-    L.text(g, 'MM Advertising', x + 28, y + 18.5, { font: 'lat', size: 9.5, weight: 650, color: C.paper, align: 'left', maxWidth: 60 });
+  const plateImg = () => L.cached('mmh-plate', 92 * 4, 28 * 4, g => {
+    g.scale(4, 4); g.fillStyle = C.ink; g.fillRect(0, 0, 92, 28); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(0, 0, 92, 1.2);
+    L.drawLogo(g, 'mark', { x: 5, y: 5, h: 18, anchor: 'topleft', way: 'reverse' });
+    L.text(g, 'MM Advertising', 28, 18.5, { font: 'lat', size: 9.5, weight: 650, color: C.paper, align: 'left', maxWidth: 60 });
+  });
+  function plate(g, x, y, blur) {   // tiny MM media-owner plate (decorative at this scale)
+    U.setBlur(g, blur || 0); g.drawImage(plateImg(), x, y, 92, 28); g.filter = 'none';
   }
   /** mini stamp: anticipation-free slam (scale 1.5 -> 1 in .1 s), then the impression with 16 specks */
   function miniStamp(g, cx, cy, w, rotDeg, at, T) {
@@ -86,13 +91,14 @@
   // U1 unipole (mid layer)
   H.boards.push({ d: 2, draw(g, T, k, blur) {
     const x = 110, y = 770, w = 220, h = 130;
+    U.setBlur(g, blur);
     g.fillStyle = '#151214'; g.fillRect(x + w / 2 - 7, y + h, 14, 1002 - y - h); g.fillStyle = 'rgba(140,135,131,.35)'; g.fillRect(x + w / 2 - 7, y + h, 1.5, 1002 - y - h);
     g.fillStyle = '#131012'; g.fillRect(x - 6, y + h + 4, w + 12, 5);
-    frameRect(g, x, y, w, h, 4);
+    frameRect(g, x, y, w, h, 4, blur);
     litFace(g, faceCanvas('U1', w, h), x, y, w, h, T, blur, k);
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); miniStamp(g, x + w * .53, y + h * .76, w * .92, -10, TM.b5, T); g.restore();
     lampsOn(g, x, y, w, 2, k, blur);
-    plate(g, x + w - 92, y + h + 12);
+    plate(g, x + w - 92, y + h + 12, blur);
   } });
   // W1 building wrap (mid layer, on the tall tower x 672–922)
   H.boards.push({ d: 2, draw(g, T, k, blur) {
@@ -104,17 +110,21 @@
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const lx of [x + 30, x + w - 30]) { const cg = g.createLinearGradient(0, y + h + 10, 0, y + 80); cg.addColorStop(0, 'rgba(255,236,206,.10)'); cg.addColorStop(1, 'rgba(255,236,206,0)'); g.fillStyle = cg; g.beginPath(); g.moveTo(lx - 5, y + h + 10); g.lineTo(lx + 5, y + h + 10); g.lineTo(lx + 60, y + 80); g.lineTo(lx - 60, y + 80); g.closePath(); g.fill(); U.lamp(g, lx, y + h + 12, 2, '#FFE9C8', .9, k, blur); }
     g.restore();
-    plate(g, x + w - 92, y + h + 10);
+    plate(g, x + w - 92, y + h + 10, blur);
   } });
   // L1 rooftop LED screen (mid layer): test bars -> 2-frame glitch -> pixel BOOKED
   const PIX = { B: ['11110', '10001', '10001', '11110', '10001', '10001', '11110'], O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
     K: ['10001', '10010', '10100', '11000', '10100', '10010', '10001'], E: ['11111', '10000', '10000', '11110', '10000', '10000', '11111'], D: ['11110', '10001', '10001', '10001', '10001', '10001', '11110'] };
+  let L1C = null;
+  function L1buf() { if (!L1C) { L1C = document.createElement('canvas'); L1C.width = 126 * 3; L1C.height = 82 * 3; } const c = L1C.getContext('2d'); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; c.filter = 'none'; c.clearRect(0, 0, L1C.width, L1C.height); return c; }
   const BARS = ['#C9C4BF', '#CDB06A', '#8FA6B2', '#7E9A78', '#93809E', '#B07A5A', '#4A3F9A'];
   H.boards.push({ d: 2, draw(g, T, k, blur) {
     const x = 700, y = 724, w = 126, h = 82, roof = 862;
+    U.setBlur(g, blur);
     g.fillStyle = C.steel; for (const lx of [x + 18, x + w - 26]) g.fillRect(lx, y + h, 8, roof - y - h);
     g.strokeStyle = C.steel; g.lineWidth = 3; g.beginPath(); g.moveTo(x + 22, y + h + 6); g.lineTo(x + w - 22, roof - 4); g.moveTo(x + w - 22, y + h + 6); g.lineTo(x + 22, roof - 4); g.stroke();
-    frameRect(g, x, y, w, h, 5);
+    frameRect(g, x, y, w, h, 5, blur);
+    const outer = g; g = L1buf(); const SS = 3; g.save(); g.scale(SS, SS); g.translate(-x, -y);
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
     g.fillStyle = '#0D0B0C'; g.fillRect(x, y, w, h);
     const f = U.FR(T), fl = U.FR(TM.b6), pulse = 1 + .3 * beatPulse(T);
@@ -141,35 +151,38 @@
     if (boot < 1) { g.restore(); if (boot > 0) { g.fillStyle = 'rgba(244,242,238,.7)'; g.fillRect(x, y + h * boot - 1, w, 2); } }
     // dot-pitch + scanline overlay
     g.fillStyle = 'rgba(0,0,0,.22)'; for (let yy = y; yy < y + h; yy += 2.2) g.fillRect(x, yy, w, .8);
-    g.restore();
+    g.restore(); g.restore();
+    const buf = g.canvas; g = outer;
+    U.setBlur(g, blur); g.drawImage(buf, x, y, w, h); g.filter = 'none';
     g.save(); g.globalCompositeOperation = 'lighter';
     U.put(g, U.softSpr(f < fl ? '#B8B4D8' : '#FFF1DC'), x + w / 2, y + h / 2, 110, .1 * pulse * boot);
     if (f >= fl && f < fl + 2) U.put(g, U.softSpr('#FFFFFF'), x + w / 2, y + h / 2, 90, .25);
     g.restore();
-    plate(g, x + w - 92, y + h + 8);
+    plate(g, x + w - 92, y + h + 8, blur);
   } });
   // H2 rooftop hoarding (d 1.3; its structure lives in the h2 block cache)
   H.boards.push({ d: 1.3, draw(g, T, k, blur) {
     const x = 640, y = 1000, w = 340, h = 200;
-    g.fillStyle = '#131012'; g.fillRect(x - 8, y + h + 6, w + 16, 6);
-    frameRect(g, x, y, w, h, 5);
+    U.setBlur(g, blur); g.fillStyle = '#131012'; g.fillRect(x - 8, y + h + 6, w + 16, 6);
+    frameRect(g, x, y, w, h, 5, blur);
     litFace(g, faceCanvas('H2', w, h), x, y, w, h, T, blur, k, .1);
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); miniStamp(g, x + w * .54, y + h * .76, w * .9, -8, TM.b4, T); g.restore();
     lampsOn(g, x, y, w, 3, k, blur);
-    plate(g, x + w - 96, y + h + 16);
+    plate(g, x + w - 96, y + h + 16, blur);
   } });
   // G1 gantry over the flyover (d 1.15)
   H.boards.push({ d: H.FLY_D, draw(g, T, k, blur) {
     const x = 330, y = 1398, w = 420, h = 92, deck = 1516;
+    U.setBlur(g, blur);
     g.fillStyle = C.steel; for (const px of [x + 12, x + w - 22]) { g.fillRect(px, y + h, 10, deck - y - h); }
     // lattice beam on top: a run of V-chevrons
     g.fillStyle = '#161314'; g.fillRect(x - 16, y - 18, w + 32, 4); g.fillRect(x - 16, y - 6, w + 32, 4);
     g.strokeStyle = '#161314'; g.lineWidth = 2.4; g.beginPath(); for (let bx = x - 14; bx < x + w + 14; bx += 16) { g.moveTo(bx, y - 15); g.lineTo(bx + 8, y - 4); g.lineTo(bx + 16, y - 15); } g.stroke();
     g.fillStyle = 'rgba(140,135,131,.55)'; g.fillRect(x - 16, y - 18, w + 32, 1.2);
-    frameRect(g, x, y, w, h, 4);
+    frameRect(g, x, y, w, h, 4, blur);
     litFace(g, faceCanvas('G1', w, h), x, y, w, h, T, blur, k);
     g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); miniStamp(g, x + w * .74, y + h * .62, w * .5, -9, TM.b4, T); g.restore();
-    plate(g, x + 8, y + h + 4);
+    plate(g, x + 8, y + h + 4, blur);
   } });
 
   /* ---------------------------------------------------------------- beat-7 sparkles along the parapets */
