@@ -1,0 +1,5 @@
+out/*
+!out/MM-Diwali-Story.mp4
+!out/MM-Diwali-Story-poster.png
+node_modules/
+__pycache__/
