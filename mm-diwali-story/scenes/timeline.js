@@ -50,5 +50,5 @@ MM.timeline = [
 MM.postParams = (T) => {
   let exposure = 1, bloom = .9;
   for (const f of MM.flashes) { if (T >= f.t && T < f.t + f.dur) { const k = 1 - (T - f.t) / f.dur; exposure += (f.exposure || 0) * k * k; bloom += (f.bloom || 0) * k; } }
-  return { exposure, bloom };
+  return { exposure, bloom, vignette: .45, grain: .042 };
 };
