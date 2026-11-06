@@ -1,0 +1,1081 @@
+{
+ "title": "Booked For You · पूरा शहर आपके नाम",
+ "logline": "On Diwali night a 'SPACE AVAILABLE' hoarding is stamped BOOKED… for you, and then the rest of the city is booked too. MM's tri-vision, LED screen and LED van each roast a Diwali every family lives through: the safai, the Monday diet and soan papdi regifting. Then every ad switches off so one diya can pass its light to a red tower and on to every home. The lit city is stamped FULLY BOOKED with happiness, and three towers strung with lights snap into the MM mark. The card signs it 'Sponsored by: Aapke Apne · Media partner: MM Advertising', and a forward-the-light ticker ends on 'Sabko!'.",
+ "duration_s": 24.4,
+ "rationale": "WHY PEOPLE FORWARD IT. (1) The forward is the media buy. The sender 'books the whole city' for one person, a grand gesture anyone can afford, and the card signs it for them ('Sponsored by: Aapke Apne'), so it reads as their own wish rather than an agency ad. By 1.47 s the hook is about the receiver ('for you / आपके लिए'). (2) Three short family truths that people can screenshot, one per bar, each with one hero line of 6 words or fewer held at least 1.85 s: 'घर साफ़। कमर हाफ़।', 'डाइट: मंडे से। काजू कतली: अभी से।' and 'सोन पापड़ी: आए 3, गए 4।'. People will tag the mom, the dieter and the regifter. Two fine-print easter eggs (*T&C: Mummy, *Box #4: a mystery) reward a pause and a replay. (3) Laughter turns to warmth. The ads go dark and 'मेरे दीये से, आपके दीये तक। / From my diya to yours.' makes it safe to send to parents, the boss and clients, and the forwarder becomes the 'my'. (4) The end card tells people who to send it to without chain-letter wording: 'Forward the light · रोशनी आगे बढ़ाइए' with a typed ticker (Mummy-Papa… Bestie… Boss… Pados wale uncle… Sabko!). (5) It reads as Diwali from frame 0 (a marigold toran, a lit diya on the catwalk and sky sparkles), and the misdirect pays off at 0.40 s. At 24.4 s it plays whole on WhatsApp Status and in an Instagram story. The last 0.3 s dims to the frame-0 night and the tubelight hum, so it loops cleanly into the hook. (6) It works pan-India from one master file. Devanagari hero lines each carry one English sub of 6 words or fewer, at least 40 px, that appears with the hero. A CUT-EN re-render (same timeline) swaps the hero and sub languages on S2–S5 for South, East and NRI groups. A variant pack re-renders only the S1 handwriting: 'for Mummy-Papa / for my bestie / for the team / for our clients'. HOW THE BRAND IS INTEGRATED. MM's own media are the cast and the joke: a classic hoarding, a tri-vision, an LED screen, and an LED van with the on-red mark on its MM Red cab door. Every board carries a media-owner plate, and the hook plate shows a 44 px reverse mark from frame 0. The Stamp Violet block-print stamp nods to the pre-1970 printing roots and drives the plot from BOOKED to FULLY BOOKED. The light passes from a diya to the MM Red middle tower first, and the red tower lights both sides. That plants 'the pillar between them belongs to both' 5 s before the three towers and two lantern-weighted light strings snap into the exact mark. The geometry is true: chevron notch at 34% and blunt tip at 73% of the mark's height, with the band meeting the pillars over the top 42%. The Legacy Line appears only as the balcony railing (one red pillar under the hero diya) and the end-card toran (one red pillar at x 540). A three-note sonic mark, D–A–D' with a bell doubling the middle red-pillar note, becomes MM's audio signature. MM is credited, not shouted: 'MEDIA PARTNER', the bilingual reverse lockup, and 'Trust, made visible.' MUST-FIXES APPLIED. Three gags (rangoli and relatives cut, soan papdi grafted onto the van). Six OOH sites in S2 and one reusable board rig. One hero line per gag. The jargon turn line replaced. Diwali cues in every scene. The S9 geometry is exact, with its clear space masked and no rocket launched from the mark. One lockup scale. Seven end-card elements. A frame-aligned 100 BPM grid: beat 0.600 s = 18 frames, offset 0.400 s, all times rounded to the nearest frame (round(t*30)/30). A phone-safe mix: every sub hit carries a 120–250 Hz body, with at most 2 SFX layers per beat during the gags. DELIVERY. H.264 High, yuv420p, 1080x1920, 30 fps, 5–6 Mbps (about 16 MB), AAC 192 kbps, +faststart, with grain and dither on the dark gradients so they survive WhatsApp re-encoding. Check every hero line on a real phone at 1x with the Story UI mocked over it.",
+ "art_direction": {
+  "palette": "Rich Black #1C1A1A: base night, ground, end-card background, and the halo behind the mark. Sky: vertical gradient from #25203F at the top (Rich Black + 25% Stamp Violet) to #1C1A1A. Ink #2B2728: buildings, board frames, media-owner plates, balcony railing, hero type on Muslin. Stone #8C8783: 2 px top-edge highlights, fine print on Muslin, the Face-A sale ad, 'MEDIA PARTNER'. Mist #C9C4BF: English subs on dark, forward label, tagline, cold home windows at 12%. Muslin #EEECE8: hoarding and tri-vision faces, Hindi heroes on dark, stamp knock-outs, soan papdi boxes, kaju katli. Paper #F4F2EE (L.PAL.paper, never blooms): heroes on dark, the reverse logo's outer parts, toran at 85%. MM Red #D2232E (the only red): the shared pillar (middle tower, railing pillar, toran pillar), one punch word per board ('हाफ़', 'काजू कतली: अभी से।', the '4'), FULLY BOOKED stamp ink, the matchstick, van cab, soan papdi ribbons, the middle rocket burst, 'for you' and the ticker. Stamp Violet #3F3593: BOOKED stamp ink on Muslin only, plus a faint sky haze. LIGHT ONLY, never on type or the logo: Diya Amber #FFB547, Marigold #F59E1B, Gold #FFC24A, Amber #FF9F1C, flame cores #FFE7A3 / #FFF4CF, cool tubelight #F4F6FF, and pure white #FFFFFF for bulb cores, sparks and firework heads (these bloom).",
+  "style": "Premium flat-geometric night city in 2.5D parallax, in five layers: sky and stars, far Lucknow silhouettes (a Rumi Darwaza-style gateway and a clock tower, secular and generic), mid buildings with window grids, near rooftops and street, foreground bokeh. Everything solid is built from the mark's own parts, equal pillars and V-chevrons: hoarding legs, tri-vision slats, LED bezel, van body, the Legacy-Line balcony railing, and light strings pulled into V's by lanterns. Flat fills with a 2 px Stone top-edge highlight. No outlines, no faces and no hands: the MM Red matchstick lights the diya by itself. Before animating, build a style kit (van, jhadu, kaju katli, soan papdi box, LED bezel, tri-vision, diya, akash kandil), review each item as a 0.5-scale still, and cut anything that reads as clip-art. Deliberate imperfection appears only on the stamps: block-print texture, with the wobble animated on twos. Camera grammar: pull-back (S1→S2); one lateral 'auto-rickshaw ride' with 8-frame whip-pans through the three gags (S3); a whip-up to the wide shot (S4); a held wide with a 4% push-in (S4–S5); a dolly-in (S6); settle (S7). Determinism: every particle, the kaju katli pile, the van suspension, the stamp spatter and the slat wave are either closed-form functions of t or tables pre-simulated at init from L.rnd seeds. No state is carried between frames. Draw the logo only through L.drawLogo or L.markParts, with uniform scale.",
+  "typography": "Anek Latin ('lat'), semi-expanded (wdth 112.5) unless noted. English heroes: weight 760 at 112 px ('Happy Diwali') and 78 px ('SPACE AVAILABLE', maxWidth 780). Stamp words: weight 760, expanded (wdth 125); 'BOOKED' 120 px (maxWidth 600), 'FULLY BOOKED' 80 px (maxWidth 700). English subs: weight 600, 40–46 px (S2 44, safai 44, kaju 40, van 40, turn 46, wish 44). Stamp band: weight 600, 40 px. Forward label: weight 600, 38 px. 'MEDIA PARTNER': weight 600, 30 px, tracking +6. Tagline + URL: weight 600, 32 px. Plates: weight 650, 28 px on the hook plate and 22 px on the gag boards. Fine print: weight 500, 28 px. 'MEGA SALE 50%': weight 760, 90 px. Anek Devanagari ('dev'): letter-spacing 0, never split into glyphs, animated per word only. Heroes: S1 76 px / weight 700; S2 84 / 700; safai 92 / 800; kaju line 1 72 / 700 and line 2 84 / 800; van label 60 / 700 and line 108 / 800; turn 92 / 700; wish 84 / 700; 'शुभ दीपावली' 104 / 700. Stamp bands: weight 600, 40–44 px. Forward label: weight 600, 40 px. Fine print: weight 500, 28 px. Tiro Devanagari Hindi italic ('tiro', weight 400, used in small doses): 'for you' 120 px, 'आपके लिए' 64 px, 'Sponsored by: Aapke Apne' 54 px, ticker 64 px. Rules: every L.text call gets a maxWidth, checked with L.measure; anything meant to be read is at least 36 px; 28 px fine print is for pausers only; each sub appears with its hero, never after it; one hero line per beat; all text inside x 90–990, y 260–1600.",
+  "lighting_fx": "The light tells a two-temperature story. S1–S3 are lit by commercial light: cool tubelight #F4F6FF cones, LED white and Muslin faces, with cold home windows (Mist 12%). Diwali is still present in every shot: a toran, diyas on catwalks and parapets, jhalar strings, and faint sky fireworks at 30%. At 12.400 every ad dies (MM.postParams exposure 1.00→0.82, no flash). From 13.000 the light is domestic and warm, spreading from the diya to the red tower and then across the city in 8th-note rings, with each window popping 1 frame overbright (x1.6) before settling. Finishing pass (engine/post.js): bloom only on pixels ≥247 (flames, bulb cores, firework heads, sparks); type uses Paper/Muslin so it never blooms. Halation on warm lights. About 3% grain (around 2 px) plus dither on every dark gradient so they survive WhatsApp re-encoding. Vignette 0.45. Real motion blur (4 sub-frames, 180° shutter) on whips, stamp drops and the dolly. Warm bloom only BEHIND copy (S4: radial #FFB547 at 18%) and behind the mark, never on it. A 60 px Rich Black halo keeps fireworks off copy and stamps, and the logo's clear-space box is masked for every particle. Photosensitivity: no full-frame flashes; impacts use shake plus shockwave rings, and the S6 flash is one low-intensity frame behind the mark. MM.postParams timeline: exposure 0.82 for 12.400–13.000, easing back to 1.00 by 13.600; exposure 1.06 for 3 frames at 16.000 and at 19.600; bloom +20% for 16.600–17.800.",
+  "recurring_motifs": "(1) The rubber stamp: Stamp Violet BOOKED (0.400, then 2.800–4.000 across the city) becomes the MM Red FULLY BOOKED (16.000). (2) The MM media-owner plate on every board from frame 0. (3) Pillars and V-chevrons everywhere: hoarding legs, tri-vision slats, the Legacy-Line balcony railing, lantern-weighted light strings, the toran. (4) The red pillar as the light-giver: an MM Red matchstick in pillar proportion (17.5:100), the red railing pillar under the hero diya, the red middle tower that lights first and holds both strings, the middle MM Red burst, and the MM Red 'for you' and ticker. (5) The address line moves from receiver to sender to everyone: 'for you' → 'Sponsored by: Aapke Apne' → 'Sabko!'. (6) Light passed on: diya → red tower → every home → strings → mark → 'Forward the light'. (7) Fine-print easter eggs. (8) Sonic motifs: stamp thuds pitched upward a semitone each time, a rising Yaman scale with every light, and the D–A–D' sonic mark with a bell on A for the red pillar."
+ },
+ "scenes": [
+  {
+   "id": "s1-hook-space-available",
+   "start": 0,
+   "end": 2.8,
+   "purpose": "Hook: the misdirect and then a personal gift. Frame 0 must be readable and already look like Diwali; the stamp lands at 0.400 and 'for you' finishes by 1.467.",
+   "layout": "CAMERA: scale 1.000 at 0.000 → 1.015 at 2.200 (slow push-in about (540,880)); 2.200–2.800 pull-back 1.015→0.620 about (540,880), easeInCubic (continued by s2). BACKGROUND (full-bleed): sky gradient #25203F (y 0) → #1C1A1A (y 1100); Stamp Violet #3F3593 haze, radial at (540,120), r 700, alpha 0.25; 40 faint stars (alpha 0.5) in y 0–460; three far firework sparkles (r 40–60, gold #FFC24A / white, alpha 0.35) at (180,330), (880,300), (720,420), blooming at 0.000, 0.900 and 1.700; 18 distant city bokeh discs (gold/amber, r 10–30, alpha 0.15) in y 1380–1920. HOARDING (L.hoarding, legs 'twin'): face x 100–980, y 470–1290 (880x820), Muslin #EEECE8 flex with weathering (paper texture, multiply 0.08); Ink #2B2728 frame 12 px; Stone #8C8783 lattice legs at x 250–290 and 790–830 running from y 1334 to 1920; catwalk y 1300–1334. Marigold toran on the top rail: L.toran x0 100, x1 980, y 452; strands hang to y 520 in Marigold #F59E1B / Diya Amber #FFB547 with mango-leaf tips. Two gooseneck tubelights at (330,430) and (750,430) cast cool cones (#F4F6FF, alpha 0.18) down the face. A lit clay diya stands on the catwalk at (230,1300): body 64 px wide, flame 46 px, gold glow r 160. FACE COPY: 'SPACE AVAILABLE' centred on x 540, baseline 640 (706 px wide; spans y 590–642); 'जगह खाली है' baseline 760 (390 px; y 688–769). MEDIA-OWNER PLATE hanging under the catwalk: Ink plate x 670–975, y 1342–1398 (radius 4); reverse MM mark h 44 via L.drawLogo('mark', reverse) at x 686–734, y 1348–1392; 'MM Advertising' left-aligned at x 748, baseline 1381. STAMP (from 0.400): Stamp Violet block-print impression, a double-rule rectangle 700x250 (outer rule 10 px, inner rule 4 px, 14 px gap), rotated −9°, centred (540,900); corners ≈ (175,831), (866,722), (905,969), (214,1078). In stamp-local coordinates: 'BOOKED' baseline +20; band rule at +45; band text baseline +100. Texture: cached noise mask with eroded edges, ink voids ≤12%, and a 2 px double strike at 35%. HANDWRITING in MM Red #D2232E: 'for you' at baseline 1160 (x 341–739, y 1069–1191), clearing the stamp's lower edge by ≈12 px; 'आपके लिए' at baseline 1250 (y 1192–1262).",
+   "beats": [
+    "0.000: frame 0 is fully lit and legible: SPACE AVAILABLE / जगह खाली है, toran, lit diya, and the first sky sparkle blooming.",
+    "0.067–0.267: the tubelights flicker as a dip, never from black: lamp intensity 1.0 → 0.35 (0.067) → 0.90 (0.133) → 0.40 (0.200) → 1.0 (0.267); face brightness tracks between 0.70 and 1.0.",
+    "0.233–0.400: the stamp drops from above frame: scale 1.8→1.0, y offset −320→0, rotation −14°→−9°, easeInCubic; its shadow on the face grows from 0 to 35%.",
+    "0.400 (beat 0): IMPACT. The hoarding shakes ±8 px, decaying over 4 frames (0.400–0.533). 40 Stamp Violet ink specks spray out ballistically (0.4 s life). A dust puff rises off the top rail and the toran marigolds bounce 6 px.",
+    "0.433–0.467: the tubelights flicker once from the impact.",
+    "0.400–0.800: the stamp ink settles (opacity 0.92→1.0, edge texture sharpens; the on-twos wobble stops).",
+    "1.000–1.467 (beat 1): 'for you' writes on left to right with a stroke-mask reveal (easeInOutSine pen speed).",
+    "1.300–1.567: 'आपके लिए' rises 12 px and fades in as one word group.",
+    "1.600 (beat 2): the diya flame flares 1.0→1.25→1.0; second sky sparkle.",
+    "2.200–2.800 (beat 3): pull-back, scale 1.015→0.620, easeInCubic; the hoarding legs, rooftops and neighbouring boards enter frame.",
+    "2.500–2.800: s1 fades out over s2, which is drawing the identical framing."
+   ],
+   "copy": [
+    {
+     "text": "SPACE AVAILABLE",
+     "lang": "en",
+     "font": "Anek Latin 760, semi-expanded",
+     "size_px": 78,
+     "color": "#2B2728",
+     "position": "centred x 540, baseline y 640, maxWidth 780 (706 px wide)",
+     "in_s": 0,
+     "out_s": 2.8,
+     "animation": "Printed on the face and legible on frame 0; dims with the tubelight dip; stays under the stamp"
+    },
+    {
+     "text": "जगह खाली है",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 76,
+     "color": "#8C8783",
+     "position": "centred x 540, baseline y 760",
+     "in_s": 0,
+     "out_s": 2.8,
+     "animation": "Printed on the face; the stamp's top edge partly covers its right half"
+    },
+    {
+     "text": "BOOKED",
+     "lang": "en",
+     "font": "Anek Latin 760, expanded (wdth 125)",
+     "size_px": 120,
+     "color": "#3F3593",
+     "position": "inside the stamp (rect 700x250 rotated −9° at (540,900)), stamp-local baseline +20, maxWidth 600",
+     "in_s": 0.4,
+     "out_s": 2.8,
+     "animation": "Part of the stamp: drop 0.233–0.400, slam, ink settles 0.400–0.800; block-print texture; carried into s2"
+    },
+    {
+     "text": "बुक्ड · दीपावली 2026",
+     "lang": "hi",
+     "font": "Anek Devanagari 600",
+     "size_px": 40,
+     "color": "#3F3593",
+     "position": "stamp band, stamp-local baseline +100, centred",
+     "in_s": 0.4,
+     "out_s": 2.8,
+     "animation": "Part of the stamp (drop that year for a reusable cut)"
+    },
+    {
+     "text": "for you",
+     "lang": "en",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 120,
+     "color": "#D2232E",
+     "position": "centred x 540, baseline y 1160",
+     "in_s": 1,
+     "out_s": 2.8,
+     "animation": "Handwritten stroke-mask write-on left to right, 1.000–1.467"
+    },
+    {
+     "text": "आपके लिए",
+     "lang": "hi",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "centred x 540, baseline y 1250",
+     "in_s": 1.3,
+     "out_s": 2.8,
+     "animation": "Rises 12 px and fades in as one word group (0.267 s)"
+    },
+    {
+     "text": "MM Advertising",
+     "lang": "en",
+     "font": "Anek Latin 650, semi-expanded",
+     "size_px": 28,
+     "color": "#F4F2EE",
+     "position": "media-owner plate, left-aligned x 748, baseline y 1381, beside the 44 px reverse mark",
+     "in_s": 0,
+     "out_s": 2.8,
+     "animation": "Static plate (real-hoarding detail)"
+    }
+   ],
+   "transition_out": "Continuous pull-back from 2.200 to 2.800. s2 starts at 2.500 with the identical framing and s1 fades out over 2.500–2.800 (0.300 s overlap), so the handover is invisible."
+  },
+  {
+   "id": "s2-whole-city-booked",
+   "start": 2.5,
+   "end": 5.2,
+   "purpose": "Scale the gift: on Diwali night the whole city's boards get stamped BOOKED, one cascade per beat. Plants MM's outdoor world and its plates.",
+   "layout": "CAMERA: continues the pull-back 0.620→0.341 (2.800–3.300, easeOutCubic), framed so the hook hoarding's face lands at x 120–420, y 1050–1330; then a 5-layer parallax drift leftward (far 4 px/s, mid 10, near 20). SKY y 0–760: gradient #25203F→#1C1A1A with stars; faint gold sparkle bursts at (160,640) at 3.100 and (930,610) at 4.300 (alpha 0.35, behind a 60 px dark halo around the copy). FAR LAYER, y 760–1000: Lucknow silhouettes in Ink #2B2728 at 60%: a Rumi Darwaza-style gateway at x 120–420 and a clock tower at x 820–880 (top y 720). MID LAYER, y 820–1350: 6- to 10-storey Ink blocks with cool windows (Mist #C9C4BF at 12%) and sparse warm ones (Diya Amber 8%); jhalar string lights along 3 parapets (y 900, 980, 1060). NEAR LAYER, y 1380–1600: flyover deck in Ink with a Stone edge; headlight streaks in white and MM Red (alpha 0.6) moving left to right. SIX OOH SITES, each with a small MM plate (Ink, 28 px tall, reverse mark h 18; decorative at this scale): H1 the hook hoarding, x 120–420, y 1050–1330 (already BOOKED, 'for you' still on it); H2 rooftop hoarding x 640–980, y 1000–1200; G1 gantry over the flyover x 330–750, y 1420–1520; U1 unipole x 150–390, y 760–900; W1 building wrap x 700–900, y 700–960; L1 LED screen x 470–610, y 690–780 (test-pattern bars). Every face except H1 reads 'SPACE AVAILABLE' (Ink on Muslin, scaled). Mini stamps are Stamp Violet BOOKED impressions 62% of the face width, rotated −8° to −12°. HEADLINE BAND y 295–563, clear of every site (sites start at y 690).",
+   "beats": [
+    "2.800 (beat 4): H2 and G1 are stamped: mini slam (scale 1.5→1.0 in 0.100 s), 2-frame ±4 px shake, 16 violet specks each.",
+    "2.800–3.100: headline line 1 rises word by word (1-frame stagger, 0.300 s, y +36→0); line 2 2.900–3.200; English sub 2.967–3.233. All copy is on by 3.233.",
+    "2.800–3.300: the pull-back settles; parallax drift begins.",
+    "3.400 (beat 5): U1 and W1 are stamped.",
+    "4.000 (beat 6): L1 glitches for 2 frames and flips to a pixel-font 'BOOKED' (Paper on Rich Black, 10 px dot pitch).",
+    "4.600 (beat 7): all six boards pulse +25% brightness for 0.100 s; 30 gold sparkles twinkle along the parapets.",
+    "4.933–5.200: whip-pan right (camera x +1400 world px, easeInOutCubic, engine motion blur); the headline exits left with the pan. Readable 2.967–4.933, about 1.97 s."
+   ],
+   "copy": [
+    {
+     "text": "दिवाली की रात,",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 84,
+     "color": "#F4F2EE",
+     "position": "centred x 540, baseline y 370 (499 px wide; y 295–382)",
+     "in_s": 2.8,
+     "out_s": 5.2,
+     "animation": "Per-word rise (1-frame stagger, 0.300 s); exits with the whip-pan"
+    },
+    {
+     "text": "पूरा शहर आपके नाम।",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 84,
+     "color": "#F4F2EE",
+     "position": "centred x 540, baseline y 470 (690 px wide; y 396–498)",
+     "in_s": 2.9,
+     "out_s": 5.2,
+     "animation": "Per-word rise; exits with the whip-pan"
+    },
+    {
+     "text": "Diwali night. The whole city's yours.",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 44,
+     "color": "#C9C4BF",
+     "position": "centred x 540, baseline y 555 (769 px wide; y 525–563)",
+     "in_s": 2.967,
+     "out_s": 5.2,
+     "animation": "Rise 12 px + fade, 0.267 s, together with the hero"
+    }
+   ],
+   "transition_out": "Whip-pan right 4.933–5.200. s3 starts at 4.933 already mid-whip (0.267 s overlap), so the tri-vision arrives from the right with its slats already turning."
+  },
+  {
+   "id": "s3-gag-ride",
+   "start": 4.933,
+   "end": 12.4,
+   "purpose": "Three one-bar family gags, each on a different MM medium (tri-vision, LED screen, LED van). Each has one hero line on beat 1, held clean for at least 1.85 s, and the third gag (soan papdi) builds toward forwarding.",
+   "layout": "ONE REUSABLE BOARD RIG with three skins, 1400 world px apart on one lateral camera track; each whip-pan is camera x +1400 over 8 frames (0.267 s), easeInOutCubic, with engine motion blur. SHARED BACKDROP: sky y 0–560 (Rich Black → #25203F), with one faint distant firework about every 1.2 s in the band y 280–520 (alpha 0.30, behind everything); far Lucknow silhouette layer (Ink 60%); mid buildings in Ink #2B2728 with cool windows (Mist 12%) and a few warm ones; jhalar string lights (bulbs #FFC24A / #FFF4CF, 5 px) along the parapets; six small diyas (flame 18 px) on the parapet in front of each board. BAR A, TRI-VISION ON A ROOFTOP: face x 120–960, y 560–1180 (840x620); Ink frame 14 px; catwalk y 1190–1224; spotlights at (300,1235) and (780,1235) throwing warm-white cones up the face; roof parapet at y 1300 with 5 diyas and string lights; MM plate x 730–960, y 1232–1272 (mark h 30, 'MM Advertising' 22 px in Paper). 16 slats of 52.5 px. Face A, outgoing: Mist #C9C4BF ground, 'MEGA SALE 50%' in Stone at baseline 900. Face B: Muslin #EEECE8 ground; hero at baseline 800 (750 px wide; y 738–812); sub at baseline 890 (678 px; y 860–898); a flat jhadu (Ink handle 10x150 px, Stone bristle fan 120x90) sweeping along y 1000–1150; fine print right-aligned at x 930, baseline 1150. BAR B, LED SCREEN ON A FACADE: bezel x 150–930, y 600–1240 (Ink, 20 px); screen x 170–910, y 620–1220, Rich Black with a 6 px dot-pitch overlay (22%) and scanlines; warm dim windows around it; an akash kandil (MM Red/Muslin) at (1010,700); fairy lights along the facade top at y 580; MM plate x 690–930, y 1246–1286. Line 1 at baseline 770 (358 px); line 2 at baseline 900 (689 px, x 195–884); sub at baseline 1010 (675 px). The kaju katli pile sits inside the screen at x 640–900, y 1080–1215: 20 pieces, each a Muslin rhombus 56x36 with a Mist top facet and Paper silver-leaf flecks; the landing table is pre-simulated at init from L.rnd seed 44. BAR C, LED VAN AT STREET LEVEL (camera dips 220 px): road band y 1440–1920 in Ink with Stone lane dashes; shopfronts behind with torans and string lights. L.ledVan facing right, scale 1.8, rear-bottom origin at (50,1440): LED box x 75–723, y 900–1314; MM Red cab x 752–1022, y 1030–1314; wheels at x 248 and 860 (r 61). Cab door mark: L.drawLogo('mark', way 'onred': Paper outer parts, Ink pillar), h 50, centred (815,1240). Roof rack: three soan papdi boxes (Muslin, 110x52, MM Red ribbon cross 8 px plus a bow) at x 140–250, 270–380 and 400–510, y 848–900. Panel copy is centred on x 399: line 1 at baseline 990 (456 px); line 2 at baseline 1140 (572 px, x 113–685); sub at baseline 1255 (496 px). Fine print on the road, centred on x 540, baseline 1530.",
+   "beats": [
+    "4.933–5.200: whip-in. At 5.067 the 16 slats start turning 120° in a left-to-right wave (4 ms stagger; shading from cos(angle)), from Face A to Face B, complete at 5.200.",
+    "5.200 (beat 8): the slats land; the hero and sub are on (printed on Face B, so the flip itself is the reveal).",
+    "5.200–5.567: the jhadu swipes left to right along the bottom band (x 170→990, clipped to the face), kicking up 3 Mist dust puffs.",
+    "5.500–6.400: the dust puffs turn into 24 gold #FFC24A sparkles drifting up past the board top (y 560→420), with bloom.",
+    "6.400 (beat 10): 'हाफ़' back-crack: the word skews 8° and snaps back within 0.133 s, with a 2-frame squash (scale-y 0.92); the fine print fades in 6.400–6.600.",
+    "7.333–7.600: whip-pan right. Safai hero held clean 5.200–7.333 (2.13 s).",
+    "7.467–7.600: the LED screen boots: a top-down scan wipe plus a 2-frame RGB sub-pixel flicker.",
+    "7.600 (beat 12): line 1 'डाइट: मंडे से।' dissolves in as LED dots, word by word (1-frame stagger, 0.133 s).",
+    "7.900: line 2 'काजू कतली: अभी से।' pops in (scale 0.85→1.06→1.00 over 0.167 s) together with the English sub. Kaju katli start raining from y 620 (20 pieces, gravity 2200 px/s², one bounce each) and stack in the pile; the audible landings are at 8.100, 8.267, 8.400, 8.567, 8.733, 8.933, 9.100 and 9.267.",
+    "9.400 (beat 15): the word 'डाइट' glitches (3-frame RGB split) and crumbles into about 60 LED dots that fall off the bottom of the screen by 9.733; the rest of the line stays. Punch line held clean 7.900–9.733 (1.83 s).",
+    "9.733–10.000: whip-pan right, with the camera dipping 220 px to street level. The van enters from 900 px to the left, decelerating (easeOutCubic) with its wheels spinning; the panel flickers on 9.867–10.000.",
+    "10.000 (beat 16): the van stops. Suspension bounce: body y offset = 10·e^(−6τ)·sin(18τ) px, where τ = t − 10.000. Panel lines and sub are fully on. The three boxes drop onto the roof rack at 10.000, 10.100 and 10.200 (0.100 s fall, 6 px bounce).",
+    "11.200 (beat 18): the boxes hop off to the right one by one at 11.200, 11.333 and 11.467 (parabolic arcs, apex y 640, exiting at x 1150). At 11.533 a 4th box pops onto the rack out of nowhere (puff) and hops off at 11.600. The MM Red '4' pulses 1.0→1.15→1.0, and the fine print fades in 11.600–11.800.",
+    "12.133–12.400: whip UP into s4 (camera y −1200 world px and scale 1.0→0.5 over 8 frames, with motion blur). Van hero held clean 10.000–12.133 (2.13 s)."
+   ],
+   "copy": [
+    {
+     "text": "MEGA SALE 50%",
+     "lang": "en",
+     "font": "Anek Latin 760, semi-expanded",
+     "size_px": 90,
+     "color": "#8C8783",
+     "position": "tri-vision Face A, centred x 540, baseline y 900, maxWidth 760",
+     "in_s": 4.933,
+     "out_s": 5.2,
+     "animation": "Outgoing generic ad, turned away by the slat flip"
+    },
+    {
+     "text": "घर साफ़। कमर हाफ़।",
+     "lang": "hi",
+     "font": "Anek Devanagari 800",
+     "size_px": 92,
+     "color": "#2B2728 (word 'हाफ़' in #D2232E)",
+     "position": "tri-vision Face B, centred x 540, baseline y 800, maxWidth 760 (750 px)",
+     "in_s": 5.2,
+     "out_s": 7.6,
+     "animation": "Revealed by the slat flip 5.067–5.200; 'हाफ़' skews 8° and snaps back at 6.400 (back-crack); exits with the whip at 7.333"
+    },
+    {
+     "text": "House: spotless. Back: finished.",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 44,
+     "color": "#2B2728",
+     "position": "Face B, centred x 540, baseline y 890 (678 px)",
+     "in_s": 5.2,
+     "out_s": 7.6,
+     "animation": "Arrives with the hero via the slat flip"
+    },
+    {
+     "text": "*नियम व शर्तें: मम्मी  ·  *T&C: Mummy",
+     "lang": "hi+en",
+     "font": "Anek Devanagari 500 + Anek Latin 500",
+     "size_px": 28,
+     "color": "#8C8783",
+     "position": "Face B, right-aligned at x 930, baseline y 1150 (≈420 px wide)",
+     "in_s": 6.4,
+     "out_s": 7.6,
+     "animation": "Fades in over 0.200 s; easter egg for people who pause"
+    },
+    {
+     "text": "डाइट: मंडे से।",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 72,
+     "color": "#F4F2EE",
+     "position": "LED screen, centred x 540, baseline y 770 (358 px)",
+     "in_s": 7.6,
+     "out_s": 10,
+     "animation": "LED-dot dissolve, word by word; the word 'डाइट' glitches and crumbles into falling dots at 9.400"
+    },
+    {
+     "text": "काजू कतली: अभी से।",
+     "lang": "hi",
+     "font": "Anek Devanagari 800",
+     "size_px": 84,
+     "color": "#D2232E",
+     "position": "LED screen, centred x 540, baseline y 900, maxWidth 720 (689 px)",
+     "in_s": 7.9,
+     "out_s": 10,
+     "animation": "Pop: scale 0.85→1.06→1.00 over 0.167 s; exits with the whip at 9.733"
+    },
+    {
+     "text": "Diet: Monday. Kaju katli: right now.",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 40,
+     "color": "#C9C4BF",
+     "position": "LED screen, centred x 540, baseline y 1010 (675 px)",
+     "in_s": 7.9,
+     "out_s": 10,
+     "animation": "Whole-line LED dissolve (0.133 s) together with line 2"
+    },
+    {
+     "text": "सोन पापड़ी के डिब्बे:",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 60,
+     "color": "#EEECE8",
+     "position": "van LED panel, centred x 399, baseline y 990 (456 px)",
+     "in_s": 10,
+     "out_s": 12.4,
+     "animation": "On with the panel flicker 9.867–10.000"
+    },
+    {
+     "text": "आए 3, गए 4।",
+     "lang": "hi",
+     "font": "Anek Devanagari 800",
+     "size_px": 108,
+     "color": "#F4F2EE ('4' in #D2232E)",
+     "position": "van LED panel, centred x 399, baseline y 1140, maxWidth 580 (572 px; x 113–685)",
+     "in_s": 10,
+     "out_s": 12.4,
+     "animation": "On with the panel; the '4' pulses at 11.600 as the mystery box hops off"
+    },
+    {
+     "text": "Soan papdi: got 3, gave 4.",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 40,
+     "color": "#C9C4BF",
+     "position": "van LED panel, centred x 399, baseline y 1255 (496 px)",
+     "in_s": 10,
+     "out_s": 12.4,
+     "animation": "On with the panel, together with the hero"
+    },
+    {
+     "text": "*चौथा डिब्बा: रहस्य  ·  *Box #4: a mystery",
+     "lang": "hi+en",
+     "font": "Anek Devanagari 500 + Anek Latin 500",
+     "size_px": 28,
+     "color": "#C9C4BF",
+     "position": "road, centred x 540, baseline y 1530 (≈494 px)",
+     "in_s": 11.6,
+     "out_s": 12.4,
+     "animation": "Fades in over 0.200 s as the 4th box hops off"
+    }
+   ],
+   "transition_out": "Vertical whip-up plus pull-back 12.133–12.400 reveals the wide city with every MM board still lit. s4 starts at 12.133 (0.267 s overlap) and kills them all on the 12.400 beat."
+  },
+  {
+   "id": "s4-lights-off-diya-on",
+   "start": 12.133,
+   "end": 16,
+   "purpose": "The turn from laughter to warmth: every ad switches off, an MM Red matchstick lights one diya, and its light goes first to the red middle tower and then out to every home. Includes the late-latif window and the wish 'मेरे दीये से, आपके दीये तक।'.",
+   "layout": "WIDE CITY. Camera: world scale 0.5 about the s6 tower frame, shifted +150 px in y, so the three towers sit at x 410–451, 519–561 and 629–670 with roofs at y 710; a push-in 1.00→1.04 about (540,900) over 13.300–16.000 (world only; copy fixed). Sky y 0–700: #25203F→#1C1A1A with stars (alpha 0.5). FAR LAYER, y 820–1000: gateway and clock-tower silhouettes, Ink 60%. THE THREE CENTRAL TOWERS (the s6 pillars at half scale): shared flat roofline at y 710; Ink #2B2728 bodies with a 4x6 px window grid running down into the city; two fairy-light strings (9 bulbs each, unlit until 14.200) sag between the inner roof corners to a lowest point of y 780, each with a tiny akash kandil at its midpoint. MID CITY, y 880–1440: Ink blocks with about 420 windows, cool Mist 12% until lit. The gag boards are visible small and lit until 12.400: tri-vision x 120–300, y 960–1080; LED screen x 760–900, y 980–1070; van x 300–500, y 1480–1560; hook hoarding x 860–1000, y 1100–1180. LATE-LATIF WINDOW W*: a balcony window on the mid-right building, x 820–880, y 1040–1090. FOREGROUND BALCONY RAILING = Legacy Line: h 120, yTop 1440 (to y 1560), x0 0, x1 1080, offset 25.5, redIndex 11. That puts the single MM Red #D2232E pillar centred at x 540; all other parts are Ink with a 2 px Stone top-edge highlight. Striker strip: a 4 px Stone line on the railing top at y 1440, x 440–520. HERO DIYA standing on the red pillar at (540,1440): L.diya, s 1.2, 84 px wide, flame 56 px (tip ≈ y 1372). An MM Red matchstick in exact pillar proportion (14x80 px, Muslin head) leans at x 470. Eight small diyas (L.diya, s 0.6) stand on alternate shared pillars at x 429/651, 318/762, 207/873 and 96/984 (y 1440). COPY BAND y 298–574, clear of the tower roofs at 710. From 13.000, a warm bloom sits BEHIND the copy: radial #FFB547 at 18%, centre (540,440), r 420.",
+   "beats": [
+    "12.133–12.400: arrive on the wide shot; every board is still lit in cool white.",
+    "12.400 (beat 20): ALL ADS DIE. The LED screens collapse CRT-style (vertical squash to a 2 px line, then out, over 3 frames); the tri-vision and hoarding lamps cut; the van panel goes off; mid-city cool windows drop to 6%. Post exposure 1.00→0.82, with no flash.",
+    "12.400–12.700: stillness: only star twinkle and a breeze on one window's toran.",
+    "12.700–12.867: the matchstick lifts, strikes along the striker strip (x 470→520) and throws a spark burst (24 sparks, 0.267 s); a flame appears on its head.",
+    "12.867–13.000: the match tilts 30° and touches the wick.",
+    "13.000 (beat 21): the hero diya flame blooms (0→1.2→1.0, flicker driven by noise); a warm glow (r 380) reveals the red pillar under it; the copy rises in.",
+    "13.000–13.300: a gold ember (#FFC24A, bloom; 6 px head, 40 px trail) arcs on a slight S-curve from the flame tip (540,1372) up to the red tower's roof (540,710).",
+    "13.300: the red tower lights: its windows flood MM Red #D2232E with amber #FFB547 cores, bottom to top over 0.133 s.",
+    "13.300–14.800: light ripples OUTWARD from the red tower (centre (540,900)) in six 8th-note rings at 13.300, 13.600, 13.900, 14.200, 14.500 and 14.800, each ring 120 px wider. Windows pop 1 frame overbright (x1.6) and settle to Diya Amber / #FFE7A3; the outer towers glow white-gold #FFE7A3; akash kandils (MM Red/Muslin) appear in about 12 windows; parapet strings chase on. In sync, the railing diyas light outward in pairs from the hero diya at 13.300, 13.600, 13.900 and 14.200.",
+    "14.200: the two fairy-light strings between the three tower roofs switch on (warm white/amber, chasing left to right), foreshadowing s6.",
+    "14.200–14.800: LATE-LATIF: window W* stays dark while its neighbours light; 14.500–14.700 the vignette tightens 4% on it.",
+    "14.800 (beat 24): a tiny MM Red ember hops on an arc from the red tower (561,760) to W* (850,1065), 14.800–15.067.",
+    "15.100: W* pops on brightest (1 frame at x1.8 overbright, settling at x1.25 its neighbours) with a small lantern swinging ±8°.",
+    "15.500–15.667: the copy fades out (y −10 px). Held 13.000–15.500 (2.5 s)."
+   ],
+   "copy": [
+    {
+     "text": "मेरे दीये से,",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 92,
+     "color": "#EEECE8",
+     "position": "centred x 540, baseline y 380 (365 px; y 298–393)",
+     "in_s": 13,
+     "out_s": 15.667,
+     "animation": "Per-word rise (2-frame stagger, 0.300 s), warm bloom breathing behind it (never on it)"
+    },
+    {
+     "text": "आपके दीये तक।",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 92,
+     "color": "#EEECE8",
+     "position": "centred x 540, baseline y 490 (582 px; y 408–498)",
+     "in_s": 13.1,
+     "out_s": 15.667,
+     "animation": "Per-word rise"
+    },
+    {
+     "text": "From my diya to yours.",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 46,
+     "color": "#C9C4BF",
+     "position": "centred x 540, baseline y 565 (518 px; y 535–574)",
+     "in_s": 13.133,
+     "out_s": 15.667,
+     "animation": "Rise 12 px + fade, 0.267 s, together with the hero"
+    }
+   ],
+   "transition_out": "15.600–16.000 overlap with s5 (0.400 s). s5's wish line enters at 15.700 in the same top band and its stamp shadow grows over this unchanged framing; the camera passes to s5 as is."
+  },
+  {
+   "id": "s5-fully-booked",
+   "start": 15.6,
+   "end": 18,
+   "purpose": "The wish, as a callback to the hook: a giant MM Red stamp slams onto the whole lit city reading FULLY BOOKED with happiness, then fireworks.",
+   "layout": "The same wide lit city as the end of s4 (push-in held at 1.04, plus a slow 0.5% drift). TOP BAND: line A at baseline 395 (590 px; y 341–423); English at baseline 470 (434 px; y 440–479). MEGA STAMP, in MM Red #D2232E ink with rough block-print texture (cached noise-eroded edges, voids ≤12%, 2 px double strike): a double-rule rectangle 820x300 (outer rule 12 px, inner 4 px, 16 px gap), rotated −7°, centred (540,880), covering the three towers; top corners ≈ (956,681) and (124,781). Stamp-local layout: 'FULLY BOOKED' knocked out to Muslin #EEECE8 at baseline −5 (695 px); a 4 px Muslin band rule at +40; the band 'खुशियों से  ·  with happiness' centred at baseline +105 (≈520 px). DARK HALO: a 60 px Rich Black feather (alpha 0.55) around the stamp and the top-band copy. FIREWORK MAP, in sky and side zones only. Wave 1: (180,640) gold peony r 170; (900,620) white glitter peony r 170; (120,290) MM Red peony r 150; (960,270) gold willow r 180. Wave 2: (250,1180) gold crossette r 140; (830,1160) amber #FF9F1C peony r 150; (540,230) big gold willow r 260, behind line A and protected by the halo; (700,1250) white peony r 120. Rockets rise from rooftops at y ≈1300 at x 120, 220, 80, 300 (left) and 960, 860, 1000, 780 (right). Phuljhadis on three balconies at (200,1380), (540,1420) and (880,1380), radius 60.",
+   "beats": [
+    "15.700–15.900: line A rises word by word; the English sub rises 15.767–15.967.",
+    "15.700–16.000: the stamp's shadow (Rich Black, multiply 40%) grows over the city as the stamp falls: scale 1.6→1.0, rotation −12°→−7°, easeInCubic.",
+    "16.000 (beat 26): MEGA IMPACT. The frame shakes ±10 px, decaying over 4 frames (16.000–16.133). A radial shockwave ring (Paper #F4F2EE at 30%, 6 px, r 0→900 in 0.400 s) spreads from (540,880). Every window flares +40% and settles by 16.300. No full-frame flash.",
+    "16.100 / 16.200 / 16.300 / 16.400: 8 rockets launch in left/right pairs (L.rocket, gold trails).",
+    "16.600 (beat 27): two wave-1 bursts; two more at 16.700.",
+    "17.200 (beat 28): two wave-2 bursts; two more at 17.300. Phuljhadis sparkle on the balconies 17.200–17.800.",
+    "17.800–18.000: the stamp lifts (scale 1.0→1.15, opacity 1→0); line A and the sub fade out 17.800–17.967. Stamp readable 16.000–17.800 (1.8 s); line A 15.900–17.800."
+   ],
+   "copy": [
+    {
+     "text": "आपका पूरा साल…",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 84,
+     "color": "#F4F2EE",
+     "position": "centred x 540, baseline y 395 (590 px)",
+     "in_s": 15.7,
+     "out_s": 17.967,
+     "animation": "Per-word rise (2-frame stagger, 0.200 s)"
+    },
+    {
+     "text": "Wishing you a year…",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 44,
+     "color": "#C9C4BF",
+     "position": "centred x 540, baseline y 470 (434 px)",
+     "in_s": 15.767,
+     "out_s": 17.967,
+     "animation": "Rise + fade, 0.200 s"
+    },
+    {
+     "text": "FULLY BOOKED",
+     "lang": "en",
+     "font": "Anek Latin 760, expanded (wdth 125)",
+     "size_px": 80,
+     "color": "#EEECE8 (knocked out of the MM Red stamp)",
+     "position": "stamp-local baseline −5 in the 820x300 rect rotated −7° at (540,880); maxWidth 700 (695 px)",
+     "in_s": 16,
+     "out_s": 18,
+     "animation": "Part of the stamp: anticipation drop 15.700–16.000, slam at 16.000, lift 17.800–18.000"
+    },
+    {
+     "text": "खुशियों से",
+     "lang": "hi",
+     "font": "Anek Devanagari 600",
+     "size_px": 44,
+     "color": "#EEECE8",
+     "position": "stamp band, left of the centre dot, stamp-local baseline +105",
+     "in_s": 16,
+     "out_s": 18,
+     "animation": "Part of the stamp"
+    },
+    {
+     "text": "with happiness",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 40,
+     "color": "#EEECE8",
+     "position": "stamp band, right of the centre dot, stamp-local baseline +105",
+     "in_s": 16,
+     "out_s": 18,
+     "animation": "Part of the stamp"
+    }
+   ],
+   "transition_out": "17.700–18.000 overlap (0.300 s): s6 starts its dolly-in at 17.700 while the stamp lifts; the city outside the three towers dims and defocuses."
+  },
+  {
+   "id": "s6-city-becomes-the-mark",
+   "start": 17.7,
+   "end": 20.5,
+   "purpose": "Climax: the city becomes the brand. Three towers with lantern-weighted light strings snap into the exact MM mark; the red middle tower holds both strings. A wordless triple burst follows.",
+   "layout": "FINAL MARK: L.drawLogo('mark', way 'reverse', w 520), centred (540,796.4). Bounding box x 280.0–800.0, y 560.0–1032.7. Pillars: x 280.0–362.7; 498.6–581.4 (MM Red #D2232E); 717.3–800.0. Left chevron: upper edge (362.7,560) → notch apex (430.7,722.0) → (498.6,560); lower edge (362.7,757.3) → blunt tip x 424.8–436.6 at y 905.2 → (498.6,757.3). Right chevron: the same shape shifted +218.6 px (notch apex (649.3,722.0)). CLEAR-SPACE BOX (one pillar width, 82.7 px): x 197.3–882.7, y 477.3–1115.4; nothing (sparks, trails, bloom, text) is drawn inside it except the mark. TOWERS (17.700–18.400): three towers at exactly the pillar x-ranges with a shared flat roof at y 560; Ink bodies with window grids (outer towers white-gold #FFE7A3; middle tower MM Red with amber cores); the lower bodies fade to dark between y 960 and 1100 as the city below dissolves into dim silhouettes (35%) from y 1250 down. STRINGS: one from (362.7,560) to (498.6,560) and one from (581.4,560) to (717.3,560), 9 bulbs each (warm white #FFF4CF / amber #FFB547, 7 px). Each has a 34 px akash kandil (MM Red/Muslin star lantern) hanging at its midpoint, pulling it into a soft V with its lowest point at y 700. BACKGROUND: the city at 35% brightness with a 6 px blur (cached) and warm bokeh; a Rich Black radial halo behind the mark (r 520, alpha 0.6). ROCKETS: left from rooftop (150,1260) to a burst at (165,400); right from (930,1260) to (915,400); middle from rooftop (540,1480) to (540,330), with its trail masked inside the clear-space box so it reads as passing behind the mark. No rocket starts on the mark.",
+   "beats": [
+    "17.700–18.200: dolly-in, camera scale 0.50→1.00 (easeOutCubic), landing the towers exactly on the pillar ranges; the city dims to 35% and defocuses; the bulbs chase left to right.",
+    "18.200–18.400: hold. From 18.267 the strings tremble (±4 px at 10 Hz) and the lanterns sway ±6° (anticipation).",
+    "18.400 (beat 30): CLACK. Over 3 frames (18.400–18.500) each string snaps from its soft sag into the exact straight upper edge of its chevron (inner roof corner → notch apex (430.7,722.0) / (649.3,722.0) → the next roof corner), and the bulbs fuse into a solid edge. Light pours DOWN from that edge to fill the chevron band to its lower edge (tip y 905.2), a top-to-bottom wipe over 18.400–18.600, while the lanterns dissolve into it. At the same time the tower window grids flood into flat fill bottom to top over 18.400–18.600 (outer towers → Paper #F4F2EE; middle → MM Red #D2232E), and the towers cut cleanly at y 1032.7. One 1-frame, low-intensity flash (Paper 12%, radial r 600) sits BEHIND the mark at 18.400.",
+    "18.600: switch to the exact L.drawLogo('mark', reverse, w 520) render. From here the mark is flat, untextured and glow-free, and it never moves.",
+    "18.600–19.000: dead-still hold.",
+    "19.000 (beat 31): three rockets launch together (0.600 s flights, easeOutQuad).",
+    "19.600 (beat 32): triple burst: a left gold-white peony (r 190) at (165,400), a middle MM Red + gold peony (r 230) at (540,330), and a right gold-white peony (r 190) at (915,400). The sparks fall as glitter rain over 19.600–20.500, every particle clipped out of the clear-space box.",
+    "20.200–20.500: overlap with s7; the city bokeh starts to recede and the mark passes to s7 at an identical position."
+   ],
+   "copy": [],
+   "transition_out": "20.200–20.500 (0.300 s overlap): s7 takes the mark at the identical transform and starts its glide. s6 keeps drawing the falling glitter (masked out of the mark's moving clear space) until 20.500, then only bokeh remains."
+  },
+  {
+   "id": "s7-endcard-sponsored-by-aapke-apne",
+   "start": 20.2,
+   "end": 24.4,
+   "purpose": "The shareable payoff and sign-off: a bilingual Happy Diwali that the sender owns ('Sponsored by: Aapke Apne'), a natural forward prompt with a who-to-send-it-to ticker, and MM credited as media partner with the bilingual lockup. The finished card holds still for 1.63 s.",
+   "layout": "BACKGROUND: Rich Black #1C1A1A; a Stamp Violet haze at the bottom (radial at (540,1900), r 900, alpha 0.30); the lit city shrinks to warm bokeh discs at 30% in y 1450–1920. TORAN: Legacy Line h 56, yTop 268 (to y 324), x0 90, x1 990, offset 21.1, redIndex 19. That puts the single MM Red pillar centred at x 540; all other parts are Paper #F4F2EE at 85%. Marigold strands hang from every chevron tip (tips at y 308.9, x = pillar left + 17.85 px): alternately 2 and 3 marigolds (r 9, Marigold #F59E1B / Diya Amber #FFB547), each ending in a 14 px mango-leaf tip, lowest point y 385. STACK, all centred on x 540: 'Happy Diwali' at baseline 520 (730 px; y 442–540); 'शुभ दीपावली' at baseline 660 (530 px; y 567–695); 'Sponsored by: Aapke Apne' at baseline 790 (630 px; y 749–804); the forward label at baseline 905 ('Forward the light' x 215–541, a centre dot, then 'रोशनी आगे बढ़ाइए' x 579–865; y 869–915); the ticker at baseline 995 (widest name 533 px; y 946–1013), with a 3 px MM Red caret while it types; 'MEDIA PARTNER' at baseline 1150 (245 px; y 1131–1150). BILINGUAL LOCKUP: L.drawLogo('bilingual', way 'reverse', w 700) centred (540,1243.6): box x 190.0–890.0, y 1185.0–1302.3, with the mark slot at x 190.0–319.0 (129 px wide). Tagline line at baseline 1395 (645 px; y 1373–1400). The lockup's clear space (at least 20.5 px, one pillar at this scale) stays free of particles, and the bokeh stays below y 1450.",
+   "beats": [
+    "20.200–20.800: the mark glides and scales uniformly (easeInOutCubic) from (540,796.4) at w 520 to its lockup slot centre (254.5,1243.6) at w 129.0; the city recedes into bokeh.",
+    "20.367–20.800: the toran unfurls outward from the centre red pillar (a centre-out clip reveal, about 35 ms per M).",
+    "20.467–20.967: 'Happy Diwali' letters rise in (1-frame stagger, 0.133 s each, y +28→0). The mark is already below y 1145, so its clear space is never crossed.",
+    "20.667–20.967: 'शुभ दीपावली' rises 24 px and fades in, whole words only.",
+    "20.800 (beat 34): the mark lands. The lockup's word paths ('MM Advertising' + 'एमएम एडवरटाइजिंग') wipe in left to right from the mark's right edge, 20.800–21.067.",
+    "20.800–21.100: garlands drop from the chevron tips with a spring bounce (8 px overshoot).",
+    "20.967–21.167: 'MEDIA PARTNER' fades in.",
+    "21.100–21.467: 'Sponsored by: Aapke Apne' writes on left to right (mask reveal, pen easing).",
+    "21.200–21.400: the tagline line fades in.",
+    "21.400 (beat 35): the forward label rises 16 px and fades in over 0.200 s.",
+    "21.567 / 21.800 / 22.067 / 22.300: the ticker types 'Mummy-Papa…', 'Bestie…', 'Boss…' and 'Pados wale uncle…' (about 40 characters/s; each name is cleared by a 2-frame backspace before the next).",
+    "22.000 (beat 36): a phuljhadi spark races left to right under 'Happy Diwali' (y 560, x 175→905, 0.400 s), leaving an ember trail that fades by 22.700.",
+    "22.600 (beat 37): 'Sabko!' types and lands with a bounce (scale 1.15→1.0, 0.167 s); the caret disappears. The card is complete at 22.767.",
+    "22.767–24.100: FULL HOLD. Type and logo are dead still; only the bokeh drifts upward (6 px/s) and the garlands sway by 2 px or less.",
+    "24.100–24.400: loop seam: the background bokeh, haze and toran glow dim to the frame-0 night level while all type and the lockup stay at 100%."
+   ],
+   "copy": [
+    {
+     "text": "Happy Diwali",
+     "lang": "en",
+     "font": "Anek Latin 760, semi-expanded",
+     "size_px": 112,
+     "color": "#F4F2EE",
+     "position": "centred x 540, baseline y 520, maxWidth 860 (730 px)",
+     "in_s": 20.467,
+     "out_s": 24.4,
+     "animation": "Letters rise (1-frame stagger, 0.133 s each, y +28→0)"
+    },
+    {
+     "text": "शुभ दीपावली",
+     "lang": "hi",
+     "font": "Anek Devanagari 700",
+     "size_px": 104,
+     "color": "#EEECE8",
+     "position": "centred x 540, baseline y 660 (530 px)",
+     "in_s": 20.667,
+     "out_s": 24.4,
+     "animation": "Rise 24 px + fade, 0.300 s, whole words"
+    },
+    {
+     "text": "MM Advertising / एमएम एडवरटाइजिंग",
+     "lang": "en+hi",
+     "font": "MM bilingual lockup outlines (L.drawLogo 'bilingual', reverse), not live type",
+     "size_px": 117,
+     "color": "#F4F2EE words and outer mark; #D2232E pillar",
+     "position": "lockup w 700 centred (540,1243.6): x 190–890, y 1185–1302",
+     "in_s": 20.8,
+     "out_s": 24.4,
+     "animation": "The mark arrives by uniform-scale glide; the word paths wipe in left to right 20.800–21.067; flat, no glow"
+    },
+    {
+     "text": "MEDIA PARTNER",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded, tracking +6",
+     "size_px": 30,
+     "color": "#8C8783",
+     "position": "centred x 540, baseline y 1150 (35 px above the lockup)",
+     "in_s": 20.967,
+     "out_s": 24.4,
+     "animation": "Fade, 0.200 s"
+    },
+    {
+     "text": "Sponsored by: Aapke Apne",
+     "lang": "hinglish",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 54,
+     "color": "#EEECE8",
+     "position": "centred x 540, baseline y 790 (630 px)",
+     "in_s": 21.1,
+     "out_s": 24.4,
+     "animation": "Handwritten mask write-on, left to right, 21.100–21.467"
+    },
+    {
+     "text": "Trust, made visible.  ·  mmadvertising.org",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 32,
+     "color": "#C9C4BF",
+     "position": "centred x 540, baseline y 1395 (645 px)",
+     "in_s": 21.2,
+     "out_s": 24.4,
+     "animation": "Fade, 0.200 s"
+    },
+    {
+     "text": "Forward the light",
+     "lang": "en",
+     "font": "Anek Latin 600, semi-expanded",
+     "size_px": 38,
+     "color": "#C9C4BF",
+     "position": "forward label, left part x 215–541, baseline y 905",
+     "in_s": 21.4,
+     "out_s": 24.4,
+     "animation": "Rise 16 px + fade, 0.200 s, together with the Hindi half"
+    },
+    {
+     "text": "रोशनी आगे बढ़ाइए",
+     "lang": "hi",
+     "font": "Anek Devanagari 600",
+     "size_px": 40,
+     "color": "#C9C4BF",
+     "position": "forward label, right part x 579–865 after a centre dot at x ≈560, baseline y 905",
+     "in_s": 21.4,
+     "out_s": 24.4,
+     "animation": "Rise 16 px + fade, 0.200 s"
+    },
+    {
+     "text": "Mummy-Papa…",
+     "lang": "hinglish",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "ticker, centred x 540, baseline y 995",
+     "in_s": 21.567,
+     "out_s": 21.767,
+     "animation": "Typed at about 40 chars/s with a caret; 2-frame backspace"
+    },
+    {
+     "text": "Bestie…",
+     "lang": "hinglish",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "ticker, centred x 540, baseline y 995",
+     "in_s": 21.8,
+     "out_s": 22.033,
+     "animation": "Typed; backspace"
+    },
+    {
+     "text": "Boss…",
+     "lang": "en",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "ticker, centred x 540, baseline y 995",
+     "in_s": 22.067,
+     "out_s": 22.267,
+     "animation": "Typed; backspace"
+    },
+    {
+     "text": "Pados wale uncle…",
+     "lang": "hinglish",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "ticker, centred x 540, baseline y 995 (533 px)",
+     "in_s": 22.3,
+     "out_s": 22.567,
+     "animation": "Typed; backspace"
+    },
+    {
+     "text": "Sabko!",
+     "lang": "hinglish",
+     "font": "Tiro Devanagari Hindi italic",
+     "size_px": 64,
+     "color": "#D2232E",
+     "position": "ticker, centred x 540, baseline y 995",
+     "in_s": 22.6,
+     "out_s": 24.4,
+     "animation": "Typed, then a bounce (scale 1.15→1.0, 0.167 s); the caret disappears and it holds"
+    }
+   ],
+   "transition_out": "The film ends at 24.400 with the background already dimmed to the frame-0 night and the tubelight hum back, so a replay (or the next story) cuts cleanly to the lit SPACE AVAILABLE hoarding."
+  }
+ ],
+ "audio": {
+  "bpm": 100,
+  "key_and_scale": "Tonic D (Sa = D) with a Raag Yaman colour: D E F# G# A B C# D' (tivra Ma = G#), the evening lamp-lighting raga, festive without being devotional; tanpura on D–A. Grid: beat n falls at t = 0.400 + 0.600·n, i.e. 18 frames per beat at 30 fps, 9 frames per 8th note, and a 0.1 s (3-frame) sub-grid for fills and the tihai. Bars 1–5 start at 0.4, 2.8, 5.2, 7.6 and 10.0; bar 6 (12.4–16.0) is one 6/4 bar for the silent turn; bars 7–10 start at 16.0, 18.4, 20.8 and 23.2. Every cue and visual time is rounded to the nearest frame, round(t·30)/30.",
+  "instrumentation": "Synthesized in numpy (audio/synth.py), plus sampled GM instruments through fluidsynth (audio/sampler.py). Sampled: shehnai (the frame-0 pickup) and sitar with meend (the hook, the 'ta-daa', the tremolo). Synth: santoor (Karplus-Strong) for every light and the sonic mark; dhol (dhol_boom 68 Hz / dhol_tik) and tabla (na / tin / ge / ke) in a keherwa groove; shaker; clap; ghungroo; bell and chime (D5, A5, D6); tanpura (Sa = D); pad. SFX: tubelight hum and flicker; stamp thuds (sub_boom + 180 Hz body + wood knock + paper slap); flip_clack slats; whoosh; riser; 8-bit blips; bitcrush crumble; van putter, brake squeak and a two-tone horn tuned to D–A; woodblock toks; relay thunk and power-down whine; cricket; match_strike; flame whoomp; sparkler; firework_launch, firework_burst and crackle; pen scratch; ui_tap typing. Mix with Mix(dur 24.4): a short room reverb for 0–12.4 and a long hall from 13.0; every sub event doubled with a 120–250 Hz body so it carries on phone speakers; at most 2 SFX layers per beat in the gag section; SFX panned no wider than ±0.5; roll-off above 10 kHz; no voice; −14 LUFS integrated, −1 dBTP, mono-compatible.",
+  "arc": "0.000: a shehnai pickup over the tubelight hum (a festive misdirect). 0.400: STAMP THUD on bar 1. Then sparse santoor under the handwriting, and a riser from 2.200. 2.800: the keherwa groove drops in with stamp cascades pitched up a semitone each and the Yaman sitar hook (Ni Re Ga Re Sa). 5.200–12.400: comic groove with one sting per gag: slat clack and back-crack; 8-bit blips, kaju katli pings and the crumble 'womp'; van putter, box toks, horn and box hops. 12.400: relay THUNK and dead silence, with one cricket. 12.700: the match. 13.000: tanpura and a rising Yaman scale, one note per ring of light from D5 to D6, over a heartbeat tabla, with a cricket for the late window. 15.400: riser. 16.000: mega stamp, the full groove, rockets and bursts. 17.400: a tabla tihai landing on the 18.400 CLACK, followed by 0.2 s of silence. 19.000: a launch chord D–A–D'. 19.600: triple burst with the groove opening up. 20.800: the sonic mark D5–A5 (with bell)–D6. Typing plucks rise to 'Sabko!' at 22.600. 23.200: one high bell, then the tanpura fades. 24.100: the tubelight hum returns (loop seam). 24.400: end.",
+  "cues": [
+   {
+    "t": 0,
+    "sound": "Shehnai pickup (sampler GM shehnai with meend): C#5 at 0.000 → E5 at 0.133 → D5 at 0.267, held to 0.380; −10 dB, centre. Signals 'festive' from frame 0."
+   },
+   {
+    "t": 0,
+    "sound": "Tubelight mains hum: 100 Hz + 200 Hz sines, −26 dB, 0.000–2.200 (ducked a further −10 dB over 0.400–0.700), fading out 2.200–2.600."
+   },
+   {
+    "t": 0,
+    "sound": "Distant firework crackle bed: crackle (density 25, 1.2 s), −28 dB, pan −0.3."
+   },
+   {
+    "t": 0.067,
+    "sound": "Tubelight flicker 'tink' (ui_tap + 3 kHz band-passed noise, 20 ms), −20 dB; first dip."
+   },
+   {
+    "t": 0.133,
+    "sound": "Tubelight 'tzzt' (100 Hz square buzz, 60 ms), −22 dB."
+   },
+   {
+    "t": 0.2,
+    "sound": "Tubelight flicker 'tink'; second dip."
+   },
+   {
+    "t": 0.233,
+    "sound": "Downward whoosh for the stamp drop: whoosh (0.167 s, 3000→600 Hz), −16 dB."
+   },
+   {
+    "t": 0.4,
+    "sound": "BEAT 0 / BAR 1. STAMP THUD: sub_boom (0.5 s, 58→38 Hz) + 180 Hz body + wood knock (tabla_ke) + paper-slap noise (2–6 kHz, 15 ms), layered with a dhol DHA (dhol_boom 68 Hz + tabla_na 520 Hz)."
+   },
+   {
+    "t": 0.433,
+    "sound": "Ink-spatter ticks: 8 tiny pops (pop f0 2400 Hz) scattered over 0.433–0.600, −26 dB, pan ±0.3; plus a tubelight flicker click."
+   },
+   {
+    "t": 1,
+    "sound": "BEAT 1: santoor D5 starts the glide under 'for you'; pen scratch (pink noise, 2–5 kHz) 1.000–1.467, −24 dB."
+   },
+   {
+    "t": 1.1,
+    "sound": "Santoor E5."
+   },
+   {
+    "t": 1.2,
+    "sound": "Santoor F#5."
+   },
+   {
+    "t": 1.3,
+    "sound": "Ghungroo light shake (0.25 s, density 20), −18 dB, for 'आपके लिए'."
+   },
+   {
+    "t": 1.6,
+    "sound": "BEAT 2: tabla tin (520 Hz) + soft flame flutter (low-passed noise, 0.2 s) for the diya flare."
+   },
+   {
+    "t": 2.2,
+    "sound": "BEAT 3: riser (0.6 s, 250→6000 Hz), −14 dB, into 2.800."
+   },
+   {
+    "t": 2.5,
+    "sound": "Tabla ge pickup (95 Hz, bend 1.35)."
+   },
+   {
+    "t": 2.7,
+    "sound": "Tabla ke pickup."
+   },
+   {
+    "t": 2.8,
+    "sound": "BEAT 4 / BAR 2. GROOVE DROPS IN: keherwa at 100 BPM, with dhol_boom on beats 1 and 3, dhol_tik on the off-beat 8ths, tabla na/tin on 8ths and shaker 8ths at −20 dB. It runs through bars 2–5 (2.800–12.400); the fills are listed separately."
+   },
+   {
+    "t": 2.8,
+    "sound": "Stamp cascade 1 (H2 + G1): two mini stamp thuds (sub 62→42 Hz + 180 Hz body + knock) pitched to D, pan −0.3 / +0.3."
+   },
+   {
+    "t": 3.4,
+    "sound": "BEAT 5: stamp cascade 2 (U1 + W1), thuds pitched to D# (one semitone up), pan −0.4 / +0.4. Sitar hook begins: C#4 (Ni)."
+   },
+   {
+    "t": 3.7,
+    "sound": "Sitar E4 (Re)."
+   },
+   {
+    "t": 4,
+    "sound": "BEAT 6: stamp cascade 3, pitched to E, + LED flip 8-bit blip (pop 900→1500 Hz); sitar F#4 (Ga)."
+   },
+   {
+    "t": 4.3,
+    "sound": "Sitar E4 (Re)."
+   },
+   {
+    "t": 4.6,
+    "sound": "BEAT 7: sitar resolves to D4 (Sa); ghungroo shimmer (0.4 s) + chime D6 as all six boards pulse."
+   },
+   {
+    "t": 4.933,
+    "sound": "Whip-pan whoosh (0.267 s, 400→3500 Hz), panned −0.3→+0.3."
+   },
+   {
+    "t": 5.067,
+    "sound": "Tri-vision slat clatter: 16 flip_clack clicks across 5.067–5.200, panned −0.4→+0.4."
+   },
+   {
+    "t": 5.2,
+    "sound": "BEAT 8 / BAR 3: dhol DHA + slat-landing clack (flip_clack, +4 dB)."
+   },
+   {
+    "t": 5.267,
+    "sound": "Jhadu 'shhk' (noise sweep 1→4 kHz, 0.12 s)."
+   },
+   {
+    "t": 5.4,
+    "sound": "Second jhadu 'shhk'."
+   },
+   {
+    "t": 5.5,
+    "sound": "Dust-to-sparkle twinkle: D6, E6, F#6 (twinkle, step 0.067 s)."
+   },
+   {
+    "t": 6.4,
+    "sound": "BEAT 10: comic back-crack 'krrk': an 8 ms click + tabla_ge with bend 1.6, pitched down."
+   },
+   {
+    "t": 7,
+    "sound": "BEAT 11: tabla tirakita fill on the 0.1 s sub-grid at 7.000, 7.100, 7.200 and 7.300."
+   },
+   {
+    "t": 7.333,
+    "sound": "Whip-pan whoosh (0.267 s)."
+   },
+   {
+    "t": 7.467,
+    "sound": "LED power-on buzz: 120 Hz square + 2.4 kHz whine, 0.133 s, −16 dB."
+   },
+   {
+    "t": 7.6,
+    "sound": "BEAT 12 / BAR 4: dhol DHA + three 8-bit word blips at 7.600, 7.633 and 7.667."
+   },
+   {
+    "t": 7.9,
+    "sound": "Punch pop: sitar 'ta-daa', A4 at 7.900 → D5 at 8.000."
+   },
+   {
+    "t": 8.1,
+    "sound": "Kaju katli landing: tabla tin tuned to E5, panned by landing x."
+   },
+   {
+    "t": 8.267,
+    "sound": "Kaju katli landing: tin F#5."
+   },
+   {
+    "t": 8.4,
+    "sound": "Kaju katli landing: tin A5."
+   },
+   {
+    "t": 8.567,
+    "sound": "Kaju katli landing: tin G#5."
+   },
+   {
+    "t": 8.733,
+    "sound": "Kaju katli landing: tin B5."
+   },
+   {
+    "t": 8.933,
+    "sound": "Kaju katli landing: tin C#6."
+   },
+   {
+    "t": 9.1,
+    "sound": "Kaju katli landing: tin A5."
+   },
+   {
+    "t": 9.267,
+    "sound": "Kaju katli landing: tin D6."
+   },
+   {
+    "t": 9.4,
+    "sound": "BEAT 15: 'डाइट' crumbles: bitcrushed noise burst (0.3 s) + a descending 'womp' (sine 400→120 Hz, 0.3 s)."
+   },
+   {
+    "t": 9.733,
+    "sound": "Whip whoosh (0.267 s) + van engine putter (55 Hz saw + noise), its pitch falling until 10.000."
+   },
+   {
+    "t": 9.967,
+    "sound": "Brake squeak: 2.8 kHz sine with 12 Hz vibrato, 0.08 s."
+   },
+   {
+    "t": 10,
+    "sound": "BEAT 16 / BAR 5: dhol DHA + box-drop woodblock 'tok' on D5."
+   },
+   {
+    "t": 10.033,
+    "sound": "Suspension 'boing' (pluck gliding 110→90 Hz), −18 dB."
+   },
+   {
+    "t": 10.1,
+    "sound": "Box-drop 'tok' on E5."
+   },
+   {
+    "t": 10.2,
+    "sound": "Box-drop 'tok' on F#5."
+   },
+   {
+    "t": 10.6,
+    "sound": "BEAT 17: comic two-tone horn, 'pom' on D4 at 10.600 then 'pom' on A4 at 10.700 (square wave, low-passed at 1.2 kHz)."
+   },
+   {
+    "t": 11.2,
+    "sound": "BEAT 18: box hop 1, tabla tin G#5."
+   },
+   {
+    "t": 11.333,
+    "sound": "Box hop 2, tin A5."
+   },
+   {
+    "t": 11.467,
+    "sound": "Box hop 3, tin B5."
+   },
+   {
+    "t": 11.533,
+    "sound": "The mystery 4th box appears: pop (700→1400 Hz) + a tiny puff."
+   },
+   {
+    "t": 11.6,
+    "sound": "Box hop 4: tin C#6 + a comic sitar meend up from D4 to A4 (11.600–11.867), a 'huh?'."
+   },
+   {
+    "t": 11.8,
+    "sound": "BEAT 19: tabla tirakita fill at 11.800, 11.900, 12.000 and 12.100."
+   },
+   {
+    "t": 12.133,
+    "sound": "Whip-up whoosh (0.267 s, 600→4000 Hz)."
+   },
+   {
+    "t": 12.4,
+    "sound": "BEAT 20 / BAR 6 (6/4). RELAY THUNK (sub_boom 80→40 Hz + 160 Hz body + a metallic relay click) + power-down whine (sine 1200→80 Hz, 0.5 s). ALL music hard-stops (10 ms fade). Night-air bed (pink noise low-passed at 1.5 kHz, −36 dB) for 12.400–13.000."
+   },
+   {
+    "t": 12.567,
+    "sound": "Cricket chirp: 3 bursts of 4.5 kHz sine over 0.133 s, −24 dB, pan +0.2."
+   },
+   {
+    "t": 12.7,
+    "sound": "match_strike (scratch 12.700–12.800 + ignition crackle), −12 dB."
+   },
+   {
+    "t": 13,
+    "sound": "BEAT 21: flame 'whoomp' (low-passed noise swell, 0.25 s) + santoor D4. The tanpura drone enters (D3–A3–D4 with jawari, −20 dB), and a pad (D F# A E G#) swells over 13.000–15.400. Long-hall reverb from here."
+   },
+   {
+    "t": 13,
+    "sound": "Ember fizz for the arc to the red tower: sparkler (0.3 s) with a rising band-pass."
+   },
+   {
+    "t": 13.3,
+    "sound": "The red tower lights: bell D5 + santoor D5 (ring 1)."
+   },
+   {
+    "t": 13.6,
+    "sound": "BEAT 22: santoor E5 (ring 2) + tabla heartbeat 'dha' (tabla_na + dhol_boom 70 Hz + 160 Hz body, −16 dB)."
+   },
+   {
+    "t": 13.9,
+    "sound": "Santoor F#5 (ring 3); the stereo field widens to ±0.2."
+   },
+   {
+    "t": 14.2,
+    "sound": "BEAT 23: santoor G#5 (ring 4) + heartbeat 'dha' + soft ghungroo grains (0.3 s, −22 dB) as the tower light strings switch on."
+   },
+   {
+    "t": 14.5,
+    "sound": "Santoor A5 (ring 5), width ±0.3."
+   },
+   {
+    "t": 14.567,
+    "sound": "Cricket chirp: the late-latif window is still dark."
+   },
+   {
+    "t": 14.8,
+    "sound": "BEAT 24: santoor B5 (ring 6) + heartbeat 'dha' + a tiny ember fizz (sparkler 0.267 s, pan 0→+0.35) as the red spark hops across."
+   },
+   {
+    "t": 15.1,
+    "sound": "The late window pops on: santoor C#6 + a ghungroo flick, −14 dB."
+   },
+   {
+    "t": 15.4,
+    "sound": "BEAT 25: santoor D6 completes the Yaman octave + heartbeat 'dha' + a reverse-swell riser (0.6 s) into 16.000."
+   },
+   {
+    "t": 15.7,
+    "sound": "Descending anticipation whistle (sine 2.4 kHz→900 Hz, 0.3 s) as the stamp falls."
+   },
+   {
+    "t": 16,
+    "sound": "BEAT 26 / BAR 7. MEGA STAMP THUD: sub_boom 45 Hz + 180 Hz body + three stacked dhol DHAs + a tape-stop thump. The full groove returns at double energy (dhol 16th pickups on beat 4, clap on beats 2 and 4). The sitar hook returns an octave up, starting on C#5."
+   },
+   {
+    "t": 16.1,
+    "sound": "Two rocket launches (firework_launch, 900→2400 Hz), pan −0.4 / +0.4."
+   },
+   {
+    "t": 16.2,
+    "sound": "Two rocket launches, pan −0.3 / +0.3, randomised pitch."
+   },
+   {
+    "t": 16.3,
+    "sound": "Sitar E5; two rocket launches, pan −0.45 / +0.45."
+   },
+   {
+    "t": 16.4,
+    "sound": "Two rocket launches, pan −0.2 / +0.2."
+   },
+   {
+    "t": 16.6,
+    "sound": "BEAT 27: two bursts (firework_burst size 1.0 + 140 Hz body, 1.2 s crackle), pan −0.35 / +0.35; ghungroo shimmer; sitar F#5."
+   },
+   {
+    "t": 16.7,
+    "sound": "Two bursts, pan −0.4 / +0.4, with 30–60 ms delays for distance."
+   },
+   {
+    "t": 16.9,
+    "sound": "Sitar E5."
+   },
+   {
+    "t": 17.2,
+    "sound": "BEAT 28: two wave-2 bursts (willow and crossette, 1.6 s crackle); three phuljhadi fizzes (sparkler, −18 dB, pan −0.3 / 0 / +0.3) over 17.200–17.800; sitar D5."
+   },
+   {
+    "t": 17.3,
+    "sound": "Two bursts, pan −0.25 / +0.25."
+   },
+   {
+    "t": 17.4,
+    "sound": "Tabla tihai, phrase 1: dha 17.400 · ti 17.500 · dha 17.600."
+   },
+   {
+    "t": 17.7,
+    "sound": "Upward whoosh (0.4 s) for the stamp lift and the dolly-in."
+   },
+   {
+    "t": 17.8,
+    "sound": "BEAT 29: tihai phrase 2: dha 17.800 · ti 17.900 · dha 18.000."
+   },
+   {
+    "t": 18.2,
+    "sound": "Tihai phrase 3: dha 18.200 · ti 18.300, with the final dha on 18.400. Sitar tremolo on D4 (32nds) over 18.200–18.400 for the trembling strings."
+   },
+   {
+    "t": 18.4,
+    "sound": "BEAT 30 / BAR 8. CLACK: a crisp wooden clack + a metallic snap at 18.433 + a sub drop (70→35 Hz) with a 180 Hz body + the tihai's final dha. Then dry silence 18.467–18.667, with only the reverb tail."
+   },
+   {
+    "t": 18.667,
+    "sound": "Tanpura and pad return softly (−22 dB)."
+   },
+   {
+    "t": 19,
+    "sound": "BEAT 31: three launch whistles rising together as a chord: left glides to D5 (pan −0.5), middle to A5 (centre, +3 dB), right to D6 (pan +0.5)."
+   },
+   {
+    "t": 19.6,
+    "sound": "BEAT 32: TRIPLE BURST: three firework_bursts (size 1.3) with a 180 Hz body, pan −0.5 / 0 / +0.5, with long crackle 19.600–21.000. The groove returns for two beats while a low-pass opens from 800 Hz to 12 kHz; ghungroo shimmer."
+   },
+   {
+    "t": 20.2,
+    "sound": "BEAT 33: soft low whoosh (0.6 s) for the mark's glide."
+   },
+   {
+    "t": 20.367,
+    "sound": "Toran unfurl: 12 soft ghungroo ticks over 0.433 s, spreading from the centre to the sides."
+   },
+   {
+    "t": 20.8,
+    "sound": "BEAT 34 / BAR 9. SONIC MARK note 1: santoor + sitar pluck on D5, with the final dhol DHA; the groove ends here."
+   },
+   {
+    "t": 20.933,
+    "sound": "SONIC MARK note 2: A5, doubled by a bell on A5 (the red pillar)."
+   },
+   {
+    "t": 21.067,
+    "sound": "SONIC MARK note 3: D6, with a pad chord (D A E F# G#) swelling over 1.5 s."
+   },
+   {
+    "t": 21.1,
+    "sound": "Pen-on-paper scratch, 21.100–21.467, −22 dB, for 'Sponsored by'."
+   },
+   {
+    "t": 21.4,
+    "sound": "BEAT 35: soft tabla 'na' for the forward label."
+   },
+   {
+    "t": 21.567,
+    "sound": "Ticker 'Mummy-Papa…': 4 typing ticks (ui_tap) + santoor E5."
+   },
+   {
+    "t": 21.8,
+    "sound": "Ticker 'Bestie…': 3 ticks + santoor F#5."
+   },
+   {
+    "t": 22,
+    "sound": "BEAT 36: the phuljhadi spark under 'Happy Diwali': sparkler fizz, 0.4 s, panned −0.4→+0.4."
+   },
+   {
+    "t": 22.067,
+    "sound": "Ticker 'Boss…': 2 ticks + santoor G#5."
+   },
+   {
+    "t": 22.3,
+    "sound": "Ticker 'Pados wale uncle…': 5 ticks + santoor A5."
+   },
+   {
+    "t": 22.6,
+    "sound": "BEAT 37: 'Sabko!' gets a ghungroo flourish + tabla dha + santoor D6."
+   },
+   {
+    "t": 23.2,
+    "sound": "BEAT 38 / BAR 10: one high bell on D6 (bell, 3 s tail, long hall); the music decays onto the tanpura."
+   },
+   {
+    "t": 23.8,
+    "sound": "BEAT 39: the tanpura fades at −6 dB/s."
+   },
+   {
+    "t": 24.1,
+    "sound": "Loop seam: the tubelight hum returns at −18 dB, with one faint 'tink'."
+   },
+   {
+    "t": 24.4,
+    "sound": "End: 30 ms fade to silence."
+   }
+  ]
+ },
+ "end_card": "FINAL FRAME. The finished card is complete at 22.767 and holds dead still until 24.400 (1.63 s), making a clean screenshot frame. Background: Rich Black #1C1A1A, a Stamp Violet haze at the bottom, and warm city bokeh at 30% below y 1450. Top: the Legacy Line toran (h 56, y 268–324, x 90–990) in Paper #F4F2EE at 85%, with exactly one MM Red #D2232E pillar centred at x 540; marigold strands hang from every chevron tip down to y 385. Stack, all centred on x 540: 'Happy Diwali' (Anek Latin 760, semi-expanded, 112 px, #F4F2EE, baseline 520); 'शुभ दीपावली' (Anek Devanagari 700, 104 px, #EEECE8, baseline 660); 'Sponsored by: Aapke Apne' (Tiro Devanagari Hindi italic, 54 px, #EEECE8, baseline 790); the forward prompt 'Forward the light · रोशनी आगे बढ़ाइए' (Anek Latin 600 at 38 px + Anek Devanagari 600 at 40 px, Mist #C9C4BF, baseline 905); the ticker resolved to 'Sabko!' (Tiro italic, 64 px, MM Red #D2232E, baseline 995); 'MEDIA PARTNER' (Anek Latin 600, 30 px, tracking +6, Stone #8C8783, baseline 1150). The MM bilingual reverse lockup is drawn with L.drawLogo('bilingual', reverse, w 700) centred at (540, 1243.6), occupying x 190–890, y 1185–1302. Its mark is 129 px wide, with Paper outer parts and an MM Red shared pillar, flat, with no glow, and with particles kept out of its clear space. Last line: 'Trust, made visible.  ·  mmadvertising.org' (Anek Latin 600, 32 px, Mist, baseline 1395). All text and logos sit inside x 90–990, y 260–1600. In the last 0.3 s (24.100–24.400) only the background dims to the frame-0 night level while the type and lockup stay at 100%, and the tubelight hum returns at −18 dB, so the loop back to the lit 'SPACE AVAILABLE' hoarding is seamless."
+}

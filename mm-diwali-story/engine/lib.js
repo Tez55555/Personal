@@ -48,6 +48,9 @@
   /** fade in over [a,b] and out over [c,d] -> 0..1 */
   L.inOut = (t, a, b, c, d) => Math.min(L.smoothstep(a, b, t), 1 - L.smoothstep(c, d, t));
 
+  /** music grid: 100 BPM, beat n at 0.400 + 0.600 n (18 frames). q() snaps a time to the frame grid. */
+  L.BPM = 100; L.beat = n => +(0.4 + 0.6 * n).toFixed(4); L.q = t => Math.round(t * 30) / 30;
+
   /* ---------- deterministic randomness ---------- */
   function hash32(a, b) { let h = (a | 0) * 374761393 + (b | 0) * 668265263; h = (h ^ (h >>> 13)) * 1274126177; h ^= h >>> 16; return h >>> 0; }
   /** uniform [0,1) from (seed, index) */

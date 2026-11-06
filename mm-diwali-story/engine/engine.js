@@ -13,6 +13,9 @@
   MM.scenes = {}; MM.errors = []; MM.timeline = MM.timeline || []; MM.duration = MM.duration || 24; MM.fps = MM.fps || 30;
   MM.background = '#120F1A';
   MM.scene = (id, def) => { MM.scenes[id] = def; };
+  MM.flashes = [];
+  /** register a finishing-pass flash (call at scene-file load time): { t (global s), dur, exposure (+), bloom (+) } */
+  MM.addFlash = f => MM.flashes.push(f);
   MM.post = null;
 
   const canvas = document.getElementById('c');
