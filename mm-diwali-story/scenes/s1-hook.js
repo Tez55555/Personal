@@ -33,6 +33,9 @@
   };
   const FR = T => Math.round(T * 30);
   const DEG = Math.PI / 180;
+  const H2_D = H.H2_D = 1.6;            // depth of the H2 rooftop block (between the mid city d 2 and the hook d 1)
+  // in-scene temporal supersampling state (see H.render): FAST skips detail that the smear erases
+  H.FAST = false;
 
   /* ------------------------------------------------------------------ sprites */
   const glowSpr = col => L.cached('mmh-g-' + col, 96, 96, g => { const r = g.createRadialGradient(48, 48, 0, 48, 48, 48); r.addColorStop(0, L.rgba(col, 1)); r.addColorStop(.14, L.rgba(col, .5)); r.addColorStop(.42, L.rgba(col, .13)); r.addColorStop(1, L.rgba(col, 0)); g.fillStyle = r; g.fillRect(0, 0, 96, 96); });
@@ -41,12 +44,35 @@
   const softSpr = col => L.cached('mmh-s-' + col, 64, 64, g => { const r = g.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, L.rgba(col, 1)); r.addColorStop(.5, L.rgba(col, .45)); r.addColorStop(1, L.rgba(col, 0)); g.fillStyle = r; g.fillRect(0, 0, 64, 64); });
   function put(g, img, x, y, r, a) { if (a <= .004 || r <= .05) return; g.globalAlpha = Math.min(1, a); g.drawImage(img, x - r, y - r, r * 2, r * 2); }
   /** a point light in layer coords: crisp bulb when in focus, lens bokeh disc when defocused */
+  let LSTREAK = 0;   // horizontal travel (layer px) of the current layer during one supersample: lights integrate it as a streak
   function lamp(g, x, y, size, col, a, k, blur) {
     const bl = blur / k;
     if (bl > 2) { const r = Math.max(size * 1.4, bl); put(g, discSpr(col), x, y, r, a * clamp(Math.pow(size * 3 / r, 1.1), .16, .9)); return; }
-    put(g, bulbSpr(col), x, y, size * 4.5, a);
+    const r = size * 4.5;
+    if (LSTREAK > size) { if (a <= .004) return; g.globalAlpha = Math.min(1, a * 2 * r / (2 * r + LSTREAK)); g.drawImage(bulbSpr(col), x - r - LSTREAK / 2, y - r, 2 * r + LSTREAK, 2 * r); return; }
+    put(g, bulbSpr(col), x, y, r, a);
   }
   function setBlur(g, px) { g.filter = px > .6 ? `blur(${(px * L.baseScale).toFixed(2)}px)` : 'none'; }
+  /** drifting cloud haze in a band with FEATHERED top/bottom edges and a wide x span (L.haze clips to a hard
+      0..1080 box whose edges slide into view under parallax and survive WhatsApp re-encoding as blocks) */
+  function hazeBand(g, T, { y0, y1, x0 = -900, x1 = 2000, color, alpha, speed, seed, scale = 3 }) {
+    const S = 384 * scale, th = Math.max(8, Math.ceil((y1 - y0) / scale));
+    g.save(); g.globalCompositeOperation = 'screen';
+    for (let layer = 0; layer < 2; layer++) {
+      const sd = seed + layer * 5;
+      const band = L.cached(`mmh-haze-${sd}-${color}-${th}`, 384, th, b => {
+        const tex = L.cloudTexture(sd); for (let y = 0; y < th; y += 384) b.drawImage(tex, 0, y);
+        b.globalCompositeOperation = 'source-in'; b.fillStyle = color; b.fillRect(0, 0, 384, th);
+        b.globalCompositeOperation = 'destination-in';
+        const m = b.createLinearGradient(0, 0, 0, th); m.addColorStop(0, 'rgba(0,0,0,0)'); m.addColorStop(.32, 'rgba(0,0,0,1)'); m.addColorStop(.68, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+        b.fillStyle = m; b.fillRect(0, 0, 384, th);
+      });
+      const sp = speed * (layer ? 1.7 : 1), off = ((T * sp + layer * 210) % S + S) % S;
+      g.globalAlpha = alpha * (layer ? .6 : 1);
+      for (let x = off - S * Math.ceil((off - x0) / S); x < x1; x += S) g.drawImage(band, x, y0, S + .5, y1 - y0);
+    }
+    g.restore();
+  }
 
   /* ------------------------------------------------------------------ camera */
   const SW = .341, P = { x: 540, y: 960 }, ANCH = { x: 120 + 440 * SW, y: 1050 + 410 * SW };
@@ -61,19 +87,24 @@
   const ramp = (T, a, w) => T < a ? 0 : T < a + w ? (T - a) * (T - a) / (2 * w) : T - a - w / 2;
   H.cam = T => {
     const s = hookScale(T), c = 1 - SW / s;
-    const pr = clamp((LS0 - Math.log(s)) / (LS0 - LS2)), f = pr * pr;          // crane rises with the pull-back
-    const ax = lerp(540, ANCH.x, f), ay = lerp(880, ANCH.y, f);
+    const pr = clamp((LS0 - Math.log(s)) / (LS0 - LS2));
+    // the crane pans right EARLY in the pull-back (hook centre x 540 -> 330 by 2.8 -> 270), so the beat-4 boards
+    // (H2 on the right, G1's stamp below) are already in frame when they get stamped; it rises later (fy)
+    const fx = 1 - Math.pow(1 - pr, 2.5), fy = pr * pr;
+    const ax = lerp(540, ANCH.x, fx), ay = lerp(880, ANCH.y, fy);
     let ex = (ax - P.x) * (1 - c) - (ANCH.x - P.x), ey = (ay - P.y) * (1 - c) - (ANCH.y - P.y);
     ex -= 20 * ramp(T, 2.95, .5);                                              // lateral drift: far 5, mid 10, hook 20 px/s
     const w = Ez.inOutCubic(clamp((T - TM.whip0) / (TM.whip1 - TM.whip0)));
     ex -= 1400 * w;                                                            // whip-pan right into s3
-    const ap = 22 * Math.pow(clamp(c / .664), 1.6);                           // aperture (shallow close, deep wide)
+    // aperture: shallow in the close-up (city = bokeh), rack focus to deep focus finished by 2.75 (before the beat-4 stamps)
+    const ap = 22 * Math.pow(clamp(c / .664), 1.6) * (1 - L.smoothstep(2.3, 2.75, T));
     return { T, s, c, ex, ey, w, ap, zf: 1 - c };
   };
   /** run fn inside depth layer d. fn(g, k, blur) with blur = circle of confusion in screen px */
   H.layer = (ctx, cam, d, fn) => {
     const z = d - cam.c; if (z <= .02) return;
     const k = d / z;
+    LSTREAK = H.camV && cam.T > TM.whip0 ? Math.abs(H.camV.ex) * (H.DT || 0) / d : 0;
     ctx.save(); ctx.translate(P.x + cam.ex / z, P.y + cam.ey / z); ctx.scale(k, k); ctx.translate(-P.x, -P.y);
     fn(ctx, k, cam.ap * Math.abs(z - cam.zf) / z, z);
     ctx.restore();
@@ -162,6 +193,11 @@
         const bg = g.createRadialGradient(x, base - 160, 0, x, base - 160, r); bg.addColorStop(0, 'rgba(150,110,170,.16)'); bg.addColorStop(1, 'rgba(150,110,170,0)');
         g.fillStyle = bg; g.fillRect(x - r, base - 160 - r, r * 2, r * 2);
       }
+      // Diwali glow of the old city rising behind the Rumi Darwaza (amber, so the mid blocks read as silhouettes against it)
+      for (const [x, y, r, a] of [[540, 960, 380, .18], [540, 1010, 620, .07], [-260, 1000, 420, .08], [1500, 1000, 460, .08]]) {
+        const wg = g.createRadialGradient(x, y, 0, x, y, r); wg.addColorStop(0, `rgba(255,159,28,${a})`); wg.addColorStop(.45, `rgba(255,150,40,${a * .45})`); wg.addColorStop(1, 'rgba(255,140,40,0)');
+        g.save(); g.translate(x, y); g.scale(1, .62); g.translate(-x, -y); g.fillStyle = wg; g.fillRect(x - r, y - r, r * 2, r * 2); g.restore();
+      }
       const tint = L.cached('mmh-farsil-t', 2700, 640, t => { t.drawImage(sil, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = '#1E1A25'; t.fillRect(0, 0, 2700, 640); });
       const rim = L.cached('mmh-farsil-r', 2700, 640, t => { t.drawImage(sil, 0, 0); t.globalCompositeOperation = 'source-in'; t.fillStyle = L.rgba('#A39AA8', .38); t.fillRect(0, 0, 2700, 640); });
       g.drawImage(rim, -700, 540 - 2.5); g.drawImage(tint, -700, 540);
@@ -228,22 +264,30 @@
     const ox = x + (w - cols * cw) / 2 + (cw - ww) / 2;
     for (let r = 0; r < rows; r++) {
       const wy = top + 22 + r * rh;
-      const occ = R(5000 + r);                                                         // floors are lived in (or not) as a whole
       if (arch || r % 3 === 2) { g.fillStyle = 'rgba(70,64,66,.55)'; g.fillRect(x + 2, wy - 6, w - 4, 3); }          // chhajja / ledge
       if (!arch && !tower && R(6000 + r) > .72) {                                      // balcony slab + railing
         g.fillStyle = 'rgba(16,14,15,.8)'; g.fillRect(x + 4, wy + wh + 2, w - 8, 4);
         g.fillStyle = 'rgba(140,135,131,.28)'; g.fillRect(x + 4, wy + wh - 6, w - 8, 1); for (let rx = x + 6; rx < x + w - 6; rx += 5) g.fillRect(rx, wy + wh - 6, .8, 8);
       }
-      for (let c = 0; c < cols; c++) {
-        const wx = ox + c * cw, v = R(r * 50 + c);
-        let fill = 'rgba(14,12,14,.6)';
-        if (occ > .45) { if (v > .45) fill = v > .9 ? 'rgba(255,176,92,.34)' : v > .72 ? 'rgba(255,181,71,.16)' : 'rgba(201,196,191,.12)'; }
-        else if (v > .93) fill = 'rgba(214,220,236,.2)';
-        g.fillStyle = fill;
-        if (arch) { g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + 6); g.quadraticCurveTo(wx, wy, wx + ww / 2, wy - 3); g.quadraticCurveTo(wx + ww, wy, wx + ww, wy + 6); g.lineTo(wx + ww, wy + wh); g.closePath(); g.fill(); }
-        else g.fillRect(wx, wy, ww, wh);
-        if (fill.includes('.34')) { g.fillStyle = 'rgba(60,24,20,.55)'; g.fillRect(wx + ww * .55, wy, ww * .45, wh); }             // curtain
-        if (!arch && v < .08) { g.fillStyle = 'rgba(120,116,112,.5)'; g.fillRect(wx + ww + 1, wy + wh - 6, 6, 5); }                      // AC unit
+      // flats: runs of 2-4 windows share one household's state (dark / tubelight / warm / festive), so facades read lived-in, not gridded
+      let c = 0, fl = 0;
+      while (c < cols) {
+        const fw = 2 + Math.floor(R(7000 + r * 13 + fl) * 3), st = R(5000 + r * 17 + fl * 3);
+        const kind = st < .52 ? 0 : st < .68 ? 1 : st < .93 ? 2 : 3;
+        for (let j = 0; j < fw && c < cols; j++, c++) {
+          const wx = ox + c * cw, v = R(r * 50 + c);
+          let fill = 'rgba(12,10,12,.36)';
+          if (kind === 1) fill = v > .25 ? 'rgba(201,196,191,.12)' : 'rgba(12,10,12,.36)';
+          else if (kind === 2) fill = v > .7 ? 'rgba(255,176,92,.30)' : v > .15 ? 'rgba(255,181,71,.17)' : 'rgba(12,10,12,.36)';
+          else if (kind === 3) fill = 'rgba(255,170,80,.36)';
+          g.fillStyle = fill;
+          if (arch) { g.beginPath(); g.moveTo(wx, wy + wh); g.lineTo(wx, wy + 6); g.quadraticCurveTo(wx, wy, wx + ww / 2, wy - 3); g.quadraticCurveTo(wx + ww, wy, wx + ww, wy + 6); g.lineTo(wx + ww, wy + wh); g.closePath(); g.fill(); }
+          else g.fillRect(wx, wy, ww, wh);
+          if (kind >= 2 && v > .55) { g.fillStyle = 'rgba(60,24,20,.5)'; g.fillRect(wx + ww * .55, wy, ww * .45, wh); }        // curtain
+          if (kind === 3) { g.fillStyle = 'rgba(255,214,140,.55)'; for (let d = 1; d < 4; d++) g.fillRect(wx + d * ww / 4 - .6, wy + 1.5, 1.2, 1.2); }   // fairy lights in the window
+          if (!arch && v < .08) { g.fillStyle = 'rgba(120,116,112,.5)'; g.fillRect(wx + ww + 1, wy + wh - 6, 6, 5); }                      // AC unit
+        }
+        fl++;
       }
     }
     // roof clutter: Sintex tank, mumty, dish, TV aerial, chhatris on havelis
@@ -306,106 +350,168 @@
       const fl = .7 + .3 * L.noise1(T * 9 + d.s, 3);
       lamp(g, d.x, d.y, 1.7, '#FFB547', fl * pulse, k, blur);
     }
+    for (let i = 0; i < 34; i++) {                                                      // cracker embers drifting up over the city
+      const life = 4 + rnd(651, i) * 4, ph = rnd(652, i) * life, age = ((T + ph) % life) / life;
+      const x = -200 + rnd(653, i) * 1900 + L.snoise(T * .4 + i, 66) * 30, y = 1500 - age * (420 + rnd(654, i) * 320);
+      const a = Math.sin(age * Math.PI) * (.45 + .55 * L.noise1(T * 6 + i, 67));
+      lamp(g, x, y, 1 + rnd(655, i) * 1.1, i % 3 ? '#FFB547' : '#FFE7A3', a * .75, k, blur);
+    }
     g.restore();
   }
 
-  /* ------------------------------------------------------------------ flyover (d 1.15) */
+  /* ------------------------------------------------------------------ flyover (d .8) */
   let FLYC = null;
+  const FX0 = -900, FXW = 4100;      // wide enough that no cache edge enters frame during the whip (layer shifts 1750 px)
   function flyLayer() {
     if (FLYC) return FLYC;
-    FLYC = layerCache('fly', -700, 1380, 3400, 640, 5, g => {
+    FLYC = layerCache('fly', FX0, 1380, FXW, 640, 5, g => {
       const y0 = 1530;
       // the market street under the flyover: shopfronts with warm interiors, awnings and torans
-      const st = g.createLinearGradient(0, 1590, 0, 2020); st.addColorStop(0, '#1A1718'); st.addColorStop(1, '#151314');
-      g.fillStyle = st; g.fillRect(-700, 1590, 3400, 430);
-      const mk = L.cached('mmh-market', 3400, 300, m => {                                  // drawn sharp, then softened: it lives in the shadow under the deck
-        m.translate(700, -1640);
-        for (let i = 0, x = -700; x < 2700; i++) {
+      const st = g.createLinearGradient(0, 1590, 0, 2020); st.addColorStop(0, '#1A1718'); st.addColorStop(1, '#171415');
+      g.fillStyle = st; g.fillRect(FX0, 1590, FXW, 430);
+      const mk = L.cached('mmh-market', FXW, 300, m => {                                   // drawn sharp, then softened: it lives in the shadow under the deck
+        m.translate(-FX0, -1640);
+        for (let i = 0, x = FX0; x < FX0 + FXW; i++) {
           const w = 60 + rnd(801, i) * 90, top = 1720 + rnd(802, i) * 50, gapW = rnd(805, i) > .75 ? 20 + rnd(806, i) * 30 : 4;
           m.fillStyle = '#1D1A1B'; m.fillRect(x, top - 46, w - gapW, 300);
-          const warm = rnd(803, i) > .3; const a = .08 + rnd(804, i) * .2;
-          const ig = m.createLinearGradient(0, top, 0, top + 110); ig.addColorStop(0, warm ? `rgba(255,170,80,${a})` : `rgba(214,220,236,${a * .7})`); ig.addColorStop(1, 'rgba(255,150,70,0)');
+          const warm = rnd(803, i) > .22; const a = .26 + rnd(804, i) * .34;
+          const ig = m.createLinearGradient(0, top, 0, top + 110); ig.addColorStop(0, warm ? `rgba(255,170,80,${a})` : `rgba(214,220,236,${a * .6})`); ig.addColorStop(1, 'rgba(255,150,70,.02)');
           m.fillStyle = ig; m.fillRect(x + 6, top, w - gapW - 12, 140);
           m.fillStyle = 'rgba(0,0,0,.3)'; for (let sx = x + 8; sx < x + w - gapW - 8; sx += 4) m.fillRect(sx, top + 2, 1, 70 * rnd(807, i));   // half-rolled shutters
+          if (warm && rnd(810, i) > .5) { m.fillStyle = 'rgba(30,22,18,.75)'; for (let b = 0; b < 4; b++) m.fillRect(x + 12 + b * (w - gapW - 24) / 4, top + 64, (w - gapW - 24) / 4 - 4, 6); }   // shelves of mithai boxes
           m.fillStyle = '#2B2728'; m.fillRect(x - 2, top - 14, w - gapW + 2, 10); m.fillStyle = 'rgba(140,135,131,.4)'; m.fillRect(x - 2, top - 14, w - gapW + 2, 1.2);
           const nf = Math.floor((w - gapW - 8) / 8);
-          for (let f = 0; f < nf; f++) { m.fillStyle = f % 2 ? 'rgba(242,178,62,.55)' : 'rgba(224,110,30,.55)'; L.circle(m, x + 3 + f * 8, top - 2 + Math.sin(f / nf * Math.PI) * 4, 2.2); m.fill(); }
-          if (rnd(808, i) > .4) { m.fillStyle = `rgba(244,242,238,${(.05 + rnd(809, i) * .07).toFixed(3)})`; m.fillRect(x + 8, top - 40, w - gapW - 16, 18); }   // signboard
+          for (let f = 0; f < nf; f++) { m.fillStyle = f % 2 ? 'rgba(242,178,62,.6)' : 'rgba(224,110,30,.6)'; L.circle(m, x + 3 + f * 8, top - 2 + Math.sin(f / nf * Math.PI) * 4, 2.2); m.fill(); }
+          if (rnd(808, i) > .4) { m.fillStyle = `rgba(244,242,238,${(.06 + rnd(809, i) * .08).toFixed(3)})`; m.fillRect(x + 8, top - 40, w - gapW - 16, 18); }   // signboard
           x += w;
         }
       });
-      g.save(); g.filter = 'blur(2.2px)'; g.drawImage(mk, -700, 1640); g.restore();
-      const ds = g.createLinearGradient(0, 1596, 0, 1720); ds.addColorStop(0, 'rgba(10,8,9,.85)'); ds.addColorStop(1, 'rgba(10,8,9,0)');   // deck shadow
-      g.fillStyle = ds; g.fillRect(-700, 1596, 3400, 124);
+      g.save(); g.filter = 'blur(2.2px)'; g.drawImage(mk, FX0, 1640); g.restore();
+      const ds = g.createLinearGradient(0, 1596, 0, 1690); ds.addColorStop(0, 'rgba(10,8,9,.8)'); ds.addColorStop(1, 'rgba(10,8,9,0)');   // deck shadow
+      g.fillStyle = ds; g.fillRect(FX0, 1596, FXW, 94);
       // piers: a V-chevron cap on a pillar (the mark's chevron, in concrete)
-      for (let x = -640; x < 2700; x += 310) {
+      for (let x = -640 - 310; x < FX0 + FXW; x += 310) {
         rimFill(g, gg => { gg.beginPath(); gg.moveTo(x - 46, y0 + 66); gg.lineTo(x + 46, y0 + 66); gg.lineTo(x + 20, y0 + 118); gg.lineTo(x + 20, 2020); gg.lineTo(x - 20, 2020); gg.lineTo(x - 20, y0 + 118); gg.closePath(); gg.fill(); }, '#242022', .3);
         g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(x + 6, y0 + 118, 14, 900);
       }
       // deck fascia + soffit shadow
-      rimFill(g, gg => gg.fillRect(-700, y0, 3400, 66), C.ink, .75);
-      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(-700, y0 + 58, 3400, 8);
-      g.fillStyle = 'rgba(140,135,131,.18)'; for (let x = -700; x < 2700; x += 155) g.fillRect(x, y0 + 4, 2, 54);       // expansion joints
+      rimFill(g, gg => gg.fillRect(FX0, y0, FXW, 66), C.ink, .75);
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(FX0, y0 + 58, FXW, 8);
+      g.fillStyle = 'rgba(140,135,131,.18)'; for (let x = FX0; x < FX0 + FXW; x += 155) g.fillRect(x, y0 + 4, 2, 54);       // expansion joints
       // crash barrier on top
-      g.fillStyle = '#1E1B1C'; g.fillRect(-700, y0 - 14, 3400, 14);
-      g.fillStyle = 'rgba(140,135,131,.4)'; g.fillRect(-700, y0 - 14, 3400, 1.5);
-      for (let x = -700; x < 2700; x += 22) { g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x, y0 - 12, 3, 12); }
+      g.fillStyle = '#1E1B1C'; g.fillRect(FX0, y0 - 14, FXW, 14);
+      g.fillStyle = 'rgba(140,135,131,.4)'; g.fillRect(FX0, y0 - 14, FXW, 1.5);
+      for (let x = FX0; x < FX0 + FXW; x += 22) { g.fillStyle = 'rgba(0,0,0,.4)'; g.fillRect(x, y0 - 12, 3, 12); }
       // sodium street-lamp poles (kept clear of the G1 gantry)
       for (const x of LAMPX) { g.fillStyle = '#1A1718'; g.fillRect(x - 2, y0 - 120, 4, 106); g.fillRect(x - 2, y0 - 122, 26, 4); g.fillRect(x + 18, y0 - 124, 14, 6); }
     });
     return FLYC;
   }
-  const LAMPX = [-560, -230, 90, 830, 1140, 1450, 1760, 2070, 2380];
+  const LAMPX = [-760, -500, -240, 20, 860, 1120, 1380, 1640, 1900, 2160, 2420, 2680, 2940];
+  const sodiumPool = () => L.cached('mmh-sodium', 128, 128, g => { const r = g.createRadialGradient(64, 64, 0, 64, 64, 64); r.addColorStop(0, 'rgba(255,181,71,1)'); r.addColorStop(.35, 'rgba(255,170,60,.55)'); r.addColorStop(1, 'rgba(255,160,50,0)'); g.fillStyle = r; g.fillRect(0, 0, 128, 128); });
   function drawFly(g, T, k, blur) {
     const y0 = 1530;
     drawLC(g, flyLayer(), k, blur);
     g.save(); g.globalCompositeOperation = 'lighter';
-    for (const x of LAMPX) {                                                            // sodium lamps + pools
-      lamp(g, x + 25, y0 - 117, 3, '#FFB06A', .9, k, blur);
-      put(g, softSpr('#FF9F4A'), x + 25, y0 - 20, 90, .10);
+    // sodium pools on the deck (every 260 px): a flattened amber pool on the barrier + a spill down the fascia
+    for (const x of LAMPX) {
+      g.globalAlpha = .3; g.drawImage(sodiumPool(), x + 25 - 120, y0 - 30, 240, 56);
+      g.globalAlpha = .12; g.drawImage(sodiumPool(), x + 25 - 130, y0 - 12, 260, 70);
+      g.globalAlpha = .07; g.drawImage(sodiumPool(), x + 25 - 140, y0 - 160, 280, 230);
     }
-    for (let i = 0; i < 40; i++) {                                                      // market string lights + street traffic below the deck
-      const x = -650 + i * 85, y = 1652 + Math.sin(i * 1.7) * 6;
+    g.globalAlpha = 1;
+    for (const x of LAMPX) lamp(g, x + 25, y0 - 117, 3, '#FFB06A', .9, k, blur);
+    for (let i = 0; i < 46; i++) {                                                      // market string lights below the deck
+      const x = -850 + i * 85, y = 1652 + Math.sin(i * 1.7) * 6;
       lamp(g, x, y, 2.2, LIGHTCOLS[i % 4], .45 + .45 * L.noise1(T * 2 + i, 8), k, blur);
     }
-    for (let i = 0; i < 10; i++) {
-      const sp = 160 + rnd(841, i) * 120, span = 3400, x = ((rnd(842, i) * span + T * sp * (i % 2 ? 1 : -1)) % span + span) % span - 700;
+    for (let i = 0; i < 16; i++) {                                                      // light pools on the market street
+      const x = -800 + i * 250 + rnd(845, i) * 90;
+      g.globalAlpha = .1 + .06 * rnd(846, i); g.drawImage(sodiumPool(), x - 130, 1836, 260, 80);
+    }
+    g.globalAlpha = 1;
+    for (let i = 0; i < 22; i++) {                                                      // akash kandils hanging under the deck, swaying
+      const x = -820 + i * 185 + rnd(847, i) * 40, sw = Math.sin(T * 1.3 + i * 1.7) * 2.5, y = 1624 + rnd(848, i) * 22 + sw * .3;
+      const col = i % 3 ? '#FFB547' : '#FFC24A', f = .8 + .2 * L.noise1(T * 3 + i, 47);
+      put(g, softSpr(col), x + sw, y, 26, .3 * f);
+      if (blur / k < 2) { g.globalAlpha = .85 * f; g.fillStyle = i % 4 === 0 ? '#E9473F' : '#FFD9A0'; g.beginPath(); g.moveTo(x + sw, y - 7); g.lineTo(x + sw + 5, y); g.lineTo(x + sw, y + 7); g.lineTo(x + sw - 5, y); g.closePath(); g.fill(); g.globalAlpha = 1; }
+      else lamp(g, x + sw, y, 2.4, col, f, k, blur);
+    }
+    for (let i = 0; i < 12; i++) {
+      const sp = 160 + rnd(841, i) * 120, span = 4000, x = ((rnd(842, i) * span + T * sp * (i % 2 ? 1 : -1)) % span + span) % span - 900;
       lamp(g, x, 1872 + (i % 2) * 10, 3, i % 2 ? '#FFF2DC' : '#FF4A3A', .5, k, blur);
     }
     // traffic: long-exposure head/tail-light streaks moving left -> right on the deck
-    for (let i = 0; i < 26; i++) {
-      const red = i % 3 === 0, sp = 380 + rnd(811, i) * 260, span = 3600;
-      const x = ((rnd(812, i) * span + T * sp) % span) - 800, y = y0 - 22 - (red ? 0 : 5) - rnd(813, i) * 4;
+    for (let i = 0; i < 52; i++) {
+      const red = i % 3 === 0, sp = 380 + rnd(811, i) * 260, span = 4200;
+      const x = ((rnd(812, i) * span + T * sp) % span) - 1000, y = y0 - 22 - (red ? 0 : 5) - rnd(813, i) * 4;
       const len = 46 + rnd(814, i) * 50, col = red ? C.red : '#FFF2DC';
       const gr = g.createLinearGradient(x - len, 0, x, 0); gr.addColorStop(0, L.rgba(col, 0)); gr.addColorStop(1, L.rgba(col, red ? .55 : .7));
-      g.globalAlpha = 1; g.fillStyle = gr; g.fillRect(x - len, y - 1.6, len, 3.2);
+      g.fillStyle = gr; g.fillRect(x - len, y - 1.6, len, 3.2);
       lamp(g, x, y, red ? 1.8 : 2.2, red ? '#FF4A3A' : '#FFFFFF', red ? .6 : .85, k, blur);
     }
     g.restore();
   }
 
-  /* ------------------------------------------------------------------ H2 rooftop block (d 1.3) */
+  /* ------------------------------------------------------------------ H2 rooftop block (d 1.6) */
+  // H2 face (drawn by s2): x 500-800, y 1000-1176; this block is the building it stands on (roof 1262)
+  const H2X0 = 470, H2X1 = 2200, H2ROOF = 1262;
+  // balconies (Legacy-Line railings of equal pillars) with diyas: [x, w, floor]
+  const BALC = [[612, 104, 1], [878, 120, 3], [1010, 92, 0], [1300, 110, 2], [1560, 120, 1]];
   let H2C = null;
   function h2Layer() {
     if (H2C) return H2C;
-    H2C = layerCache('h2', 560, 960, 1400, 800, 6, g => {
-      const roof = 1262;
-      rimFill(g, gg => gg.fillRect(600, roof, 1400, 600), C.near, .55);
-      for (let r = 0; r < 9; r++) for (let c = 0; c < 40; c++) {                         // windows
-        const v = rnd(830, r * 60 + c); const wx = 618 + c * 34, wy = roof + 30 + r * 40;
-        g.fillStyle = v < .55 ? 'rgba(10,9,10,.6)' : v < .82 ? 'rgba(201,196,191,.12)' : v < .95 ? 'rgba(255,181,71,.16)' : 'rgba(255,176,92,.34)';
-        g.fillRect(wx, wy, 14, 18);
+    H2C = layerCache('h2', H2X0 - 20, 960, H2X1 - H2X0 + 40, 820, 6, g => {
+      const roof = H2ROOF, R = i => rnd(830, i);
+      rimFill(g, gg => gg.fillRect(H2X0, roof, H2X1 - H2X0, 600), '#262223', .55);
+      // floors: 40 px; flats of 3 windows between pilasters; ~35% of flats dark, lit ones warm or tubelight
+      const PIT = 34, FLAT = 3 * PIT + 22;
+      for (let r = 0; r < 12; r++) {
+        const wy = roof + 30 + r * 40;
+        g.fillStyle = 'rgba(140,135,131,.16)'; g.fillRect(H2X0, wy - 8, H2X1 - H2X0, 2);                 // floor slab line
+        for (let f = 0, fx = H2X0 + 14 + (r % 2) * 9; fx < H2X1 - FLAT; f++, fx += FLAT) {
+          const st = R(r * 97 + f * 7), kind = st < .35 ? 0 : st < .55 ? 1 : st < .9 ? 2 : 3;
+          g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(fx + 3 * PIT - 4, wy - 6, 22, 30);                // pilaster shadow
+          for (let j = 0; j < 3; j++) {
+            const wx = fx + j * PIT, v = R(r * 997 + f * 31 + j);
+            let fill = 'rgba(10,9,10,.4)';
+            if (kind === 1) fill = v > .3 ? 'rgba(201,196,191,.11)' : fill;
+            else if (kind === 2) fill = v > .65 ? 'rgba(255,176,92,.32)' : v > .2 ? 'rgba(255,181,71,.17)' : fill;
+            else if (kind === 3) fill = 'rgba(255,168,76,.38)';
+            g.fillStyle = fill; g.fillRect(wx, wy, 14, 18);
+            if (kind >= 2 && v > .5) { g.fillStyle = 'rgba(70,26,22,.5)'; g.fillRect(wx + 8, wy, 6, 18); }        // curtain
+            if (kind === 3) { g.fillStyle = 'rgba(255,214,140,.6)'; for (let d = 1; d < 4; d++) g.fillRect(wx + d * 3.5 - .6, wy + 2, 1.3, 1.3); }
+            if (kind === 0 && v < .12) { g.fillStyle = 'rgba(120,116,112,.45)'; g.fillRect(wx + 15, wy + 11, 7, 6); }   // AC unit
+          }
+        }
       }
-      g.fillStyle = 'rgba(140,135,131,.25)'; for (let r = 0; r < 9; r++) g.fillRect(600, roof + 22 + r * 40, 1400, 2);
+      // balconies: slab, warm open door, Legacy-Line railing (equal pillars, Stone top edge)
+      for (const [bx, bw, fl] of BALC) {
+        const by = roof + 30 + fl * 40;
+        const dg = g.createLinearGradient(0, by - 4, 0, by + 26); dg.addColorStop(0, 'rgba(255,170,80,.42)'); dg.addColorStop(1, 'rgba(255,150,60,.12)');
+        g.fillStyle = dg; g.fillRect(bx + bw * .3, by - 4, bw * .36, 28);
+        g.fillStyle = '#151214'; g.fillRect(bx - 6, by + 24, bw + 12, 5);
+        g.fillStyle = 'rgba(140,135,131,.55)'; g.fillRect(bx - 6, by + 24, bw + 12, 1.2);
+        g.fillStyle = '#1B1819'; for (let px = bx - 4; px < bx + bw + 4; px += 7) g.fillRect(px, by + 9, 4, 15);
+        g.fillStyle = '#1B1819'; g.fillRect(bx - 6, by + 7, bw + 12, 3);
+        g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(bx - 6, by + 7, bw + 12, 1);
+      }
+      g.fillStyle = 'rgba(140,135,131,.22)'; for (let r = 0; r < 12; r += 3) g.fillRect(H2X0, roof + 22 + r * 40, H2X1 - H2X0, 1.4);
       // parapet with jaali gaps
-      g.fillStyle = C.near; g.fillRect(600, roof - 12, 1400, 12);
-      g.fillStyle = 'rgba(0,0,0,.45)'; for (let x = 606; x < 2000; x += 16) g.fillRect(x, roof - 9, 8, 6);
-      // hoarding structure: twin trusses with a V brace
-      g.strokeStyle = C.steel; g.lineWidth = 5;
-      for (const lx of [700, 905]) { g.fillStyle = C.steel; g.fillRect(lx, 1200, 9, roof - 1200); g.fillRect(lx + 26, 1200, 9, roof - 1200); g.beginPath(); for (let y = 1200; y < roof; y += 18) { g.moveTo(lx + 4, y); g.lineTo(lx + 30, y + 9); g.lineTo(lx + 4, y + 18); } g.lineWidth = 2.5; g.stroke(); }
+      g.fillStyle = '#262223'; g.fillRect(H2X0, roof - 12, H2X1 - H2X0, 12);
+      g.fillStyle = 'rgba(140,135,131,.5)'; g.fillRect(H2X0, roof - 12, H2X1 - H2X0, 1.5);
+      g.fillStyle = 'rgba(0,0,0,.45)'; for (let x = H2X0 + 6; x < H2X1; x += 16) g.fillRect(x, roof - 9, 8, 6);
+      // hoarding structure: twin trusses with a V brace under the H2 face (x 500-800, bottom 1176)
+      for (const lx of [548, 718]) {
+        g.fillStyle = C.steel; g.fillRect(lx, 1182, 8, roof - 1182); g.fillRect(lx + 24, 1182, 8, roof - 1182);
+        g.fillStyle = 'rgba(140,135,131,.4)'; g.fillRect(lx, 1182, 1.5, roof - 1182);
+        g.strokeStyle = C.steel; g.lineWidth = 2.5; g.beginPath(); for (let y = 1182; y < roof; y += 18) { g.moveTo(lx + 4, y); g.lineTo(lx + 28, y + 9); g.lineTo(lx + 4, y + 18); } g.stroke();
+      }
       // Sintex tank + mumty
-      g.fillStyle = '#151314'; g.fillRect(1030, roof - 52, 54, 40); g.fillRect(1036, roof - 12, 4, 12); g.fillRect(1074, roof - 12, 4, 12);
-      g.fillStyle = 'rgba(140,135,131,.35)'; g.fillRect(1030, roof - 52, 54, 2); g.fillRect(1030, roof - 38, 54, 1.5); g.fillRect(1030, roof - 26, 54, 1.5);
+      g.fillStyle = '#151314'; g.fillRect(930, roof - 52, 54, 40); g.fillRect(936, roof - 12, 4, 12); g.fillRect(974, roof - 12, 4, 12);
+      g.fillStyle = 'rgba(140,135,131,.35)'; g.fillRect(930, roof - 52, 54, 2); g.fillRect(930, roof - 38, 54, 1.5); g.fillRect(930, roof - 26, 54, 1.5);
+      g.fillStyle = '#1A1718'; g.fillRect(1180, roof - 40, 70, 40); g.fillStyle = 'rgba(255,181,71,.2)'; g.fillRect(1205, roof - 32, 14, 30);
+      g.fillStyle = 'rgba(140,135,131,.4)'; g.fillRect(1180, roof - 40, 70, 1.5);
     });
     return H2C;
   }
@@ -413,8 +519,14 @@
     drawLC(g, h2Layer(), k, blur);
     g.save(); g.globalCompositeOperation = 'lighter';
     const pulse = 1 + .35 * Math.exp(-Math.pow((T - TM.b7 - .05) / .06, 2));
-    for (let i = 0; i < 46; i++) { const x = 606 + i * 10.5; lamp(g, x, 1255 + Math.abs(Math.sin(i * .55)) * 4, 1.6, ['#FFC24A', '#FFE7A3', '#FF9F1C', '#FF5C8A'][i % 4], ((Math.floor(T * 8) + i) % 3 === 0 ? 1 : .4) * pulse, k, blur); }
-    for (let i = 0; i < 12; i++) { const fl = .7 + .3 * L.noise1(T * 9 + i * 3, 9); lamp(g, 1110 + i * 22, 1248, 1.6, '#FFB547', fl * pulse, k, blur); }
+    for (let i = 0; i < 64; i++) { const x = H2X0 + 6 + i * 10.5; lamp(g, x, H2ROOF - 7 + Math.abs(Math.sin(i * .55)) * 4, 1.6, LIGHTCOLS[i % 4], ((Math.floor(T * 8) + i) % 3 === 0 ? 1 : .4) * pulse, k, blur); }
+    for (let i = 0; i < 10; i++) { const fl = .7 + .3 * L.noise1(T * 9 + i * 3, 9); lamp(g, 860 + i * 22, H2ROOF - 14, 1.6, '#FFB547', fl * pulse, k, blur); }
+    for (const [bx, bw, fl] of BALC) {                                                 // diyas on the balcony rails + door glow
+      const by = H2ROOF + 30 + fl * 40;
+      put(g, softSpr('#FFB547'), bx + bw / 2, by + 8, bw * .7, .16);
+      const n = Math.max(3, Math.round(bw / 26));
+      for (let i = 0; i < n; i++) { const f = .7 + .3 * L.noise1(T * 9 + i * 2.1 + bx, 13); lamp(g, bx + 4 + i * (bw - 8) / (n - 1), by + 4, 1.5, '#FFB547', f * pulse, k, blur); }
+    }
     g.restore();
   }
 
@@ -441,12 +553,12 @@
       stampArt(g);
       const ink = L.textureCanvas('ink', 512, 7 + v * 3);
       g.globalCompositeOperation = 'destination-out';
-      g.globalAlpha = v ? .26 : .34; g.drawImage(ink, -40 - v * 37, -60 - v * 23, 900, 520);                     // uneven ink density
-      g.globalAlpha = .22; const grain = L.textureCanvas('powder', 512, 21 + v); g.drawImage(grain, 0, 0, STW, STH);
+      g.globalAlpha = v ? .2 : .15; g.drawImage(ink, -40 - v * 37, -60 - v * 23, 900, 520);                       // uneven ink density (dense: dry ink >= .92 of wet)
+      g.globalAlpha = v ? .14 : .1; const grain = L.textureCanvas('powder', 512, 21 + v); g.drawImage(grain, 0, 0, STW, STH);
       g.globalAlpha = 1; g.fillStyle = '#000';
       for (let i = 0; i < 52; i++) {                                                                               // wood-grain streaks
         const y = 20 + rnd(41 + v, i) * (STH - 40), x0 = rnd(42 + v, i) * STW, len = 30 + rnd(43 + v, i) * 220;
-        g.globalAlpha = .12 + rnd(44 + v, i) * .25; g.beginPath(); g.moveTo(x0, y); g.bezierCurveTo(x0 + len * .3, y - 1.5, x0 + len * .7, y + 1.5, x0 + len, y); g.lineWidth = .6 + rnd(45 + v, i) * 1.6; g.strokeStyle = '#000'; g.stroke();
+        g.globalAlpha = .1 + rnd(44 + v, i) * .22; g.beginPath(); g.moveTo(x0, y); g.bezierCurveTo(x0 + len * .3, y - 1.5, x0 + len * .7, y + 1.5, x0 + len, y); g.lineWidth = .6 + rnd(45 + v, i) * 1.6; g.strokeStyle = '#000'; g.stroke();
       }
       for (let i = 0; i < 900; i++) {                                                                              // voids + chipped edges
         const x = rnd(51 + v, i) * STW, y = rnd(52 + v, i) * STH, r = .5 + Math.pow(rnd(53 + v, i), 3) * 3.4;
@@ -501,13 +613,13 @@
     const v = 1 + (Math.floor(f / 2) % 3);
     const sq = f === 0 ? .982 : f === 1 ? 1.008 : 1;
     const jit = wetA > 0 ? (rnd(77, Math.floor(f / 2)) - .5) * .5 * DEG * (1 - settle) : 0;
-    const a = lerp(.92, 1, Ez.outQuad(settle));
+    // the ink itself never fades: only the wet boil (on twos) and the sheen dry off between .4 and .8
     g.save(); g.rotate(jit); g.scale(sq, sq);
-    if (f === 0) { g.globalAlpha = 1; g.drawImage(stampSolid(), -STW / 2, -STH / 2); }
+    if (f <= 0) { g.globalAlpha = 1; g.drawImage(stampSolid(), -STW / 2, -STH / 2); }
     else {
-      g.globalAlpha = .35 * a; g.drawImage(stampCanvas(0), -STW / 2 + 2, -STH / 2 - 1.5);   // double strike, 2px misregistration
-      g.globalAlpha = a; g.drawImage(stampCanvas(0), -STW / 2, -STH / 2);
-      if (wetA > .01) { g.globalAlpha = a * wetA; g.drawImage(stampCanvas(v), -STW / 2, -STH / 2); }
+      g.globalAlpha = .35; g.drawImage(stampCanvas(0), -STW / 2 + 2, -STH / 2 - 1.5);       // double strike, 2px misregistration
+      g.globalAlpha = 1; g.drawImage(stampCanvas(0), -STW / 2, -STH / 2);
+      if (wetA > .01) { g.globalAlpha = .6 * wetA; g.drawImage(stampCanvas(v), -STW / 2, -STH / 2); }
     }
     g.restore();
     spatter(g, tau, nSpecks, speckScale);
@@ -648,6 +760,8 @@
     const flk = fl * (.94 + .06 * L.noise1(T * 11, 41));
     const dg = g.createRadialGradient(268, 1262, 0, 268, 1262, 380); dg.addColorStop(0, `rgba(255,136,48,${(.30 * flk).toFixed(3)})`); dg.addColorStop(.35, `rgba(255,120,40,${(.11 * flk).toFixed(3)})`); dg.addColorStop(1, 'rgba(255,120,40,0)');
     g.fillStyle = dg; g.fillRect(FX, 880, 660, 410);
+    const dg3 = g.createRadialGradient(230, 1270, 0, 230, 1270, 200); dg3.addColorStop(0, `rgba(255,181,71,${(.22 * flk).toFixed(3)})`); dg3.addColorStop(.5, `rgba(255,181,71,${(.08 * flk).toFixed(3)})`); dg3.addColorStop(1, 'rgba(255,181,71,0)');
+    g.fillStyle = dg3; g.fillRect(FX, 1070, 430, 220);                                  // the diya's warm pool on the face (r 200)
     const dg2 = g.createRadialGradient(925, 1270, 0, 925, 1270, 240); dg2.addColorStop(0, 'rgba(255,136,48,.16)'); dg2.addColorStop(1, 'rgba(255,120,40,0)');
     g.fillStyle = dg2; g.fillRect(680, 1030, 300, 260);
     const pz = Math.exp(-Math.pow((T - TM.b7 - .05) / .055, 2));                       // beat-7: every board pulses
@@ -719,14 +833,14 @@
   function drawFaceMarks(g, T) {
     const cx = 540, cy = 900, rot = -9 * DEG;
     const sh0 = TM.drop - 2 / 30;
-    if (T >= sh0 && T < TM.hit) {                                                      // anticipation: the block's shadow arrives first, then converges
-      const u = clamp((T - sh0) / (TM.hit - sh0)), e = u * u;
+    if (T >= sh0 && T < TH) {                                                          // anticipation: the block's shadow arrives first, then converges
+      const u = clamp((T - sh0) / (TH - sh0)), e = u * u;
       g.save(); g.translate(cx + 18 * (1 - e), cy + 120 * (1 - e)); g.rotate(lerp(-15, -9, e) * DEG); const s = lerp(1.5, 1.02, e); g.scale(s, s);
       g.globalAlpha = (.12 + .38 * e) * (.5 + .5 * lampI(T)); g.drawImage(stampBlock(), -(STW + 120) / 2, -(STH + 120) / 2); g.restore();
     }
-    if (T >= TM.hit) {
-      g.save(); g.translate(cx, cy); g.rotate(rot); H.drawImpression(g, T - TM.hit, 40, 1); wetSheen(g, T);
-      const tau = T - TM.hit;
+    if (T >= TH) {                                                                     // contact from .39 so every sub-frame of the .400 frame is the squash pose
+      const tau = Math.max(0, T - TM.hit);
+      g.save(); g.translate(cx, cy); g.rotate(rot); H.drawImpression(g, tau, 40, 1); wetSheen(g, T);
       if (tau < .3) {                                                                  // displaced dust: a soft ring racing out from the block's edge
         const r = 1 + tau * 1.1, a = .34 * (1 - tau / .3);
         for (let j = 0; j < 3; j++) { g.strokeStyle = `rgba(214,208,204,${(a * (1 - j * .3)).toFixed(3)})`; g.lineWidth = 10 + j * 10; g.strokeRect(-350 * r - j * 6, -125 * r - j * 6, 700 * r + j * 12, 250 * r + j * 12); }
@@ -734,13 +848,10 @@
       g.restore();
     }
     // ---- handwriting: "for you" (stroke-mask write-on, italic slant edge)
-    if (T >= TM.write0) {
-      const u0 = clamp((T - TM.write0) / (TM.write1 - TM.write0)), u = -(Math.cos(Math.PI * u0) - 1) / 2;
-      writeOn(g, u);
-    }
+    if (T >= TM.write0) writeOn(g, T);
     if (T >= TM.hi0) {
       const u = Ez.outCubic(clamp((T - TM.hi0) / (TM.hi1 - TM.hi0)));
-      L.text(g, 'आपके लिए', 540, 1250 + 12 * (1 - u), { font: 'tiro', italic: true, size: 64, color: C.red, alpha: u, maxWidth: 420 });
+      L.text(g, 'आपके लिए', 540, 1244 + 12 * (1 - u), { font: 'tiro', italic: true, size: 60, color: C.red, alpha: u, maxWidth: 400 });
     }
   }
   function wetSheen(g, T) {
@@ -755,33 +866,141 @@
     g.beginPath(); g.moveTo(x - 60, -160); g.lineTo(x + 40, -160); g.lineTo(x - 20, 160); g.lineTo(x - 120, 160); g.closePath(); g.clip();
     g.drawImage(sh, -STW / 2, -STH / 2); g.restore();
   }
-  let WC = null;
+  let WC = null, INKCOL = null;
   const FY_W = 1160;
-  function writeOn(g, u) {
-    const src = L.cached('mmh-foryou', 600, 220, gg => L.text(gg, 'for you', 300, 150, { font: 'tiro', italic: true, size: 120, color: C.red, maxWidth: 520 }));
-    if (u >= 1) { g.drawImage(src, 540 - 300, FY_W - 150); return; }
+  const FY_SRC = () => L.cached('mmh-foryou', 600, 220, gg => L.text(gg, 'for you', 300, 150, { font: 'tiro', italic: true, size: 120, color: C.red, maxWidth: 520 }));
+  // pen schedule (frames after 1.000 -> pen x in the 600 px canvas, rel. to the text's left edge): slow on the f ascender and
+  // the y descender, quick on 'or' / 'ou', a 2-frame lift across the word gap
+  const PEN = [[0, 0], [3.6, 46], [6.4, 151.8], [8.4, 151.8, 'lift'], [8.4, 183], [11.2, 238], [14, 377.2]];
+  function penAt(fr) {
+    for (let i = 1; i < PEN.length; i++) {
+      const [f0, x0] = PEN[i - 1], [f1, x1, tag] = PEN[i];
+      if (fr <= f1 || i === PEN.length - 1) {
+        if (f1 <= f0) continue;
+        const u = clamp((fr - f0) / (f1 - f0)), e = lerp(u, u * u * (3 - 2 * u), .55);
+        return { x: lerp(x0, x1, e), lifted: tag === 'lift' };
+      }
+    }
+    return { x: 377.2, lifted: false };
+  }
+  function inkColumns() {                                                              // per-column ink centroid of the source, for the nib
+    if (INKCOL) return INKCOL;
+    const src = FY_SRC(), d = src.getContext('2d').getImageData(0, 0, 600, 220).data, mean = new Float32Array(600), has = new Uint8Array(600);
+    for (let x = 0; x < 600; x++) { let sy = 0, n = 0; for (let y = 0; y < 220; y++) if (d[(y * 600 + x) * 4 + 3] > 140) { sy += y; n++; } if (n) { mean[x] = sy / n; has[x] = 1; } }
+    INKCOL = { mean, has }; return INKCOL;
+  }
+  function writeOn(g, T) {
+    const src = FY_SRC();
+    const fr = (T - TM.write0) * 30;
+    if (fr >= 14) { g.drawImage(src, 540 - 300, FY_W - 150); return; }
     if (!WC) { WC = document.createElement('canvas'); WC.width = 600; WC.height = 220; }
     const w = WC.getContext('2d'); w.globalCompositeOperation = 'source-over'; w.globalAlpha = 1; w.clearRect(0, 0, 600, 220); w.drawImage(src, 0, 0);
-    // pen path: "for" then a lift across the gap, then "you"
-    const full = 377.2, forW = 151.8, gap = 183 - 151.8, inked = full - gap, left = 300 - full / 2;
-    const d = u * inked, xe = left + (d < forW ? d : d + gap) + 8;
+    const full = 377.2, left = 300 - full / 2, pen = penAt(fr), xe = left + pen.x + 8;
     w.globalCompositeOperation = 'destination-in';
     w.save(); w.transform(1, 0, -.2, 1, .2 * 150, 0);
-    const gr = w.createLinearGradient(xe - 16, 0, xe + 4, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    const gr = w.createLinearGradient(xe - 7, 0, xe + 1, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
     w.fillStyle = gr; w.fillRect(-100, 0, 800, 220); w.restore();
+    w.globalCompositeOperation = 'source-over';
+    if (!pen.lifted && fr > .3) {                                                      // the nib: a 3 px pool of wet ink at the leading edge
+      const ic = inkColumns(); let xc = Math.round(xe - 8), yc = 0, ok = false;
+      for (let dx = 0; dx < 10 && !ok; dx++) { const xx = Math.max(0, Math.min(599, xc - dx)); if (ic.has[xx]) { yc = ic.mean[xx]; xc = xx; ok = true; } }
+      if (ok) { const nx = xc + 2; w.fillStyle = L.mix(C.red, '#2B2728', .32); L.circle(w, nx, yc, 3.2); w.fill(); w.fillStyle = 'rgba(244,242,238,.35)'; L.circle(w, nx - 1, yc - 1.2, .9); w.fill(); }
+    }
     g.drawImage(WC, 540 - 300, FY_W - 150);
   }
-  function stampFlight(g, T) {
-    if (T < TM.drop || T >= TM.hit) return;
-    // enters from above the frame, winds up toward the lens (anticipation), then accelerates into the face
-    const u = clamp((T - TM.drop) / (TM.hit - TM.drop)), WU = .3;
+  /* ---- the airborne block: a solid Ink wood block (700x250 footprint) seen from behind, its Stone side facing the
+     optical centre (real perspective about the vanishing point), the inked violet rubber showing only as a rim,
+     plus a grip. Motion-blurred by supersampling the block alone (the camera is still here). */
+  const TH = q(.4) - .01;                                                              // contact threshold (.39)
+  const VPX = 540, VPY = 960;
+  function flightPose(T) {
+    const u = clamp((T - TM.drop) / (TH - TM.drop)), WU = .3;
     let sc, dy, rot;
     if (u < WU) { const v = Ez.outQuad(u / WU); sc = lerp(1.75, 2.05, v); dy = lerp(-700, -780, v); rot = lerp(-11, -16, v); }
     else { const v = Math.pow((u - WU) / (1 - WU), 2.2); sc = lerp(2.05, 1, v); dy = lerp(-780, 0, v); rot = lerp(-16, -9, v); }
-    g.save(); g.translate(540, 900 + dy); g.rotate(rot * DEG); g.scale(sc, sc);
-    setBlur(g, (sc - 1) * 9);                                                          // nearer the lens = out of focus
-    g.globalAlpha = 1; g.drawImage(stampCanvas(1), -STW / 2, -STH / 2); g.filter = 'none'; g.restore();
+    return { cx: 540, cy: 900 + dy, sc, rot: rot * DEG };
   }
+  function hull(pts) {
+    const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
+    const lo = [], up = [];
+    for (const q of p) { while (lo.length >= 2 && cr(lo[lo.length - 2], lo[lo.length - 1], q) <= 0) lo.pop(); lo.push(q); }
+    for (let i = p.length - 1; i >= 0; i--) { const q = p[i]; while (up.length >= 2 && cr(up[up.length - 2], up[up.length - 1], q) <= 0) up.pop(); up.push(q); }
+    return lo.slice(0, -1).concat(up.slice(0, -1));
+  }
+  function polyFill(g, pts, fill) { g.fillStyle = fill; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill(); }
+  /** draws a stamp block whose inked face is the local rect +-hw x +-hh at (cx,cy), rot, scale sc; beta = depth factor */
+  function drawBlock(g, cx, cy, rot, sc, beta, hw = 350, hh = 125, vpx = VPX, vpy = VPY) {
+    const ca = Math.cos(rot), sa = Math.sin(rot);
+    const P0 = (lx, ly) => [cx + (lx * ca - ly * sa) * sc, cy + (lx * sa + ly * ca) * sc];
+    const at = (p, m) => [vpx + (p[0] - vpx) * m, vpy + (p[1] - vpy) * m];
+    const far = [P0(-hw, -hh), P0(hw, -hh), P0(hw, hh), P0(-hw, hh)];
+    const rub = far.map(p => at(p, 1 + beta * .14)), near = far.map(p => at(p, 1 + beta));
+    polyFill(g, hull(far.concat(rub)), C.violet);                                        // inked rubber: a rim only
+    const sg = g.createLinearGradient(vpx, vpy, cx, cy); sg.addColorStop(0, '#A7A29C'); sg.addColorStop(1, '#6E6965');
+    polyFill(g, hull(rub.concat(near)), sg);                                              // wood side (Stone), lit by the tubelights below
+    g.save(); g.globalAlpha = .35; polyFill(g, hull(rub.concat(rub.map(p => at(p, 1 + beta * .3)))), '#4A4542'); g.restore();   // occlusion near the rubber
+    const bg = g.createLinearGradient(near[0][0], near[0][1], near[3][0], near[3][1]); bg.addColorStop(0, '#2B2728'); bg.addColorStop(1, '#3A3536');
+    polyFill(g, near, bg);                                                               // the back of the block (Ink, a little volume)
+    // wood grain on the back + a 2 px Stone highlight on its top edge
+    g.save(); g.beginPath(); near.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.clip();
+    const m = 1 + beta, gs = sc * m;
+    g.translate(vpx + (cx - vpx) * m, vpy + (cy - vpy) * m); g.rotate(rot); g.scale(gs, gs);
+    g.strokeStyle = 'rgba(140,135,131,.24)'; g.lineWidth = 1.6 / gs * 1.2;
+    for (let i = 0; i < 9; i++) { const y = -hh + (i + .5) * hh * 2 / 9 + (rnd(611, i) - .5) * 10; g.beginPath(); g.moveTo(-hw, y); g.bezierCurveTo(-hw * .3, y - 6 + rnd(612, i) * 12, hw * .3, y + 6 - rnd(613, i) * 12, hw, y + (rnd(614, i) - .5) * 8); g.stroke(); }
+    g.fillStyle = 'rgba(140,135,131,.85)'; g.fillRect(-hw, -hh, hw * 2, 2 / gs * 1.4);
+    // the grip: a raised bar handle with its own side
+    g.restore();
+    const gw = hw * .56, gh = hh * .3;
+    const gb = [P0(-gw, -gh), P0(gw, -gh), P0(gw, gh), P0(-gw, gh)].map(p => at(p, 1 + beta)), gt = gb.map(p => at(p, (1 + beta * 2.4) / (1 + beta)));
+    polyFill(g, hull(gb.concat(gt)), '#3A3536');
+    polyFill(g, gt, '#2F2B2C');
+    const e0 = gt[0], e1 = gt[1]; g.strokeStyle = 'rgba(140,135,131,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(e0[0], e0[1]); g.lineTo(e1[0], e1[1]); g.stroke();
+    return far.concat(near, gt);
+  }
+  function blockAt(g, T) {
+    const p = flightPose(T);
+    return drawBlock(g, p.cx, p.cy, p.rot, p.sc, .048 * p.sc);
+  }
+  /** accumulate K sub-samples of a moving prop into the current frame (premultiplied average, source-over per sample).
+      Only the prop's device-space bbox is touched, so it stays cheap. */
+  let SB = null;
+  function subBuffers(w, h) {
+    if (!SB || SB[0].width !== w || SB[0].height !== h) { SB = [0, 1].map(() => { const c = document.createElement('canvas'); c.width = w; c.height = h; return c; }); }
+    return SB;
+  }
+  H.propSS = (g, T, K, span, drawFn, blurPx) => {
+    const cw = g.canvas.width, ch = g.canvas.height, M = g.getTransform();
+    const [acc, tmp] = subBuffers(cw, ch), a = acc.getContext('2d'), m = tmp.getContext('2d');
+    let x0 = cw, y0 = ch, x1 = 0, y1 = 0;
+    const samples = [];
+    for (let i = 0; i < K; i++) samples.push(T + ((i + .5) / K - .5) * span);
+    // pass 1: bbox in device px (drawFn returns its outline points in local coords)
+    m.setTransform(M); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over';
+    for (const ti of samples) { const pts = drawFn(null, ti); if (!pts) continue; for (const p of pts) { const X = M.a * p[0] + M.c * p[1] + M.e, Y = M.b * p[0] + M.d * p[1] + M.f; x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y); } }
+    const pad = 4 + (blurPx || 0) * 3 * L.baseScale;
+    x0 = Math.max(0, Math.floor(x0 - pad)); y0 = Math.max(0, Math.floor(y0 - pad)); x1 = Math.min(cw, Math.ceil(x1 + pad)); y1 = Math.min(ch, Math.ceil(y1 + pad));
+    if (x1 <= x0 || y1 <= y0) return;
+    const bw = x1 - x0, bh = y1 - y0;
+    a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(x0, y0, bw, bh); a.globalCompositeOperation = 'lighter'; a.globalAlpha = 1 / K;
+    for (const ti of samples) {
+      m.setTransform(1, 0, 0, 1, 0, 0); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over'; m.filter = 'none'; m.clearRect(x0, y0, bw, bh);
+      m.save(); m.beginPath(); m.rect(x0, y0, bw, bh); m.clip(); m.setTransform(M); drawFn(m, ti); m.restore();
+      a.drawImage(tmp, x0, y0, bw, bh, x0, y0, bw, bh);
+    }
+    const bs = L.baseScale;
+    g.save(); L.resetTransform(g); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over';
+    if (blurPx > .5) g.filter = `blur(${(blurPx * bs).toFixed(2)}px)`;
+    g.drawImage(acc, x0, y0, bw, bh, x0 / bs, y0 / bs, bw / bs, bh / bs); g.filter = 'none'; g.restore();
+  };
+  function stampFlight(g, T) {
+    if (T < TM.drop - 1 / 240 || T >= TH) return;
+    const drawFn = (gg, ti) => { if (ti < TM.drop || ti >= TH) return null; if (!gg) { const p = flightPose(ti); return drawBlock(fakeG, p.cx, p.cy, p.rot, p.sc, .048 * p.sc); } return blockAt(gg, ti); };
+    const p = flightPose(clamp(T, TM.drop, TH - 1e-4)), blurPx = Math.min(4, (p.sc - 1) * 3.6);   // defocus <= 4 px (nearer the lens)
+    if (H.SSK > 1) { g.save(); if (blurPx > .5) setBlur(g, blurPx); blockAt(g, T); g.restore(); return; }
+    H.propSS(g, T, 8, 1 / 240, drawFn, blurPx);
+  }
+  // a no-op drawing context used to compute the block's outline without painting
+  const fakeG = new Proxy({}, { get: (o, k) => k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {}, set: () => true });
 
   /* ------------------------------------------------------------------ sky (screen space, slight parallax) */
   const SPARKS = [
@@ -802,7 +1021,7 @@
     const px = cam.ex / 8, py = cam.ey / 8;
     ctx.save(); ctx.translate(px, py);
     L.stars(ctx, T, { seed: 17, count: 46, x: -100, y: -100, w: 1280, h: 780, alpha: .5 });
-    L.haze(ctx, T, { y0: 0, y1: 760, alpha: .07, color: '#7B6BB0', speed: 6, seed: 12, scale: 3.4 });
+    hazeBand(ctx, T, { y0: -260, y1: 900, alpha: .08, color: '#7B6BB0', speed: 6, seed: 12, scale: 3.4 });
     // distant crackle (tiny pops) — the audio's crackle bed made visible
     ctx.save(); ctx.globalCompositeOperation = 'lighter';
     const fr = FR(T);
@@ -826,13 +1045,17 @@
     const strands = [{ x0: -260, x1: 1340, y: 30, sag: 172, n: 26, r: 15, sd: 71 }, { x0: 760, x1: 1400, y: -30, sag: 120, n: 9, r: 24, sd: 73 }];
     for (const s of strands) {
       const pt = p => [lerp(s.x0, s.x1, p), s.y + s.sag * 4 * p * (1 - p) * (1 + .03 * Math.sin(T * .8 + s.sd))];
-      g.save(); g.globalAlpha = fade * .55; g.strokeStyle = '#0B090B'; g.lineWidth = s.r * .45; g.filter = `blur(${(s.r * .3 * L.baseScale).toFixed(1)}px)`; g.beginPath();
-      for (let i = 0; i <= 40; i++) { const [x, y] = pt(i / 40); i ? g.lineTo(x, y) : g.moveTo(x, y); } g.stroke(); g.restore();
+      g.save(); g.strokeStyle = '#0B090B'; g.lineCap = 'round'; g.beginPath();
+      for (let i = 0; i <= 40; i++) { const [x, y] = pt(i / 40); i ? g.lineTo(x, y) : g.moveTo(x, y); }
+      for (const [lw, a] of [[s.r * 1.1, .12], [s.r * .7, .16], [s.r * .35, .22]]) { g.globalAlpha = fade * a; g.lineWidth = lw; g.stroke(); }
+      g.restore();
       g.save(); g.globalCompositeOperation = 'lighter';
       for (let i = 0; i < s.n; i++) {
         const p = (i + .5) / s.n, [x, y] = pt(p); const col = LIGHTCOLS[(i + s.sd) % 4];
         const v = .55 + .45 * L.noise1(T * 1.8 + i * 2.3, s.sd);
-        put(g, discSpr(col), x, y + s.r * .5, s.r * (.85 + .3 * rnd(s.sd, i)), .5 * v * fade);
+        const r = s.r * (.85 + .3 * rnd(s.sd, i)), a = .5 * v * fade;
+        if (LSTREAK > 2) { g.globalAlpha = Math.min(1, a * 2 * r / (2 * r + LSTREAK)); g.drawImage(discSpr(col), x - r - LSTREAK / 2, y + s.r * .5 - r, 2 * r + LSTREAK, 2 * r); }
+        else put(g, discSpr(col), x, y + s.r * .5, r, a);
       }
       g.restore();
     }
@@ -841,6 +1064,33 @@
   /* ------------------------------------------------------------------ boards for the city (s2) */
   H.boards = [];   // filled by s2-city-booked.js: { d, draw(g, T, k, blur) }
   const boardsAt = (d) => H.boards.filter(b => b.d === d);
+  // Defocus without ctx.filter on the main canvas (Chrome filters a full-canvas layer per call = seconds/frame):
+  // a board is drawn sharp into a small offscreen buffer, blurred THERE, and blitted once. Off-screen boards are culled.
+  const BUF = [];
+  function getBuf(i, w, h) {
+    let c = BUF[i]; if (!c) c = BUF[i] = document.createElement('canvas');
+    if (c.width < w || c.height < h) { c.width = Math.max(c.width, w); c.height = Math.max(c.height, h); }
+    const g = c.getContext('2d'); g.setTransform(1, 0, 0, 1, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; g.filter = 'none';
+    g.clearRect(0, 0, w + 2, h + 2); return c;
+  }
+  function drawBoard(g, b, T, k, blur) {
+    const bb = b.bbox, m = g.getTransform();
+    if (bb) {
+      const sx0 = m.a * bb[0] + m.e, sx1 = m.a * bb[2] + m.e, sy0 = m.d * bb[1] + m.f, sy1 = m.d * bb[3] + m.f;
+      if (sx1 < -40 || sx0 > g.canvas.width + 40 || sy1 < -40 || sy0 > g.canvas.height + 40) return;
+    }
+    const bl = blur / k;
+    if (!bb || bl < .8) { b.draw(g, T, k, 0); return; }
+    const res = Math.min(2, m.a), pad = Math.ceil(bl * 2.5);
+    const w = Math.ceil((bb[2] - bb[0] + 2 * pad) * res), h = Math.ceil((bb[3] - bb[1] + 2 * pad) * res);
+    const c1 = getBuf(0, w, h), g1 = c1.getContext('2d');
+    g1.scale(res, res); g1.translate(pad - bb[0], pad - bb[1]); g1.imageSmoothingQuality = 'high';
+    b.draw(g1, T, k, 0);
+    const c2 = getBuf(1, w, h), g2 = c2.getContext('2d');
+    g2.filter = `blur(${(bl * res).toFixed(2)}px)`; g2.drawImage(c1, 0, 0, w, h, 0, 0, w, h); g2.filter = 'none';
+    g.drawImage(c2, 0, 0, w, h, bb[0] - pad, bb[1] - pad, w / res, h / res);
+  }
+  const drawBoards = (g, d, T, k, blur) => { for (const b of boardsAt(d)) drawBoard(g, b, T, k, blur); };
   const FLY_D = H.FLY_D = .8;
 
   /* ------------------------------------------------------------------ the world */
@@ -851,20 +1101,67 @@
     const sh = shakeAt(T); ctx.translate(sh.x, sh.y);
     drawSky(ctx, T, cam);
     H.layer(ctx, cam, 4, (g, k, blur) => drawFar(g, T, k, blur));
-    H.layer(ctx, cam, 3, (g, k, blur) => { g.save(); g.globalAlpha = .9; L.haze(g, T, { y0: 860, y1: 1120, alpha: .13, color: '#8A6E9A', speed: 9, seed: 19, scale: 2.6 }); g.restore(); });
-    H.layer(ctx, cam, 2, (g, k, blur) => { drawMid(g, T, k, blur); for (const b of boardsAt(2)) b.draw(g, T, k, blur); midFog(g); drawMidLights(g, T, k, blur); for (const b of boardsAt(2.01)) b.draw(g, T, k, blur); });
-    H.layer(ctx, cam, 1.3, (g, k, blur) => { drawH2Block(g, T, k, blur); for (const b of boardsAt(1.3)) b.draw(g, T, k, blur); for (const b of boardsAt(1.31)) b.draw(g, T, k, blur); });
+    H.layer(ctx, cam, 3, (g, k, blur) => hazeBand(g, T, { y0: 800, y1: 1180, alpha: .11, color: '#8A6E9A', speed: 9, seed: 19, scale: 2.6 }));
+    H.layer(ctx, cam, 2, (g, k, blur) => { drawMid(g, T, k, blur); drawBoards(g, 2, T, k, blur); midFog(g); drawMidLights(g, T, k, blur); drawBoards(g, 2.01, T, k, blur); });
+    H.layer(ctx, cam, H2_D, (g, k, blur) => { drawH2Block(g, T, k, blur); drawBoards(g, H2_D, T, k, blur); drawBoards(g, H2_D + .01, T, k, blur); });
     H.layer(ctx, cam, 1, (g, k) => { g.translate(120, 1050); g.scale(SW, SW); g.translate(-100, -470); drawHook(g, T, k * SW); });
-    H.layer(ctx, cam, FLY_D, (g, k, blur) => { drawFly(g, T, k, blur); for (const b of boardsAt(FLY_D)) b.draw(g, T, k, blur); });
+    H.layer(ctx, cam, FLY_D, (g, k, blur) => { drawFly(g, T, k, blur); drawBoards(g, FLY_D, T, k, blur); });
     H.layer(ctx, cam, .42, (g, k, blur) => drawFore(g, T, k, blur));
     ctx.restore();
   };
-  H.util = { put, lamp, glowSpr, bulbSpr, discSpr, softSpr, setBlur, rimFill, FR, DEG };
+  H.util = { put, lamp, glowSpr, bulbSpr, discSpr, softSpr, setBlur, rimFill, FR, DEG, drawBlock, hull, polyFill };
+
+  /* ------------------------------------------------------------------ in-scene temporal supersampling
+     The engine averages 4 sub-frames 1/240 s apart. On the pull-back (2.55-3.15) and the whip (4.933-5.2) the image moves
+     8-80 px between them, which reads as 4 hard copies. When it does, each engine sub-frame is itself rendered as k
+     stratified, jittered samples spaced 1/(240k) s apart and averaged, so the 4k samples read as a smear. */
+  const SPAN = 1 / 240;
+  function dispPerSpan(T, A, B, h) {
+    let m = 0;
+    for (const d of [FLY_D, 1, H2_D, 2, 4]) {
+      const za = d - A.c, zb = d - B.c; if (za <= .05 || zb <= .05) continue;
+      const ka = d / za, kb = d / zb;
+      if (d === FLY_D && P.y + A.ey / za + ka * (1380 - P.y) > 1920) continue;          // the flyover is still below frame
+      for (const X of [0, 540, 1080]) for (const Y of [0, 960, 1920]) {
+        const lx = P.x + (X - P.x - A.ex / za) / ka, ly = P.y + (Y - P.y - A.ey / za) / ka;
+        const X2 = P.x + B.ex / zb + kb * (lx - P.x), Y2 = P.y + B.ey / zb + kb * (ly - P.y);
+        m = Math.max(m, Math.hypot(X2 - X, Y2 - Y));
+      }
+    }
+    if (H.headOff) m = Math.max(m, Math.abs(H.headOff(T + h) - H.headOff(T - h)));
+    return m * SPAN / (2 * h);
+  }
+  function frame(g, T) { H.world(g, T); if (H.headline) H.headline(g, T, H.cam(T)); }
+  let SSA = null, SST = null;
+  H.render = (ctx, T) => {
+    const h = 1 / 960, A = H.cam(T - h), B = H.cam(T + h);
+    H.camV = { ex: (B.ex - A.ex) / (2 * h) };
+    const disp = dispPerSpan(T, A, B, h), kmax = T > TM.whip0 - .05 ? 8 : 4;
+    const k = Math.min(kmax, Math.max(1, Math.ceil(disp / 3)));                        // ~3-6 px between samples on the pull-back, <= 10 px at the whip peak
+    H.SSK = k; H.FAST = k >= 5; H.DT = SPAN / k;
+    if (k <= 1) { frame(ctx, T); return; }
+    const bs = L.baseScale, w = Math.round(L.W * bs), hh = Math.round(L.H * bs);
+    if (!SSA || SSA.width !== w || SSA.height !== hh) { SSA = document.createElement('canvas'); SSA.width = w; SSA.height = hh; SST = document.createElement('canvas'); SST.width = w; SST.height = hh; }
+    const a = SSA.getContext('2d'), m = SST.getContext('2d');
+    a.setTransform(1, 0, 0, 1, 0, 0); a.globalCompositeOperation = 'source-over'; a.globalAlpha = 1; a.clearRect(0, 0, w, hh);
+    a.globalCompositeOperation = 'lighter'; a.globalAlpha = 1 / k;
+    for (let i = 0; i < k; i++) {
+      const ti = T + ((i + rnd(977, Math.round(T * 9600) * 7 + i)) / k - .5) * SPAN;   // stratified + jittered
+      m.setTransform(bs, 0, 0, bs, 0, 0); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over'; m.filter = 'none';
+      m.fillStyle = MM.background; m.fillRect(0, 0, L.W, L.H);
+      m.save(); frame(m, ti); m.restore();
+      a.drawImage(SST, 0, 0);
+    }
+    ctx.save(); L.resetTransform(ctx); ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(SSA, 0, 0, L.W, L.H); ctx.restore();
+    H.SSK = 1; H.FAST = false; H.DT = SPAN;
+  };
 
   // a tiny exposure kick on the stamp impact (no full-frame flash)
   MM.addFlash({ t: TM.hit, dur: .1, exposure: .05, bloom: .25 });
 
+  // s1 and s2 draw the same world; during their 2.5-2.8 overlap s1 draws it once (incl. the headline) and leaves a
+  // same-frame token so s2 does not draw it a second time (no state crosses frames: s2 consumes the token immediately)
   MM.scene('s1-hook-space-available', {
-    draw(ctx, t, { T }) { H.world(ctx, T); }
+    draw(ctx, t, { T }) { H.tok = null; H.render(ctx, T); if (T >= 2.5) H.tok = T; }
   });
 })();

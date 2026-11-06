@@ -19,7 +19,7 @@
 
   /* ---------- timing (global seconds, frame aligned) ---------- */
   const S0 = L.q(4.9334), TA = L.q(5.2), WAB = L.q(7.3334), TB = L.q(7.6), WBC = L.q(9.7334), TC = L.q(10), WUP = L.q(12.1334), TE = L.q(12.4);
-  const WHIP = 1400, DIP = 220, SEAM = -220;
+  const WHIP = 1400, DIP = 220, SEAM = -220, C_OFF = 20;
 
   /* ---------- palette ---------- */
   const INK = P.ink, RICH = P.rich, STONE = P.stone, MIST = P.mist, MUSLIN = P.muslin, PAPER = P.paper, RED = P.red, LINEN = P.linen, GOLDINK = P.goldInk;
@@ -82,12 +82,37 @@
     L.drawLogo(g, 'horizontal_nosince', { x: x + w / 2, y: y + h / 2 + 1, h: Math.min(30, h - 10), anchor: 'center', way: 'reverse' });
   }
   /** a word/line rendered once into its own canvas (for dissolves, halos, glitches) */
-  function textImg(str, o, color, pad = 24) {
-    const k = `s3txt-${str}-${o.font}-${o.size}-${o.weight}-${color}`;
+  function textImg(str, o, color, ko = 0, koCol = '#221D2B', pad = 24) {   // ko: width of a knockout stroke under the glyphs
+    const k = `s3txt-${str}-${o.font}-${o.size}-${o.weight}-${color}-${ko}-${koCol}`;
     const c0 = document.createElement('canvas').getContext('2d');
     const w = Math.ceil(L.measure(c0, str, o)) + pad * 2, h = Math.ceil(o.size * 1.75) + pad;
-    const img = L.cached(k, w, h, g => L.text(g, str, pad, o.size * 1.2 + pad / 2, Object.assign({}, o, { align: 'left', color, maxWidth: w - pad * 2 + 2 })));
+    const img = L.cached(k, w, h, g => L.text(g, str, pad, o.size * 1.2 + pad / 2, Object.assign({}, o, { align: 'left', color, maxWidth: w - pad * 2 + 2 }, ko ? { stroke: { color: koCol, width: ko } } : {})));
     img._bx = pad; img._by = o.size * 1.2 + pad / 2; return img;
+  }
+  /** copy of an image with a light LED dot-pitch mask baked in, phase-aligned to the screen grid (dots at phx + 6i, phy + 6j) */
+  function maskedImg(img, key, phx, phy, dark) {
+    const px = ((phx % 6) + 6) % 6, py = ((phy % 6) + 6) % 6;
+    return L.cached(`s3mimg-${key}-${px}-${py}-${dark}`, img.width, img.height, g => {
+      g.drawImage(img, 0, 0); g.globalCompositeOperation = 'source-atop';
+      g.drawImage(L.cached(`s3-dotmask-${img.width}x${img.height}-${px}-${py}-${dark}`, img.width, img.height, m => {
+        m.fillStyle = `rgba(0,0,0,${dark})`; m.fillRect(0, 0, img.width, img.height);
+        m.globalCompositeOperation = 'destination-out'; m.fillStyle = '#000';
+        for (let y = py; y < img.height + 3; y += 6) for (let x = px; x < img.width + 3; x += 6) { m.beginPath(); m.arc(x, y, 2.3, 0, TAU); m.fill(); }
+      }), 0, 0);
+    });
+  }
+  /** horizontal box-blurred copy of a cached image (whip frames: thin bright verticals smear instead of combing) */
+  function hblur(img, key, r) {
+    return L.cached(`s3hb-${key}-${r}`, img.width + r * 2, img.height, g => {
+      const n = 9; g.globalCompositeOperation = 'lighter'; g.globalAlpha = 1 / n;
+      for (let i = 0; i < n; i++) g.drawImage(img, r + (i / (n - 1) - .5) * 2 * r, 0);
+    });
+  }
+  /** draw a cached static layer, swapping in a smeared copy when the camera moves faster than the sub-sample spacing */
+  function drawMB(g, img, key, x, y, vx) {
+    const s = Math.abs(vx) * DT;
+    if (s < 7) { g.drawImage(img, x, y); return; }
+    const r = s < 16 ? 6 : 12; g.drawImage(hblur(img, key, r), x - r, y);
   }
   function haloImg(img, blur, key) { return L.cached('s3halo-' + key, img.width + blur * 4, img.height + blur * 4, g => { g.filter = `blur(${blur}px)`; g.drawImage(img, blur * 2, blur * 2); }); }
   function cellsOf(img, cell, seed) {   // non-empty LED cells of an image, each with a dissolve threshold
@@ -112,11 +137,13 @@
   /* ---------- camera ---------- */
   function camAt(T) {
     const e0 = prog(T, S0, TA, E.inOutCubic), e1 = prog(T, WAB, TB, E.inOutCubic), e2 = prog(T, WBC, TC, E.inOutCubic), e3 = prog(T, WUP, TE, E.inOutCubic);
-    let x = -WHIP + WHIP * (e0 + e1 + e2), y = DIP * e2 - 1200 * e3, zoom = 1 - .5 * e3, roll = 0;
-    // holding: the ride never fully stops: slow drift + gentle push-in
-    for (const [a, b, ein, eout] of [[TA, WAB, e0, e1], [TB, WBC, e1, e2], [TC, WUP, e2, e3]]) {
+    // C is framed 20 px further right so the cab's nose and headlight stay in frame; the whip-up also pulls back left
+    // by 1400 so the wide (zoom .5) frames the LED screen centre, the van's panel and the tri-vision's edge, all still lit
+    let x = -WHIP + WHIP * (e0 + e1 + e2) + C_OFF * e2 - 1400 * e3, y = DIP * e2 - 1200 * e3, zoom = 1 - .5 * e3, roll = 0;
+    // holding: the ride never fully stops: slow drift + gentle push-in (none in C: the van fills the frame)
+    for (const [a, b, ein, eout, dr, pi] of [[TA, WAB, e0, e1, 18, .016], [TB, WBC, e1, e2, 18, .016], [TC, WUP, e2, e3, 10, 0]]) {
       const h = clamp((T - a) / (b - a)), live = ein * (1 - eout);
-      x += (h - .5) * 18 * live; zoom *= 1 + .016 * E.inOutQuad(h) * live;
+      x += (h - .5) * dr * live; zoom *= 1 + pi * E.inOutQuad(h) * live;
     }
     // whip: the auto hits a bump and leans; the motor rattles
     for (const e of [e0, e1, e2]) { const s = Math.sin(Math.PI * e); if (s <= 0) continue; y -= 16 * s; roll += .007 * s; x += 2.5 * L.snoise(T * 31, 7) * s; y += 3 * L.snoise(T * 37, 9) * s; }
@@ -278,7 +305,7 @@
   }
 
   /* ======================= BAR A: tri-vision on a rooftop ======================= */
-  const TV = { x: 120, y: 560, w: 840, h: 620, n: 16 }, LAMPS_A = [380, 700];
+  const TV = { x: 120, y: 560, w: 840, h: 620, n: 16 }, LAMPS_A = [420, 660];   // lamps symmetric about 540, clear of the MM plate
   const heroLay = g => L.layoutWords(g, HERO_A, 420, { font: 'dev', size: 92, weight: 800 });
   function printToran(g, w) {
     g.strokeStyle = 'rgba(140,135,131,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 18); g.quadraticCurveTo(w / 2, 40, w, 18); g.stroke();
@@ -318,14 +345,35 @@
     });
   }
   /** night light map for the face: ambient + two warm up-light pools (multiply) */
+  /** night light map for the face (multiply): a well-lit board. Ambient .82 with a soft fall-off to the corners (~.72),
+      the two flood cones' footprints (+.06) and the hot spots right above the lenses (+.12). Warm tint. */
+  const LENS_Y = 1235, CONE_HALF = 22 * DEG, CONE_LEN = 650;
   const faceLight = () => L.cached('s3-facelight', TV.w, TV.h, g => {
-    const im = g.createImageData(TV.w, TV.h), d = im.data, amb = .34, warm = [1, .95, .86], cool = [.82, .78, .9];
+    const im = g.createImageData(TV.w, TV.h), d = im.data, tint = [1, .97, .955];
     for (let y = 0; y < TV.h; y++) for (let x = 0; x < TV.w; x++) {
-      let l = 0; for (const lx of LAMPS_A) { const dx = (x - (lx - TV.x)) / 360, dy = (y - 700) / 600; l += Math.exp(-(dx * dx + dy * dy)); }
-      l = Math.min(1.12, l * .9); const v = amb + (1 - amb) * Math.min(1, l), w = Math.min(1, l);
+      const nx = (x - 420) / 470, ny = (y - 300) / 420, r2 = nx * nx + ny * ny;
+      let v = .95 - .1 * Math.min(1.5, r2);
+      for (const lx of LAMPS_A) {
+        const dx = x - (lx - TV.x), dy = (LENS_Y - TV.y) - y, dist = Math.hypot(dx, dy), th = Math.abs(Math.atan2(dx, dy));
+        const inCone = Math.exp(-((th / (CONE_HALF * .95)) ** 2));
+        v += .06 * inCone * clamp(1 - dist / CONE_LEN);
+        v += .12 * Math.exp(-((dx / 150) ** 2 + ((y - TV.h) / 120) ** 2));
+      }
+      v = Math.min(1, v);
       const i = (y * TV.w + x) * 4;
-      for (let k = 0; k < 3; k++) d[i + k] = Math.min(255, 255 * v * lerp(cool[k], warm[k], w) * (1 + .06 * Math.max(0, l - 1)));
+      for (let k = 0; k < 3; k++) d[i + k] = Math.round(255 * v * tint[k]);
       d[i + 3] = 255;
+    }
+    g.putImageData(im, 0, 0);
+  });
+  /** the visible flood cones (additive, in the air in front of the face): Flame-core cream, ±22°, fading out by y ~600 */
+  const coneSprite = () => L.cached('s3-cone', 560, CONE_LEN + 10, g => {
+    const w = 560, h = CONE_LEN + 10, im = g.createImageData(w, h), d = im.data, s1 = 21.5 * DEG, s2 = 10 * DEG;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const dx = x - 280, dy = CONE_LEN - y, r = Math.hypot(dx, dy); if (dy <= 0) continue;
+      const th = Math.atan2(dx, dy), ang = .62 * Math.exp(-((th / s1) ** 2)) + .38 * Math.exp(-((th / s2) ** 2));
+      const rad = Math.pow(clamp(1 - r / CONE_LEN), 1.4) * L.smoothstep(0, 40, r);
+      const i = (y * w + x) * 4; d[i] = 255; d[i + 1] = 231; d[i + 2] = 163; d[i + 3] = Math.round(255 * .15 * ang * rad);
     }
     g.putImageData(im, 0, 0);
   });
@@ -381,8 +429,17 @@
     }
     g.fillStyle = '#1F1C1F'; g.fillRect(500, 1478, 300, 10); topEdge(g, 500, 1478, 300, .6);
     g.fillStyle = 'rgba(140,135,131,.3)'; for (let x = 504; x < 800; x += 10) g.fillRect(x, 1488, 2, 30); g.fillRect(500, 1516, 300, 2);
-    g.fillStyle = '#262225'; g.fillRect(-320, 1540, 1560, 8);
+    g.fillStyle = '#262225'; g.fillRect(-320, 1540, 1560, 8); topEdge(g, -320, 1540, 1560, .35);
+    for (let k = 0; k < 7; k++) {   // street-level shops: shutters half up, warm interiors, a toran on each
+      const x = -280 + k * 220, open = rnd(511, k) > .3;
+      g.fillStyle = '#19161A'; g.fillRect(x, 1552, 190, 84);
+      if (open) { const ig = g.createLinearGradient(0, 1570, 0, 1636); ig.addColorStop(0, 'rgba(255,181,71,.55)'); ig.addColorStop(1, 'rgba(255,140,40,.2)'); g.fillStyle = ig; g.fillRect(x + 6, 1574, 178, 62);
+        for (let j = 0; j < 6; j++) { g.fillStyle = ['rgba(242,178,62,.7)', 'rgba(217,114,30,.6)', 'rgba(238,236,232,.45)'][j % 3]; g.fillRect(x + 16 + j * 28, 1606 - (j % 2) * 8, 18, 30 + (j % 2) * 8); } }
+      g.fillStyle = '#2C272A'; g.fillRect(x, 1552, 190, open ? 22 : 84); g.fillStyle = 'rgba(0,0,0,.35)'; for (let y = 1556; y < (open ? 1574 : 1636); y += 5) g.fillRect(x, y, 190, 1.5);
+      topEdge(g, x, 1552, 190, .4);
+    }
     grime(g, -320, 1290, 1560, 360, 1);
+    for (let k = 0; k < 7; k++) L.toran(g, { x0: -275 + k * 220, x1: -95 + k * 220, y: 1580, t: 0, seed: 50 + k, flower: 7, strands: 4, strandLen: 2, sway: 0 });
   });
   function slatAngle(T, i) {
     const t0 = 5.0667 + i * .0035, d = .08, u = (T - t0) / d;
@@ -392,29 +449,57 @@
   // jhadu sweep keyframes: t, contact x, lift, angle (deg), bristle bend
   const JK = [[5.2, 150, 8, -52, -.3], [5.233, 215, 0, -50, -.9], [5.35, 560, 0, -36, -.7], [5.383, 615, 0, -30, .8], [5.417, 585, 24, -46, .2], [5.45, 610, 0, -50, -.9], [5.53, 930, 0, -36, -.7], [5.567, 1010, 4, -28, .8], [5.62, 1110, 34, -22, .4]];
   const JX = JK.map(k => [k[0], k[1]]), JL = JK.map(k => [k[0], k[2]]), JA = JK.map(k => [k[0], k[3]]), JB = JK.map(k => [k[0], k[4]]);
-  function jhadu(g, bend) {
-    for (let k = 0; k < 46; k++) {   // bristle fan: straight tapered strands spreading into a V
-      const u = k / 45 - .5, len = 92 * (.84 + .16 * rnd(71, k)) * (1 - .18 * Math.abs(u));
-      const tx = u * 130 + bend * 30 * (.55 + .45 * rnd(72, k)) * (.4 + Math.abs(u)), ty = len;
-      g.strokeStyle = [STONE, '#9A948D', '#A9A39B', '#7E7974', '#B7B1AA'][Math.floor(rnd(73, k) * 5)]; g.lineWidth = 2.8 - 1.1 * rnd(74, k); g.lineCap = 'butt';
-      g.beginPath(); g.moveTo(u * 18, 8); g.quadraticCurveTo(u * 18 + (tx - u * 18) * .3 - bend * 6, ty * .55, tx, ty); g.stroke();
+  function jhadu(g, bend, shadow) {
+    // phool-jhadu: a dense fan of dark grass strands (Ink 85 %) with pale Stone tips, a wrapped binding, an Ink handle
+    const ink = shadow ? [INK] : ['#2B2728', '#352F31', '#241F21', '#3D3638'], tip = shadow ? [INK] : [STONE, '#A39D96', '#7E7974'];
+    g.lineCap = 'butt';
+    for (let k = 0; k < 40; k++) {
+      const u = k / 39 - .5, len = 92 * (.84 + .16 * rnd(71, k)) * (1 - .18 * Math.abs(u));
+      const tx = u * 130 + bend * 30 * (.55 + .45 * rnd(72, k)) * (.4 + Math.abs(u)), ty = len, sx = u * 20, cxq = sx + (tx - sx) * .3 - bend * 6, cyq = ty * .55;
+      const w = 2.6 + .9 * rnd(74, k), split = .68 + .1 * rnd(75, k);
+      // quadratic split at `split`: first part Ink, last part Stone tip
+      const q = (a, b, c, s) => (1 - s) * (1 - s) * a + 2 * s * (1 - s) * b + s * s * c;
+      const mx = q(sx, cxq, tx, split), my = q(8, cyq, ty, split), c1x = lerp(sx, cxq, split), c1y = lerp(8, cyq, split);
+      g.lineWidth = w; g.strokeStyle = L.rgba(ink[Math.floor(rnd(73, k) * ink.length)], .85);
+      g.beginPath(); g.moveTo(sx, 8); g.quadraticCurveTo(c1x, c1y, mx, my); g.stroke();
+      g.lineWidth = w * .8; g.strokeStyle = tip[Math.floor(rnd(76, k) * tip.length)];
+      g.beginPath(); g.moveTo(mx, my); g.quadraticCurveTo(lerp(cxq, tx, split), lerp(cyq, ty, split), tx, ty); g.stroke();
     }
-    g.fillStyle = '#3A3536'; g.beginPath(); g.moveTo(-12, -6); g.lineTo(12, -6); g.lineTo(9, 16); g.lineTo(-9, 16); g.closePath(); g.fill();
-    g.fillStyle = MIST; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(-12, -4 + k * 5); g.lineTo(12, -7 + k * 5); g.lineTo(12, -5 + k * 5); g.lineTo(-12, -2 + k * 5); g.closePath(); g.fill(); }
-    g.fillStyle = INK; g.beginPath(); g.roundRect(-5, -152, 10, 148, 4); g.fill();
-    g.fillStyle = 'rgba(140,135,131,.75)'; g.fillRect(-4, -148, 2, 140);
-    g.strokeStyle = STONE; g.lineWidth = 2; g.beginPath(); g.arc(0, -158, 6, 0, TAU); g.stroke();
+    // wrapped binding: 12 px darker band with diagonal wraps
+    g.fillStyle = '#1A1618'; g.beginPath(); g.moveTo(-13, -4); g.lineTo(13, -4); g.lineTo(11, 12); g.lineTo(-11, 12); g.closePath(); g.fill();
+    if (!shadow) { g.strokeStyle = 'rgba(140,135,131,.7)'; g.lineWidth = 2; g.beginPath(); for (let k = 0; k < 4; k++) { g.moveTo(-12, -1 + k * 4); g.lineTo(12, -4 + k * 4); } g.stroke(); }
+    g.fillStyle = INK; g.beginPath(); g.roundRect(-5, -152, 10, 150, 4); g.fill();
+    if (!shadow) { g.fillStyle = 'rgba(140,135,131,.8)'; g.fillRect(-4, -148, 2, 140); }
+    g.strokeStyle = shadow ? INK : STONE; g.lineWidth = 2.5; g.beginPath(); g.arc(0, -158, 6, 0, TAU); g.stroke();
   }
   const PUFFS = [[5.29, 430, 1128], [5.383, 655, 1124], [5.55, 958, 1124]];
+  /** irregular powder clouds: soft lumpy blobs with a powder-grain alpha (cached variants) */
+  const puffSprite = v => L.cached('s3-puff' + v, 128, 128, g => {
+    const im = g.createImageData(128, 128), d = im.data, tex = L.textureCanvas('powder', 512, 30 + v).getContext('2d').getImageData(v * 100, v * 60, 128, 128).data;
+    const lumps = []; for (let j = 0; j < 6; j++) lumps.push([64 + (rnd(171 + v, j) - .5) * 60, 64 + (rnd(172 + v, j) - .5) * 44, 18 + 16 * rnd(173 + v, j)]);
+    for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+      let a = 0; for (const [lx, ly, lr] of lumps) { const q = ((x - lx) ** 2 + (y - ly) ** 2) / (lr * lr); a += Math.exp(-q * 1.6); }
+      const i = (y * 128 + x) * 4, n = tex[i] / 255;
+      a = clamp(a * 1.1) * clamp(.25 + 1.1 * n) * (1 - L.smoothstep(52, 64, Math.hypot(x - 64, y - 64)));
+      d[i] = 140; d[i + 1] = 135; d[i + 2] = 131; d[i + 3] = Math.round(255 * clamp(a));
+    }
+    g.putImageData(im, 0, 0);
+  });
   function drawPuffs(g, T) {
     for (let p = 0; p < 3; p++) {
-      const [t0, px, py] = PUFFS[p], u = (T - t0) / .42; if (u < 0 || u > 1) continue;
-      for (let j = 0; j < 9; j++) {
-        const a = -Math.PI * (.1 + .8 * rnd(81, p * 9 + j)), d = 16 + 46 * E.outCubic(u) * (.6 + .6 * rnd(82, p * 9 + j));
-        const r = (12 + 20 * rnd(83, p * 9 + j)) * (.4 + .9 * E.outCubic(u));
-        g.fillStyle = L.rgba(['#9C968F', STONE, '#B3ADA6'][j % 3], .9 * (1 - u) * (1 - u));
-        g.beginPath(); g.arc(px + Math.cos(a) * d + 26 * u, py + Math.sin(a) * d - 30 * u, r, 0, TAU); g.fill();
+      const [t0, px, py] = PUFFS[p], u = (T - t0) / .3; if (u < 0 || u > 1) continue;
+      const e = E.outCubic(u);
+      for (let j = 0; j < 4; j++) {   // powder blobs kicked forward along the stroke and up
+        const s = (54 + 34 * rnd(84, p * 4 + j)) * (.45 + .85 * e), bx = px - 20 + j * 22 + (40 + 50 * rnd(85, p * 4 + j)) * e, by = py - 8 - (18 + 40 * rnd(86, p * 4 + j)) * e;
+        g.save(); g.globalAlpha = .45 * (1 - u) * (1 - .3 * u); g.translate(bx, by); g.rotate(rnd(87, p * 4 + j) * TAU + u * .6); g.drawImage(puffSprite((p + j) % 3), -s, -s * .8, s * 2, s * 1.6); g.restore();
       }
+      g.fillStyle = 'rgba(92,86,84,.9)';   // grit specks flicked along the sweep direction
+      for (let j = 0; j < 10; j++) {
+        const q = p * 10 + j, tt = (T - t0) * (.85 + .3 * rnd(88, q)), vx = 380 + 520 * rnd(89, q), vy = -160 - 320 * rnd(90, q);
+        const x = px - 10 + vx * tt, y = py + vy * tt + 1500 * tt * tt, sz = 2 + rnd(80, q) * 1.4;
+        if (tt < .32 && y < py + 30) { g.globalAlpha = 1 - tt / .32; g.fillRect(x - sz / 2, y - sz / 2, sz, sz); }
+      }
+      g.globalAlpha = 1;
     }
   }
   function sparkle(g, x, y, s, a) {   // 4-point glint: thin gold arms, white core (true light: blooms)
@@ -426,28 +511,44 @@
   }
   function drawSparkles(g, T) {
     if (T < 5.45 || T > 6.5) return;
+    // the swept dust turns to gold glitter that runs OUT along the floor band, then rises up the board's two edges
+    // into the sky (never over the copy: x 150..930 x y 690..915 is kept clean)
     g.save(); g.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 24; k++) {
       const p = k % 3, [, px, py] = PUFFS[p], ts = 5.48 + rnd(91, k) * .3, te = 6.4 - rnd(92, k) * .12, u = (T - ts) / (te - ts); if (u < 0 || u > 1) continue;
-      const side = [-1, 0, 1][p], e = E.outCubic(u);
-      const x = px + (rnd(93, k) - .5) * 90 + side * 120 * e + Math.sin(T * 3 + k) * 14, y = lerp(py - 20 - rnd(94, k) * 40, 420 + rnd(95, k) * 70, e);
+      const side = p === 0 ? -1 : p === 2 ? 1 : (Math.floor(k / 3) % 2 ? 1 : -1);
+      const ex = side < 0 ? 62 + rnd(93, k) * 80 : 942 + rnd(93, k) * 80;          // corridor beside the frame
+      const x0 = px + (rnd(97, k) - .5) * 70, y0 = py - 14 - rnd(94, k) * 30, ym = 1050 + rnd(98, k) * 60, y1 = 400 + rnd(95, k) * 110;
+      const u1 = .38, a = clamp(u / u1), b = clamp((u - u1) / (1 - u1));
+      const x = lerp(x0, ex, E.inOutQuad(a)) + Math.sin(T * 3.1 + k) * 10 * b, y = lerp(lerp(y0, ym, E.outQuad(a)), y1, E.inOutQuad(b));
       const s = (11 + 15 * rnd(96, k)) * (.55 + .45 * Math.abs(Math.sin(T * 14 + k * 1.7))) * (1 + .8 * Math.max(0, 1 - u * 10));
-      sparkle(g, x, y, s, Math.min(1, u * 8) * (1 - E.inQuad(clamp((u - .6) / .4))));
+      const inX = L.smoothstep(130, 150, x) * (1 - L.smoothstep(930, 950, x)), inY = L.smoothstep(670, 690, y) * (1 - L.smoothstep(915, 935, y)), keep = 1 - inX * inY;
+      sparkle(g, x, y, s, keep * Math.min(1, u * 8) * (1 - E.inQuad(clamp((u - .6) / .4))));
     }
     g.restore();
   }
-  function crackT(T) { const u = T - 6.4; if (u < 0 || u > .14) return 0; return keys(u, [[0, 0], [.033, 1], [.1, -.25], [.133, 0]]); }
+  /** 'हाफ़' back-crack: skew (deg), drop (px) and vertical squash. Peak 14° held on two whole frames (6.433, 6.467,
+      shutter included), snap through -4° at 6.500, settle by 6.567 into a tired 2° slump, 3 px lower, for the rest of the hold */
+  function crack(T) {
+    if (T < 6.4) return { sk: 0, dy: 0, sy: 1 };
+    if (T < 6.42) { const u = E.outCubic((T - 6.4) / .02); return { sk: 14 * u, dy: 8 * u, sy: 1 - .12 * u }; }
+    if (T < 6.478) return { sk: 14, dy: 8, sy: .88 };
+    if (T < 6.492) { const u = E.inOutQuad((T - 6.478) / .014); return { sk: lerp(14, -4, u), dy: lerp(8, 1, u), sy: lerp(.88, 1.03, u) }; }
+    if (T < 6.508) return { sk: -4, dy: 1, sy: 1.03 };
+    const u = clamp((T - 6.508) / .059), e = E.outBack(u, 2.2);
+    return { sk: lerp(-4, 2, e), dy: lerp(1, 3, e), sy: lerp(1.03, 1, u) };
+  }
   function drawFaceLive(g, T) {   // printed-surface animation (hero word, fine print, jhadu): lit with the face
     g.save(); g.translate(TV.x, TV.y);
     const o = { font: 'dev', size: 92, weight: 800 }, lay = heroLay(g), wd = lay[3], wh = L.measure(g, HAF, o);
-    const k = crackT(T), sq = (T >= 6.4 && T < 6.467) ? .92 : 1;
-    g.save(); g.translate(wd.x + wh / 2, 240); g.transform(1, 0, -Math.tan(8 * DEG * k), 1, 0, 0); g.scale(1, sq);
+    const cr = crack(T);
+    g.save(); g.translate(wd.x + wh / 2, 240 + cr.dy); g.transform(1, 0, -Math.tan(cr.sk * DEG), 1, 0, 0); g.scale(1, cr.sy);
     L.text(g, HAF, 0, 0, Object.assign({}, o, { color: RED, maxWidth: wh + 2 }));
     g.restore();
-    if (T >= 6.4 && T < 6.53) {   // 'krrk' ticks
-      const a = 1 - (T - 6.4) / .13; g.strokeStyle = L.rgba(INK, a); g.lineWidth = 4; g.lineCap = 'round';
-      const cx = wd.x + wh + 10, cy = 240 - 74;
-      for (let j = 0; j < 3; j++) { const ang = -1.1 + j * .55, r0 = 14, r1 = 14 + 22 * E.outCubic(clamp((T - 6.4) / .06)); g.beginPath(); g.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0); g.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1); g.stroke(); }
+    if (T >= 6.4 && T < 6.6) {   // 'krrk' ticks: three bold Ink strokes radiating off the danda
+      const a = 1 - E.inQuad(clamp((T - 6.53) / .07)); g.strokeStyle = L.rgba(INK, .95 * a); g.lineWidth = 6; g.lineCap = 'round';
+      const cx = wd.x + wh + 14, cy = 166, grow = E.outCubic(clamp((T - 6.4) / .05));
+      for (let j = 0; j < 3; j++) { const ang = -1.25 + j * .55, r0 = 12, r1 = 12 + 36 * grow; g.beginPath(); g.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0); g.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1); g.stroke(); }
     }
     const fa = prog(T, 6.4, 6.6, E.outQuad);
     if (fa > 0) {
@@ -459,21 +560,26 @@
     // jhadu: two strokes along the printed floor, shadow on the face
     if (T >= 5.2 && T <= 5.64) {
       const x = keys(T, JX), lift = keys(T, JL), ang = keys(T, JA) * DEG, bend = keys(T, JB);
-      for (const sh of [1, 0]) {
-        g.save(); g.translate(x + sh * 12, 1150 - lift + sh * 14); g.rotate(ang); g.scale(1.22, 1.22); g.translate(0, -86);
-        if (sh) { g.globalAlpha = .13; g.filter = 'none'; g.globalCompositeOperation = 'multiply'; }
-        jhadu(g, bend); g.restore();
+      for (const sh of [1, 0]) {   // soft Ink shadow on the face (offset 8,10), then the broom
+        g.save(); g.translate(x + sh * 8, 1150 - lift + sh * 10); g.rotate(ang); g.scale(1.22, 1.22); g.translate(0, -86);
+        if (sh) { g.globalAlpha = .12; g.filter = 'blur(3px)'; }
+        jhadu(g, bend, !!sh); g.restore();
       }
     }
     drawPuffs(g, T);
   }
-  function drawTri(g, T) {
+  /** the face as it stands after the gag (slumped 'हाफ़', fine print on): used for the smeared whip-out */
+  const faceFinal = () => L.cached('s3-facefinal', TV.w, TV.h, g => { g.translate(-TV.x, -TV.y); g.drawImage(faceB(false), TV.x, TV.y); drawFaceLive(g, 7.0); });
+  function drawTri(g, T, vx = 0) {
     const { x: X, y: Y, w: FWd, h: FH, n: N } = TV, SW = FWd / N, RIN = SW / (2 * Math.sqrt(3));
     g.fillStyle = '#0E0C10'; g.fillRect(X, Y, FWd, FH);
+    const whipOut = T > 6.62 && Math.abs(vx) * DT >= 7;
+    if (whipOut) { g.save(); g.beginPath(); g.rect(X, Y, FWd, FH); g.clip(); drawMB(g, faceFinal(), 'facefinal', X, Y, vx); g.restore(); }
     const fa = faceA(), fb = faceB(T < TA);
     let settled = true; const angs = [];
     for (let i = 0; i < N; i++) { const a = slatAngle(T, i); angs.push(a); if (Math.abs(a - 120) > .25) settled = false; }
-    if (settled) g.drawImage(fb, X, Y);
+    if (whipOut) { /* drawn above */ }
+    else if (settled) g.drawImage(fb, X, Y);
     else for (let i = 0; i < N; i++) {
       const th = angs[i] * DEG, cx = X + (i + .5) * SW; let edgeX = null;
       for (const [img, ph] of [[fa, th], [fb, th - 2 * Math.PI / 3]]) {
@@ -485,12 +591,12 @@
       }
       if (edgeX !== null && angs[i] > 2 && angs[i] < 118) { g.fillStyle = 'rgba(255,238,214,.35)'; g.fillRect(edgeX - 1, Y, 2, FH); }
     }
-    if (T >= TA - .001) { g.save(); g.beginPath(); g.rect(X, Y, FWd, FH); g.clip(); drawFaceLive(g, T); g.restore(); }
+    if (T >= TA - .001 && !whipOut) { g.save(); g.beginPath(); g.rect(X, Y, FWd, FH); g.clip(); drawFaceLive(g, T); g.restore(); }
     // night light: multiply light map, then warm hot-spots off the up-lights
     g.save(); g.beginPath(); g.rect(X, Y, FWd, FH); g.clip();
     g.globalCompositeOperation = 'multiply'; g.drawImage(faceLight(), X, Y);
     g.globalCompositeOperation = 'lighter';
-    for (const lx of LAMPS_A) { const fl = .9 + .1 * L.noise1(T * 7 + lx, 4); glow(g, lx, Y + FH + 10, 150, '#FFD9A8', .16 * fl); }
+    for (const lx of LAMPS_A) { const fl = .9 + .1 * L.noise1(T * 7 + lx, 4); glow(g, lx, Y + FH + 10, 130, '#FFD9A8', .07 * fl); }
     g.globalCompositeOperation = 'source-over';
     for (let i = 0; i < N; i++) { const v = rnd(121, i) - .5; g.fillStyle = v > 0 ? `rgba(255,248,236,${.05 * v})` : `rgba(10,8,14,${-.07 * v})`; g.fillRect(X + i * SW, Y, SW, FH); }
     g.fillStyle = 'rgba(8,6,10,.42)'; for (let i = 1; i < N; i++) g.fillRect(X + i * SW - .75, Y, 1.5, FH);
@@ -498,22 +604,26 @@
     g.restore();
   }
   function drawA(g, T, vx) {
-    g.drawImage(aBack(), -320, 1060);
-    drawTri(g, T);
-    g.drawImage(aFrame(), 90, 530);
-    g.drawImage(aBldg(), -320, 1290);
-    // lamp lenses + faint volumetric beams up the face
+    drawMB(g, aBack(), 'aback', -320, 1060, vx);
+    drawTri(g, T, vx);
+    // flood cones: visible warm-white light thrown up the face from the two lenses
+    g.save(); g.beginPath(); g.rect(TV.x - 14, 380, TV.w + 28, LENS_Y - 380); g.clip(); g.globalCompositeOperation = 'lighter';
+    for (const lx of LAMPS_A) { const fl = .92 + .08 * L.noise1(T * 7 + lx, 4); g.globalAlpha = fl; g.drawImage(coneSprite(), lx - 280, LENS_Y - CONE_LEN); }
+    g.restore();
+    drawMB(g, aFrame(), 'aframe', 90, 530, vx);
+    drawMB(g, aBldg(), 'abldg', -320, 1290, vx);
+    // lamp lenses (bloom kept tight: the glow ends > 30 px short of the MM plate at x 730)
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const [k, lx] of LAMPS_A.entries()) {
       const fl = .9 + .1 * L.noise1(T * 7 + lx, 4);
-      glow(g, lx, 1229, 110, '#FFD9A8', .6 * fl); glow(g, lx, 1229, 36, '#FFF4E0', .8 * fl);
-      g.fillStyle = `rgba(255,236,206,${.22 * fl})`; g.fillRect(lx - 120, 1228, 240, 2);   // anamorphic glint
-      g.fillStyle = `rgba(255,250,240,${fl})`; g.beginPath(); g.ellipse(lx, 1229, 26, 4.5, -.1, 0, TAU); g.fill();
+      glow(g, lx, 1229, 62, '#FFD9A8', .6 * fl); glow(g, lx, 1229, 26, '#FFF4E0', .8 * fl);
+      g.fillStyle = `rgba(255,236,206,${.2 * fl})`; g.fillRect(lx - 40, 1228, 80, 2);   // anamorphic glint
+      g.fillStyle = `rgba(255,250,240,${fl})`; g.beginPath(); g.ellipse(lx, 1229, 24, 4.2, -.1, 0, TAU); g.fill();
     }
     g.restore();
-    // parapet: string lights + five diyas
+    // parapet: string lights + five diyas (all left of the plate: the MM plate keeps a dark field)
     L.stringLights(g, { x0: -320, y0: 1346, x1: 1240, y1: 1346, sag: 16, n: 64, t: T, seed: 4, size: 4, colors: [GOLD, BULB, '#FF9F1C'], mode: 'twinkle', wire: 'rgba(15,12,16,.9)' });
-    for (const [k, x] of [190, 362, 540, 718, 890].entries()) L.diya(g, x, 1291, 13, T, 40 + k, { flameSize: 18 });
+    for (const [k, x] of [70, 205, 340, 470, 600].entries()) L.diya(g, x, 1291, 13, T, 40 + k, { flameSize: 18 });
     drawSparkles(g, T);
   }
 
@@ -552,55 +662,93 @@
     g.fillStyle = 'rgba(0,0,0,.28)'; g.fillRect(X0, 1300, X1 - X0, 36); topEdge(g, X0, 1300, X1 - X0, .8);
     grime(g, -150, 520, 1400, 1150, 1);
     g.fillStyle = 'rgba(244,242,238,.08)'; g.fillRect(80, 1500, 920, 140); g.strokeStyle = 'rgba(140,135,131,.6)'; g.lineWidth = 2; g.strokeRect(80, 1500, 920, 140);
-    for (let k = 0; k < 9; k++) { const tx = 110 + k * 100; g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(tx, 1560, 80, 4);
-      for (let j = 0; j < 4; j++) { g.fillStyle = [GOLDINK, MUSLIN, '#D9721E', LINEN][k % 4]; if (k % 4 === 1) { g.beginPath(); g.moveTo(tx + 10 + j * 18, 1546); g.lineTo(tx + 18 + j * 18, 1540); g.lineTo(tx + 26 + j * 18, 1546); g.lineTo(tx + 18 + j * 18, 1552); g.closePath(); g.fill(); } else { g.beginPath(); g.arc(tx + 16 + j * 16, 1552, 7, 0, TAU); g.fill(); } } }
+    for (let k = 0; k < 11; k++) { const jx = 70 + k * 92; g.fillStyle = 'rgba(244,242,238,.10)'; g.beginPath(); g.roundRect(jx, 1408, 44, 62, 8); g.fill(); g.fillStyle = ['rgba(242,178,62,.55)', 'rgba(217,114,30,.5)', 'rgba(238,236,232,.4)'][k % 3]; g.fillRect(jx + 6, 1436, 32, 30); g.fillStyle = 'rgba(140,135,131,.7)'; g.fillRect(jx + 8, 1402, 28, 7); }
+    g.fillStyle = 'rgba(140,135,131,.5)'; g.fillRect(50, 1472, 980, 4);
+    for (let k = 0; k < 8; k++) { const tx = 105 + k * 112; g.fillStyle = 'rgba(140,135,131,.75)'; g.beginPath(); g.ellipse(tx + 40, 1566, 48, 7, 0, 0, TAU); g.fill();
+      if (k % 3 === 1) { for (let r = 0; r < 3; r++) for (let j = 0; j < 4 - r; j++) { const x = tx + 10 + j * 17 + r * 8.5, y = 1556 - r * 9; g.fillStyle = r % 2 ? '#E8DECD' : '#F0E8DA'; L.poly(g, [[x, y - 6], [x + 9, y], [x, y + 6], [x - 9, y]]); g.fill(); } }
+      else { const col = k % 3 ? GOLDINK : '#D9721E'; for (let r = 0; r < 3; r++) for (let j = 0; j < 3 - r; j++) { const x = tx + 22 + j * 17 + r * 8.5, y = 1554 - r * 14; g.fillStyle = col; g.beginPath(); g.arc(x, y, 8.5, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,240,200,.35)'; g.beginPath(); g.arc(x - 3, y - 3, 3, 0, TAU); g.fill(); } } }
   });
   function bLines() {   // LED copy rendered once
     const o1 = { font: 'dev', size: 72, weight: 700 }, o2 = { font: 'dev', size: 84, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
-    return { o1, o2, os, l2: textImg(B2, o2, RED), sub: textImg(SUB_B, os, MIST) };
+    // line 2 (MM Red punch) gets a thin Rich Black ring, not a grey knockout; it sits OUT of the heavy dot mask
+    return { o1, o2, os, l2: textImg(B2, o2, RED), sub: textImg(SUB_B, os, MIST), l2k: textImg(B2, o2, RED, 6, 'rgba(28,26,26,.9)'), subk: textImg(SUB_B, os, MIST, 10) };
   }
+  /* kaju katli: real mithai pushed OUT of the screen. Each piece materialises from LED cells at the copy-free band
+     (y 1035) and drops a short way onto a heap; the landing table is pre-simulated (seed 44), the landings are the
+     audible ones: 8.100 ... 9.267 */
+  const KJ_TOP = 1035, KJ_Y0 = 1000, KJ_V0 = 700, KJ_G = 2200;
   let KAJU = null;
   function kajuTable() {
     if (KAJU) return KAJU;
-    KAJU = []; const Hf = new Float32Array(320).fill(1214);   // heightfield over x 620..940
+    KAJU = []; const Hf = new Float32Array(320).fill(1212);   // heightfield over x 620..940
     const ev = [8.1, 8.267, 8.4, 8.567, 8.733, 8.933, 9.1, 9.267], cnt = [3, 2, 3, 2, 3, 2, 3, 2]; let i = 0;
     ev.forEach((te, e) => { for (let j = 0; j < cnt[e]; j++, i++) {
-      const target = 668 + rnd(44, i * 3) * 204; let best = null;
-      for (let cx = Math.max(664, target - 80); cx <= Math.min(876, target + 80); cx += 6) {
-        let top = 1e9; for (let x = cx - 24; x <= cx + 24; x += 2) top = Math.min(top, Hf[Math.round(x) - 620]);
-        const score = top - Math.abs(cx - target) * .12; if (!best || score > best.score) best = { cx, top, score };
+      // a loose mound centred near x 770: each piece slides to a low spot near where it falls, lands half a piece
+      // off its neighbours, lies at its own depth (dz) and keeps a random ±20° turn
+      const target = clamp(772 + (rnd(44, i * 3) + rnd(44, i * 3 + 7) - 1) * 118, 690, 856); let best = null;
+      for (let cx = Math.max(668, target - 40); cx <= Math.min(874, target + 40); cx += 2) {
+        let top = 1e9; for (let x = cx - 18; x <= cx + 18; x += 2) top = Math.min(top, Hf[Math.round(x) - 620]);
+        const score = top - Math.abs(cx - target) * .35; if (!best || score > best.score) best = { cx, top, score };
       }
-      const tx = best.cx + (rnd(44, i * 3 + 5) - .5) * 5, cy = best.top - 11;
-      const sl = (Hf[Math.round(tx + 22) - 620] - Hf[Math.round(tx - 22) - 620]) / 44;
-      const ang = clamp(Math.atan(sl) * .6 + (rnd(44, i * 3 + 1) - .5) * .32, -.4, .4);
-      for (let x = Math.round(tx - 30); x <= tx + 30; x++) { const q = x - 620; if (q >= 0 && q < 320) Hf[q] = Math.min(Hf[q], cy - 7 + Math.abs(x - tx) * .22); }
-      const tl = te + (j - (cnt[e] - 1) / 2) * .012, fall = e === 0 ? tl - 7.9 : .24 + rnd(44, i * 3 + 2) * .14, y0 = 590, d = cy - y0;
-      KAJU.push({ tl, t0: tl - fall, fall, x0: tx + (rnd(45, i) - .5) * 140, tx, cy, ang, y0, v0: (d - 1100 * fall * fall) / fall, spin: (rnd(46, i) - .5) * 10, glint: rnd(47, i) });
+      const tx = best.cx + (rnd(44, i * 3 + 5) - .5) * 14, dz = rnd(44, i * 3 + 9) * 9, cy = best.top - 6 + dz;
+      const sl = (Hf[Math.round(tx + 20) - 620] - Hf[Math.round(tx - 20) - 620]) / 40;
+      const ang = clamp(Math.atan(sl) * .5 + (rnd(44, i * 3 + 1) - .5) * .7, -.4, .4);
+      for (let x = Math.round(tx - 26); x <= tx + 26; x++) { const q = x - 620; if (q >= 0 && q < 320) Hf[q] = Math.min(Hf[q], cy - dz - 5 + Math.abs(x - tx) * .3); }
+      const tl = te + (j - (cnt[e] - 1) / 2) * .012, d = cy - KJ_Y0;
+      const fall = (-KJ_V0 + Math.sqrt(KJ_V0 * KJ_V0 + 2 * KJ_G * d)) / KJ_G;   // y = y0 + v0 u + g u²/2 reaches cy
+      const tin = (-KJ_V0 + Math.sqrt(KJ_V0 * KJ_V0 + 2 * KJ_G * (KJ_TOP - KJ_Y0))) / KJ_G;   // crosses the emitter line
+      KAJU.push({ tl, t0: tl - fall, fall, te: tl - fall + tin, x0: tx + (rnd(45, i) - .5) * 36, tx, cy, ang, spin: (rnd(46, i) - .5) * 2.4, glint: rnd(47, i), i });
     } });
     return KAJU;
   }
-  const kajuSprite = () => L.cached('s3-kaju', 76, 64, g => {
+  const kajuSprite = () => L.cached('s3-kaju3', 76, 64, g => {
     g.translate(38, 26);
-    g.fillStyle = '#D9CDB9'; L.poly(g, [[-28, 0], [0, 18], [0, 26], [-28, 8]]); g.fill();
-    g.fillStyle = '#B9AB95'; L.poly(g, [[0, 18], [28, 0], [28, 8], [0, 26]]); g.fill();
-    g.fillStyle = 'rgba(255,255,255,.18)'; L.poly(g, [[-28, 0], [0, 18], [0, 20], [-28, 2]]); g.fill();
-    const tg = g.createLinearGradient(-20, -14, 18, 14); tg.addColorStop(0, '#F3EDE2'); tg.addColorStop(1, '#E4DACA');
-    g.fillStyle = tg; L.poly(g, [[0, -18], [28, 0], [0, 18], [-28, 0]]); g.fill();
-    g.fillStyle = 'rgba(201,190,170,.75)'; L.poly(g, [[0, -12], [19, 0], [0, 12], [-19, 0]]); g.fill();   // the bevelled top facet
-    g.fillStyle = '#EFE8DC'; L.poly(g, [[0, -10], [16, 0], [0, 10], [-16, 0]]); g.fill();
-    for (let k = 0; k < 9; k++) { const x = (rnd(48, k) - .5) * 26, y = (rnd(49, k) - .5) * 12, s = 2 + rnd(50, k) * 3; g.fillStyle = k % 3 ? PAPER : '#D8D5D0'; L.poly(g, [[x - s, y], [x, y - s * .6], [x + s, y + s * .2], [x + s * .2, y + s * .7]]); g.fill(); }
-    g.fillStyle = 'rgba(255,255,255,.0)';
+    // a thin diamond slab: two narrow side faces, the top, a soft bevel, crinkled silver vark
+    g.fillStyle = '#D3C8B6'; L.poly(g, [[-28, 0], [0, 17], [0, 22], [-28, 5]]); g.fill();
+    g.fillStyle = '#B2A690'; L.poly(g, [[0, 17], [28, 0], [28, 5], [0, 22]]); g.fill();
+    g.fillStyle = 'rgba(255,250,240,.3)'; L.poly(g, [[-28, 0], [0, 17], [0, 18.2], [-28, 1.2]]); g.fill();
+    const tg = g.createLinearGradient(-20, -14, 18, 14); tg.addColorStop(0, '#F1ECE3'); tg.addColorStop(1, '#DED3C0');
+    g.fillStyle = tg; L.poly(g, [[0, -17], [28, 0], [0, 17], [-28, 0]]); g.fill();
+    const bv = g.createLinearGradient(0, -12, 0, 12); bv.addColorStop(0, 'rgba(255,255,255,.22)'); bv.addColorStop(1, 'rgba(150,135,110,.2)');
+    g.fillStyle = bv; L.poly(g, [[0, -12], [19, 0], [0, 12], [-19, 0]]); g.fill();
+    for (let k = 0; k < 6; k++) {   // vark: irregular 3-5 px leaf scraps, Paper with a Stone shadow edge
+      const x = (rnd(48, k) - .5) * 28, y = (rnd(49, k) - .5) * 13, s = 2.8 + rnd(50, k) * 1.6, n = 5, pts = [];
+      for (let v = 0; v < n; v++) { const a = v / n * TAU + rnd(51, k * 9 + v) * .9, rr = s * (.35 + .9 * rnd(52, k * 9 + v)); pts.push([x + Math.cos(a) * rr * 1.3, y + Math.sin(a) * rr * .65]); }
+      g.fillStyle = 'rgba(140,135,131,.35)'; L.poly(g, pts.map(([a, b]) => [a + .6, b + .7])); g.fill();
+      g.fillStyle = k % 2 ? '#F4F3F1' : '#CFCDCA'; L.poly(g, pts); g.fill();
+    }
+  });
+  /** the same piece as coarse LED cells (materialise frames) */
+  const kajuCells = () => L.cached('s3-kajucells3', 76, 64, g => {
+    const sm = L.cached('s3-kajusm3', 13, 11, s => s.drawImage(kajuSprite(), 0, 0, 13, 11));
+    g.imageSmoothingEnabled = false; g.drawImage(sm, 0, 0, 78, 66);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,248,236,.35)'; g.fillRect(0, 0, 76, 64);
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; for (let x = 0; x < 76; x += 6) g.fillRect(x, 0, 1, 64); for (let y = 0; y < 64; y += 6) g.fillRect(0, y, 76, 1);
   });
   function drawKaju(g, T) {
-    const sp = kajuSprite();
+    const sp = kajuSprite(), cells = kajuCells(), MAT = 2 / 30;
     for (const k of kajuTable()) {
-      if (T < k.t0) continue;
+      if (T < k.te) continue;
       let x, y, a, sy = 1;
-      if (T < k.tl) { const u = T - k.t0; y = k.y0 + k.v0 * u + 1100 * u * u; x = lerp(k.x0, k.tx, u / k.fall); a = k.ang + k.spin * (1 - u / k.fall); }
-      else { const u = T - k.tl; x = k.tx; a = k.ang; y = k.cy; if (u < .14) { const b = u / .14; y -= 4 * 13 * b * (1 - b); } if (u < .034) sy = .82; }
-      const ghost = T < k.tl ? 1 - .45 * clamp(1 - Math.abs(y - 880) / 170) : 1;
-      g.save(); g.globalAlpha *= ghost; g.translate(x, y); g.rotate(a); g.scale(1 + (1 - sy) * .5, sy); g.drawImage(sp, -38, -26); g.restore();
-      if (T > k.tl && k.glint > .55) { const ph = (T * 1.3 + k.glint * 7) % 2.2; if (ph < .25) { g.save(); g.globalCompositeOperation = 'lighter'; sparkle(g, x + 6, y - 6, 6 * Math.sin(ph / .25 * Math.PI), .9); g.restore(); } }
+      const falling = T < k.tl;
+      if (falling) { const u = T - k.t0; y = KJ_Y0 + KJ_V0 * u + .5 * KJ_G * u * u; x = lerp(k.x0, k.tx, u / k.fall); a = k.ang + k.spin * (1 - u / k.fall); }
+      else { const u = T - k.tl; x = k.tx; a = k.ang; y = k.cy; if (u < .14) { const b = u / .14; y -= 4 * 9 * b * (1 - b); } if (u < .034) sy = .82; }
+      const mat = clamp((T - k.te) / MAT);
+      g.save();
+      if (falling) { g.beginPath(); g.rect(SCR.x, KJ_TOP, SCR.w, SCR.y + SCR.h - KJ_TOP); g.clip(); }
+      if (!falling) {   // contact shadow on the screen glass / on the piece below
+        g.fillStyle = 'rgba(8,6,10,.3)'; g.beginPath(); g.ellipse(x + 2, y + 13, 24, 5, a, 0, TAU); g.fill();
+      }
+      g.translate(x, y); g.rotate(a); g.scale(1 + (1 - sy) * .5, sy);
+      if (mat < 1) { g.globalAlpha = 1 - mat * mat; g.drawImage(cells, -38, -26); g.globalAlpha = mat; }
+      g.drawImage(sp, -38, -26);
+      g.restore();
+      if (falling && mat < 1) {   // the emitter line flares where the piece pushes through
+        g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,236,210,${.55 * (1 - mat)})`;
+        for (let c = -5; c <= 5; c++) g.fillRect(Math.round((x + c * 6) / 6) * 6 - 2, KJ_TOP - 2, 4, 4);
+        glow(g, x, KJ_TOP, 46, '#FFE7C4', .35 * (1 - mat)); g.restore();
+      }
+      if (!falling && k.glint > .55) { const ph = (T * 1.3 + k.glint * 7) % 2.2; if (ph < .25) { g.save(); g.globalCompositeOperation = 'lighter'; sparkle(g, x + 6, y - 6, 6 * Math.sin(ph / .25 * Math.PI), .9); g.restore(); } }
     }
   }
   let CRUMB = null;
@@ -634,16 +782,19 @@
       g.restore();
     }
     // halos behind the copy (emissive LED), then copy
-    const l1imgs = lay1.map(w => textImg(w.word, tl.o1, PAPER));
+    const l1imgs = lay1.map(w => textImg(w.word, tl.o1, PAPER)), l1k = lay1.map(w => textImg(w.word, tl.o1, PAPER, 11));
     const p1 = lay1.map((w, i) => prog(T, 7.6 + i / 30, 7.6 + i / 30 + .133));
     const pop = T < 7.9 ? 0 : keys(T - 7.9, [[0, .85], [.1, 1.06], [.167, 1]]), a2 = prog(T, 7.9, 7.94), ps = prog(T, 7.9, 8.033);
     const gone = T >= 9.5;
     g.save(); g.globalCompositeOperation = 'lighter';
     lay1.forEach((w, i) => { if (i === 0 && T >= 9.4) return; const im = l1imgs[i], h = haloImg(im, 10, 'b1' + i); g.globalAlpha = .42 * p1[i]; g.drawImage(h, w.x - im._bx - 20, 770 - im._by - 20); });
-    if (a2 > 0) { const h = haloImg(tl.l2, 12, 'b2'); g.globalAlpha = .55 * a2; g.save(); g.translate(540, 900); g.scale(pop, pop); g.drawImage(h, -tl.l2.width / 2 - 24, -tl.l2._by - 24); g.restore(); }
+    if (a2 > 0) {   // emissive red bloom BEHIND the punch line (never on it): wide soft field + tighter core
+      const h = haloImg(tl.l2, 28, 'b2w'), h2 = haloImg(tl.l2, 10, 'b2'); g.save(); g.translate(540, 900); g.scale(pop, pop);
+      g.globalAlpha = .62 * a2; g.drawImage(h, -tl.l2.width / 2 - 56, -tl.l2._by - 56);
+      g.globalAlpha = .3 * a2; g.drawImage(h2, -tl.l2.width / 2 - 20, -tl.l2._by - 20); g.restore();
+    }
     if (ps > 0) { const h = haloImg(tl.sub, 8, 'bs'); g.globalAlpha = .32 * ps; g.drawImage(h, 540 - tl.sub.width / 2 - 16, 1010 - tl.sub._by - 16); }
     g.restore();
-    drawKaju(g, T);
     lay1.forEach((w, i) => {
       const im = l1imgs[i], x = w.x - im._bx, y = 770 - im._by;
       if (i === 0 && T >= 9.4) {
@@ -658,14 +809,20 @@
         }
         return;
       }
-      dissolve(g, im, x, y, p1[i], 300 + i);
+      dissolve(g, l1k[i], x, y, p1[i], 300 + i);
     });
-    if (a2 > 0) { g.save(); g.globalAlpha = a2; g.translate(540, 900); g.scale(pop, pop); g.drawImage(tl.l2, -tl.l2.width / 2, -tl.l2._by); g.restore(); }
-    if (ps > 0) dissolve(g, tl.sub, 540 - tl.sub.width / 2, 1010 - tl.sub._by, ps, 330);
+    if (ps > 0) dissolve(g, tl.subk, 540 - tl.subk.width / 2, 1010 - tl.subk._by, ps, 330);
     g.restore();
     if (scanY < Y + SH) { g.fillStyle = '#121014'; g.fillRect(X, scanY, SWd, Y + SH - scanY); }
     // LED dot pitch + scanlines over the whole panel
     g.drawImage(ledMask(SWd, SH), X, Y);
+    // the MM Red punch line sits OUT of the heavy mask: true #D2232E with only an 8 % grid baked in (phase-aligned)
+    if (a2 > 0) {
+      const lx = Math.round(540 - tl.l2k.width / 2), ly = Math.round(900 - tl.l2k._by), mi = maskedImg(tl.l2k, 'l2', X + 3 - lx, Y + 3 - ly, .08);
+      g.save(); g.beginPath(); g.rect(X, Y, SWd, SH); g.clip(); g.globalAlpha = a2; g.translate(540, 900); g.scale(pop, pop); g.drawImage(mi, lx - 540, ly - 900); g.restore();
+    }
+    // kaju katli: physical mithai in front of the glass (no dot mask)
+    g.save(); g.beginPath(); g.rect(X, Y, SWd, SH); g.clip(); drawKaju(g, T); g.restore();
   }
   const ledMask = (w, h) => L.cached(`s3-ledmask-${w}x${h}`, w, h, g => {
     g.fillStyle = 'rgba(0,0,0,.24)'; g.fillRect(0, 0, w, h);
@@ -690,25 +847,60 @@
   /* ======================= BAR C: LED van at street level ======================= */
   const cBldg = () => L.cached('s3-cbldg', 2000, 1300, g => {
     g.translate(200, -160);
-    const blds = [[-200, 250, 390, 0], [250, 640, 330, 1], [640, 1080, 420, 0], [1080, 1470, 350, 1], [1470, 1800, 400, 0]];
-    for (const [x0, x1, top, kg] of blds) {
+    // five old-city houses, each with its own window language: louvred, arched, jharokha balconies, plain grilles
+    const blds = [[-200, 250, 390, 0, 'louvre'], [250, 640, 330, 1, 'arch'], [640, 1080, 420, 0, 'rect'], [1080, 1470, 350, 1, 'arch'], [1470, 1800, 400, 0, 'louvre']];
+    const win = (x, y, w, h, st, kind, id) => {
+      const lit = st > .64, warm = lit ? 'rgba(255,181,71,.36)' : st > .2 ? 'rgba(201,196,191,.13)' : '#141215';
+      if (kind === 'arch') { g.fillStyle = '#19161A'; archWin(g, x - 4, y - 4, w + 8, h + 8); g.fill(); g.fillStyle = warm; archWin(g, x, y, w, h); g.fill(); g.fillStyle = '#19161A'; g.fillRect(x + w / 2 - 2, y, 4, h); }
+      else {
+        g.fillStyle = '#19161A'; g.fillRect(x - 5, y - 5, w + 10, h + 10); g.fillStyle = warm; g.fillRect(x, y, w, h);
+        if (kind === 'louvre') { g.fillStyle = '#211D21'; for (const sx of [x - 20, x + w + 2]) { g.fillRect(sx, y - 2, 18, h + 4); g.fillStyle = 'rgba(0,0,0,.35)'; for (let yy = y + 2; yy < y + h; yy += 6) g.fillRect(sx + 2, yy, 14, 2); g.fillStyle = '#211D21'; } }
+        else { g.fillStyle = 'rgba(25,22,26,.85)'; for (let xx = x + 9; xx < x + w; xx += 10) g.fillRect(xx, y, 2, h); g.fillRect(x, y + h / 2 - 1, w, 2); }
+        g.fillStyle = '#2E292D'; g.fillRect(x - 10, y - 14, w + 20, 7); topEdge(g, x - 10, y - 14, w + 20, .55);   // chhajja
+      }
+      if (lit && (id === 3 || id === 11)) {   // curtains drawn aside in two lit windows
+        g.fillStyle = 'rgba(120,42,30,.75)'; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + w * .34, y + h * .4, x + 6, y + h); g.lineTo(x, y + h); g.closePath(); g.fill();
+        g.beginPath(); g.moveTo(x + w, y); g.quadraticCurveTo(x + w * .66, y + h * .4, x + w - 6, y + h); g.lineTo(x + w, y + h); g.closePath(); g.fill();
+      }
+    };
+    const jharokha = (cx, y) => {   // projecting oriel: brackets, three arched lights, a curved chhajja
+      g.fillStyle = '#2F2A2D'; g.fillRect(cx - 78, y + 96, 156, 14); topEdge(g, cx - 78, y + 96, 156, .6);
+      g.fillStyle = '#241F22'; for (const bx of [-64, 0, 64]) { L.poly(g, [[cx + bx - 8, y + 110], [cx + bx + 8, y + 110], [cx + bx, y + 140]]); g.fill(); }
+      g.fillStyle = '#2A2528'; g.fillRect(cx - 72, y, 144, 96);
+      for (const k of [-1, 0, 1]) { const st = rnd(721, cx + k); g.fillStyle = '#19161A'; archWin(g, cx + k * 46 - 18, y + 18, 36, 70); g.fill(); g.fillStyle = st > .45 ? 'rgba(255,181,71,.42)' : 'rgba(201,196,191,.12)'; archWin(g, cx + k * 46 - 15, y + 22, 30, 64); g.fill(); }
+      g.fillStyle = '#332E31'; g.beginPath(); g.moveTo(cx - 90, y + 4); g.quadraticCurveTo(cx, y - 44, cx + 90, y + 4); g.lineTo(cx + 90, y + 12); g.quadraticCurveTo(cx, y - 32, cx - 90, y + 12); g.closePath(); g.fill();
+      g.strokeStyle = 'rgba(140,135,131,.7)'; g.lineWidth = 2; g.beginPath(); g.moveTo(cx - 90, y + 4); g.quadraticCurveTo(cx, y - 44, cx + 90, y + 4); g.stroke();
+      g.fillStyle = '#2A2528'; g.beginPath(); g.arc(cx, y - 24, 9, Math.PI, TAU); g.fill();
+    };
+    let wid = 0;
+    for (const [x0, x1, top, kg, kind] of blds) {
       g.fillStyle = x0 % 2 ? '#2B2728' : '#292527'; g.fillRect(x0, top, x1 - x0, 1440 - top);
       if (kg) for (let x = x0 + 12; x < x1 - 8; x += 24) merlon(g, x, top, 18, 16);
       g.fillStyle = '#353032'; g.fillRect(x0 - 4, top, x1 - x0 + 8, 12); topEdge(g, x0 - 4, top, x1 - x0 + 8);
       for (let y = top + 40, r = 0; y < 900; y += 120, r++) {
         g.fillStyle = '#242022'; g.fillRect(x0, y + 100, x1 - x0, 8); topEdge(g, x0, y + 100, x1 - x0, .25);
-        for (let x = x0 + 30, k = 0; x < x1 - 70; x += 110, k++) { const st = rnd(701, x * 7 + r);
-          g.fillStyle = '#19161A'; archWin(g, x - 4, y - 4, 62, 90); g.fill();
-          g.fillStyle = st > .66 ? 'rgba(255,181,71,.34)' : st > .2 ? 'rgba(201,196,191,.13)' : '#141215'; archWin(g, x, y, 54, 82); g.fill();
-          g.fillStyle = '#19161A'; g.fillRect(x + 25, y, 4, 82); }
+        const w = kind === 'arch' ? 54 : 50, h = kind === 'arch' ? 82 : 70, step = kind === 'louvre' ? 130 : 110;
+        for (let x = x0 + (kind === 'louvre' ? 44 : 30); x < x1 - 70; x += step) win(x, y + (kind === 'arch' ? 0 : 6), w, h, rnd(701, x * 7 + r), kind, wid++);
       }
-      // shop level: signboard band and shutters
+      // shop level: signboard band; rolled shutters, some half up over warm interiors
       g.fillStyle = '#1F1C1F'; g.fillRect(x0, 960, x1 - x0, 80); topEdge(g, x0, 960, x1 - x0, .6);
       g.fillStyle = '#2E2A2D'; g.fillRect(x0 + 14, 972, x1 - x0 - 28, 56); topEdge(g, x0 + 14, 972, x1 - x0 - 28, .5);
       g.fillStyle = '#1A171B'; g.fillRect(x0, 1040, x1 - x0, 380);
       const ig = g.createLinearGradient(0, 1060, 0, 1420); ig.addColorStop(0, 'rgba(255,181,71,.38)'); ig.addColorStop(1, 'rgba(255,140,40,.1)');
       g.fillStyle = ig; g.fillRect(x0 + 20, 1060, x1 - x0 - 40, 360);
+      const sw = (x1 - x0 - 40) / 2;
+      for (let j = 0; j < 2; j++) {
+        const sx = x0 + 20 + j * sw, down = [.55, 1, .25, .7, .4, 1, .6, .3, .85, .5][(x0 / 10 + j * 3 + 100) % 10 | 0];
+        g.fillStyle = '#3A3538'; g.fillRect(sx + 4, 1056, sw - 8, 360 * down);
+        g.fillStyle = 'rgba(0,0,0,.32)'; for (let yy = 1060; yy < 1056 + 360 * down; yy += 7) g.fillRect(sx + 4, yy, sw - 8, 2);
+        g.fillStyle = '#2A2629'; g.fillRect(sx + 4, 1056 + 360 * down - 6, sw - 8, 6); topEdge(g, sx + 4, 1056, sw - 8, .5);
+        g.fillStyle = '#25212A'; g.fillRect(sx, 1046, sw, 12);   // shutter box
+      }
     }
+    jharokha(445, 560); jharokha(1275, 520); jharokha(-30, 600);
+    // an AC unit with a long drip stain
+    g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(912, 812, 7, 140); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(906, 812, 18, 70);
+    g.fillStyle = '#3B363B'; g.fillRect(866, 770, 70, 44); topEdge(g, 866, 770, 70, .7); g.strokeStyle = '#211E22'; g.lineWidth = 2; g.beginPath(); g.arc(892, 792, 14, 0, TAU); g.stroke(); for (let k = 0; k < 4; k++) { g.fillStyle = '#211E22'; g.fillRect(914, 778 + k * 8, 14, 2); }
     grime(g, -200, 160, 2000, 1300, 1);
     for (const [x0, x1] of [[260, 630], [650, 1070]]) L.toran(g, { x0: x0 + 10, x1: x1 - 10, y: 1050, t: 0, seed: x0, flower: 9, strands: 5, strandLen: 2, sway: 0 });
   });
@@ -729,25 +921,59 @@
     }
     g.restore();
     g.strokeStyle = 'rgba(14,11,16,.7)'; g.lineWidth = 1.5; g.beginPath(); for (const f of C_FEST) { g.moveTo(f.a, f.y); g.lineTo((f.a + f.b) / 2, f.y + f.d); g.lineTo(f.b, f.y); } g.stroke();
-    for (const f of C_FEST) if (f.kd) L.lantern(g, (f.a + f.b) / 2, f.y + f.d, 10, T, f.id * 3 + 1, { color: f.id % 3 === 1 ? RED : f.id % 3 ? '#3F3593' : MUSLIN, light: GOLD });
-    for (const [k, x] of [330, 430, 545, 655, 760, 1060].entries()) L.diya(g, x, 1416, 12, T, 80 + k, { flameSize: 17 });
+    for (const f of C_FEST) if (f.kd) L.lantern(g, (f.a + f.b) / 2, f.y + f.d, 10, T, f.id * 3 + 1, { color: f.id % 2 ? '#E8901E' : MUSLIN, light: GOLD });
+    // diyas on the shop steps either side of the van (none on the road under the chassis)
+    for (const [k, [x, y]] of [[16, 1428], [44, 1430], [1066, 1428]].entries()) L.diya(g, x, y, 11, T, 80 + k, { flameSize: 16 });
   }
-  const BOX_SLOTS = [145, 275, 405], BOX_LAND = [10.0, 10.1, 10.2], BOX_HOP = [11.2, 11.333, 11.467, 11.6];
-  const boxSprite = () => L.cached('s3-box', 160, 110, g => {
-    g.translate(25, 46);
-    g.fillStyle = MUSLIN; g.fillRect(0, 0, 110, 52);
-    g.fillStyle = 'rgba(242,178,62,.5)'; for (let k = 0; k < 4; k++) { g.beginPath(); g.moveTo(8, 20 + k * 7); for (let x = 8; x <= 102; x += 8) g.lineTo(x, 20 + k * 7 + (x / 8 % 2 ? -2 : 2)); g.lineTo(102, 22 + k * 7); g.lineTo(8, 22 + k * 7); g.fill(); }
-    g.fillStyle = 'rgba(43,39,40,.12)'; g.fillRect(88, 12, 22, 40);
-    g.fillStyle = '#E3DFD9'; g.fillRect(-3, 0, 116, 12); topEdge(g, -3, 0, 116); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(-3, 11, 116, 2);
-    g.fillStyle = RED; g.fillRect(51, 0, 8, 52); g.fillRect(-3, 30, 116, 8);
-    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(57, 0, 2, 52);
-    // bow: two chevron loops + knot + tails
-    g.fillStyle = RED; L.poly(g, [[55, -3], [33, -17], [31, 3]]); g.fill(); L.poly(g, [[55, -3], [77, -17], [79, 3]]); g.fill();
-    g.fillStyle = 'rgba(0,0,0,.22)'; L.poly(g, [[55, -3], [38, -10], [37, 0]]); g.fill(); L.poly(g, [[55, -3], [72, -10], [73, 0]]); g.fill();
-    g.fillStyle = RED; g.fillRect(50, -8, 10, 10); L.poly(g, [[52, 0], [44, 13], [49, 13], [55, 2]]); g.fill(); L.poly(g, [[58, 0], [66, 13], [61, 13], [55, 2]]); g.fill();
+  const BOX_SLOTS = [140, 280, 420], BOX_LAND = [10.0, 10.1, 10.2], BOX_HOP = [11.2, 11.333, 11.467, 11.6], BW = 126, BH = 60;
+  /** soan papdi carton (side face 126x60): Muslin board, printed Marigold band with a die-cut window onto the flaky
+      cube, one flat MM Red ribbon with a small knot, Stone top-edge highlight */
+  const boxSprite = () => L.cached('s3-box2', 180, 120, g => {
+    g.translate(27, 50);
+    g.fillStyle = MUSLIN; g.fillRect(0, 0, BW, BH);
+    // printed band + thin key lines
+    g.fillStyle = '#F59E1B'; g.fillRect(0, 17, BW, 27);
+    g.fillStyle = 'rgba(150,72,10,.55)'; g.fillRect(0, 17, BW, 1.5); g.fillRect(0, 42.5, BW, 1.5);
+    g.fillStyle = 'rgba(238,236,232,.85)'; for (let x = 66; x < 120; x += 9) { g.beginPath(); g.moveTo(x, 30.5); g.lineTo(x + 3.5, 27); g.lineTo(x + 7, 30.5); g.lineTo(x + 3.5, 34); g.closePath(); g.fill(); }   // printed chevron border
+    g.save(); g.translate(108, 25); g.scale(.55, .55); g.fillStyle = 'rgba(122,40,10,.55)'; L.butaPath(g, 14); g.fill(); g.restore();
+    // die-cut window with the golden flaky cube (stacked strata, ragged edges)
+    const wx = 10, wy = 12, ww = 44, wh = 36;
+    g.fillStyle = '#E9E5DF'; g.beginPath(); g.roundRect(wx - 3, wy - 3, ww + 6, wh + 6, 7); g.fill();
+    g.save(); g.beginPath(); g.roundRect(wx, wy, ww, wh, 5); g.clip();
+    g.fillStyle = '#6E4A1C'; g.fillRect(wx, wy, ww, wh);
+    for (let k = 0; k < 4; k++) {
+      const y0 = wy + 3 + k * 8.4;
+      g.fillStyle = k % 2 ? '#E9B655' : '#F5C76A'; g.beginPath(); g.moveTo(wx + 3, y0);
+      for (let x = wx + 3; x <= wx + ww - 3; x += 3) g.lineTo(x, y0 + (rnd(611, k * 40 + x) - .5) * 2.2);
+      for (let x = wx + ww - 3; x >= wx + 3; x -= 3) g.lineTo(x, y0 + 7 + (rnd(612, k * 40 + x) - .5) * 2.2);
+      g.closePath(); g.fill();
+      g.fillStyle = 'rgba(255,240,200,.45)'; g.fillRect(wx + 4, y0 + 1, ww - 8, 1.2);
+    }
+    g.fillStyle = 'rgba(255,255,255,.18)'; L.poly(g, [[wx + 6, wy], [wx + 16, wy], [wx + 6, wy + wh], [wx - 4, wy + wh]]); g.fill();   // cellophane sheen
+    g.restore();
+    g.strokeStyle = 'rgba(140,135,131,.6)'; g.lineWidth = 1.2; g.beginPath(); g.roundRect(wx, wy, ww, wh, 5); g.stroke();
+    // lid lip + Stone top edge, side shading, base shadow line
+    g.fillStyle = '#E2DED8'; g.fillRect(-2, 0, BW + 4, 7); g.fillStyle = 'rgba(0,0,0,.14)'; g.fillRect(-2, 7, BW + 4, 1.5);
+    topEdge(g, -2, 0, BW + 4, 1);
+    const sg = g.createLinearGradient(BW - 26, 0, BW, 0); sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,.14)'); g.fillStyle = sg; g.fillRect(BW - 26, 0, 26, BH);
+    g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, BH - 2, BW, 2);
+    // ribbon: one flat 8 px band + a small knot
+    g.fillStyle = RED; g.fillRect(84, 0, 8, BH); g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(90, 0, 2, BH);
+    g.fillStyle = RED; g.beginPath(); g.roundRect(80, -5, 16, 11, 4); g.fill();   // small flat knot on the lid
+    g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(87.5, -4, 1.5, 9); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(82, -4, 12, 1.5);
+    L.textureOverlay(g, 'paper', -4, -8, BW + 8, BH + 10, { alpha: .14, blend: 'multiply', scale: .4, seed: 6 });
   });
   function drawBox(g, x, yb, rot, sx, sy, a = 1) {   // (x, yb) = bottom-centre
-    g.save(); g.globalAlpha *= a; g.translate(x, yb); g.scale(sx, sy); g.translate(0, -26); g.rotate(rot); g.drawImage(boxSprite(), -80, -72); g.restore();
+    g.save(); g.globalAlpha *= a; g.translate(x, yb); g.scale(sx, sy); g.translate(0, -BH / 2); g.rotate(rot); g.drawImage(boxSprite(), -90, -80); g.restore();
+  }
+  /** arrival arcs: tossed in from off-frame left (a neighbour's balcony), apex ~y 640, each landing on its tok.
+      Anchored to the screen (like the van's entry) so the whip doesn't drag them backwards. */
+  const ARC_D = .34, ARC_X0 = -200, ARC_Y0 = 720, ARC_APEX = 640;
+  function boxArc(k, T) {   // bar-C coords of the box bottom-centre while in flight, else null
+    const tl = BOX_LAND[k], u = (T - (tl - ARC_D)) / ARC_D; if (u < 0 || u >= 1) return null;
+    const land = 1440 - 309 * VS, lx = 50 + BOX_SLOTS[k], e2 = prog(T, WBC, TC, E.inOutCubic);
+    const r = Math.sqrt((ARC_Y0 - ARC_APEX) / (land - ARC_APEX)), ua = r / (1 + r), A = (ARC_Y0 - ARC_APEX) / (ua * ua);   // constant-g parabola
+    return { x: lerp(ARC_X0 - k * 40, lx, u) - WHIP * (1 - e2), y: ARC_APEX + A * (u - ua) * (u - ua) - DIP * (1 - e2), rot: (1 - u) * (k % 2 ? .55 : -.45) + Math.sin(u * 9 + k) * .06 * (1 - u) };
   }
   function vanState(T) {
     // screen-relative entry: from 1100 px left of its stop *in the moving frame* (the van overtakes the auto, then brakes)
@@ -755,6 +981,7 @@
     let dy = 0, pitch = 0;
     if (T < TC) dy = 1.4 * Math.sin(T * 47) * (1 - p) + 2 * Math.abs(Math.sin(T * 13)) * (1 - p);
     else { const k = Math.exp(-6 * tau); dy = 10 * k * Math.sin(18 * tau); pitch = .011 * k * Math.sin(18 * tau); }
+    for (let b = 1; b < 3; b++) { const u = T - BOX_LAND[b]; if (u > 0 && u < .6) dy += 3.5 * Math.exp(-8 * u) * Math.sin(24 * u); }   // each box hit
     return { x, dy, pitch };
   }
   const VS = 1.8;
@@ -841,54 +1068,75 @@
   function headLevel(T) { return (T >= 10.6 && T < 10.667) || (T >= 10.7 && T < 10.767) ? 1.9 : 1; }
   function drawVanPanel(g, T, lvl) {
     const px = 14 * VS, py = -300 * VS, pw = 360 * VS, ph = 230 * VS;
+    const o1 = { font: 'dev', size: 60, weight: 700 }, o2 = { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
+    // line 2 in three runs so the '4' can be MM Red and pulse; the whole line is held to maxWidth 560
+    const wA = L.measure(g, C2A, o2), w4 = L.measure(g, C2B, o2), wD = L.measure(g, C2C, o2), fit = Math.min(1, 560 / (wA + w4 + wD));
+    const x0 = 349 - (wA + w4 + wD) * fit / 2, pulse = T < 11.6 ? 1 : keys(T - 11.6, [[0, 1], [.1, 1.15], [.22, 1]]);
+    const i4 = textImg(C2B, o2, RED, 6, 'rgba(28,26,26,.9)');
     g.save(); g.beginPath(); g.rect(px, py, pw, ph); g.clip();
     g.fillStyle = '#121014'; g.fillRect(px, py, pw, ph);
     if (lvl > 0) {
       g.globalAlpha = lvl; g.fillStyle = RICH; g.fillRect(px, py, pw, ph);
       const br = g.createRadialGradient(349, -280, 10, 349, -260, 380); br.addColorStop(0, 'rgba(63,53,147,.25)'); br.addColorStop(1, 'rgba(63,53,147,0)'); g.fillStyle = br; g.fillRect(px, py, pw, ph);
-      const o1 = { font: 'dev', size: 60, weight: 700 }, o2 = { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
       const i1 = textImg(C1, o1, MUSLIN), is = textImg(SUB_C, os, MIST);
-      // line 2 in three runs so the '4' can be MM Red and pulse
-      const wA = L.measure(g, C2A, o2), w4 = L.measure(g, C2B, o2), wD = L.measure(g, C2C, o2), x0 = 349 - (wA + w4 + wD) / 2;
-      const pulse = T < 11.6 ? 1 : keys(T - 11.6, [[0, 1], [.1, 1.15], [.22, 1]]);
       g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = .4 * lvl;
       g.drawImage(haloImg(i1, 9, 'c1'), 349 - i1.width / 2 - 18, -450 - i1._by - 18);
-      const ia = textImg(C2A + C2B + C2C, o2, PAPER); g.drawImage(haloImg(ia, 12, 'c2'), 349 - ia.width / 2 - 24, -300 - ia._by - 24);
+      const ia = textImg(C2A + C2B + C2C, o2, PAPER); g.save(); g.translate(349, -300); g.scale(fit, fit); g.drawImage(haloImg(ia, 12, 'c2'), -ia.width / 2 - 24, -ia._by - 24); g.restore();
       g.globalAlpha = .28 * lvl; g.drawImage(haloImg(is, 8, 'cs'), 349 - is.width / 2 - 16, -185 - is._by - 16);
+      g.globalAlpha = .55 * lvl; g.save(); g.translate(x0 + (wA + w4 / 2) * fit, -300 - 38 * fit); g.scale(fit * pulse, fit * pulse); g.drawImage(haloImg(i4, 22, 'c4'), -i4.width / 2 - 44, 38 - i4._by - 44); g.restore();   // red bloom behind the '4'
       g.restore();
       g.drawImage(i1, 349 - i1.width / 2, -450 - i1._by);
-      L.text(g, C2A, x0, -300, Object.assign({}, o2, { align: 'left', color: PAPER, maxWidth: wA + 2 }));
-      g.save(); g.translate(x0 + wA + w4 / 2, -300 - 38); g.scale(pulse, pulse); L.text(g, C2B, 0, 38, Object.assign({}, o2, { color: RED, maxWidth: w4 + 2 })); g.restore();
-      L.text(g, C2C, x0 + wA + w4, -300, Object.assign({}, o2, { align: 'left', color: PAPER, maxWidth: wD + 2 }));
+      g.save(); g.translate(x0, -300); g.scale(fit, fit);
+      L.text(g, C2A, 0, 0, Object.assign({}, o2, { align: 'left', color: PAPER, maxWidth: wA + 2 }));
+      L.text(g, C2C, wA + w4, 0, Object.assign({}, o2, { align: 'left', color: PAPER, maxWidth: wD + 2 }));
+      g.restore();
       g.drawImage(is, 349 - is.width / 2, -185 - is._by);
       g.globalAlpha = 1;
     }
     g.restore();
     g.drawImage(ledMask(Math.round(pw), Math.round(ph)), px, py);
+    if (lvl > 0) {   // the MM Red '4' sits out of the heavy mask (8 % grid only) so it renders at true #D2232E
+      const cx = x0 + (wA + w4 / 2) * fit, lx = Math.round(cx - i4.width / 2), ly = Math.round(-300 - i4._by), mi = maskedImg(i4, 'c4', px + 3 - lx, py + 3 - ly, .08);
+      g.save(); g.beginPath(); g.rect(px, py, pw, ph); g.clip(); g.globalAlpha = lvl;
+      g.translate(cx, -300 - 38 * fit); g.scale(fit * pulse, fit * pulse); g.drawImage(mi, lx - cx, ly + 300 + 38 * fit); g.restore();
+    }
   }
   function drawBoxes(g, T, st) {
-    const rackY = 1440 + st.dy - 309 * VS;   // rack top in bar-C screen coordinates
+    const rackY = 1440 + st.dy - 309 * VS;   // rack top in bar-C coordinates
     for (let k = 0; k < 4; k++) {
       const slot = BOX_SLOTS[k === 3 ? 1 : k], hx = BOX_HOP[k];
-      let x = st.x + slot, y = rackY + st.pitch * (slot - 198) * 1, rot = 0, sx = 1, sy = 1;
-      if (k === 3) {   // the mystery 4th box: pops out of nowhere, hops straight away
+      let x = st.x + slot, y = rackY + st.pitch * (slot - 198), rot = 0, sx = 1, sy = 1, onRack = true;
+      if (k === 3) {   // the mystery 4th box: pops out of nowhere in a powder puff, hops straight away
         if (T < 11.533) continue;
         const u = T - 11.533; if (u < .067) { const s = keys(u, [[0, 0], [.033, 1.15], [.067, 1]]); sx = sy = s; }
-        if (u < .36) { const v = u / .36; g.save(); for (let j = 0; j < 11; j++) { const a = rnd(931, j) * TAU, r = (26 + 54 * rnd(932, j)) * (.45 + .8 * E.outCubic(v)); g.fillStyle = L.rgba([MIST, '#B3ADA6', PAPER][j % 3], .85 * (1 - v) * (1 - v)); g.beginPath(); g.arc(x + Math.cos(a) * r * 1.3, y - 26 + Math.sin(a) * r * .7 - 24 * v, (16 + 18 * rnd(933, j)) * (.6 + .7 * v), 0, TAU); g.fill(); } g.restore(); }
-      } else if (T < BOX_LAND[k]) {   // riding in; tossed up by the brake jolt
-        const ts = 9.95 + k * .008;
-        if (T > ts) { const A = BOX_LAND[k] - ts, u = (T - ts) / A; y -= 4 * (2500 * A * A / 8) * u * (1 - u); x += 8 * u; rot = .06 * Math.sin(u * Math.PI) * (k % 2 ? 1 : -1); }
-        else y -= Math.abs(Math.sin(T * 26 + k)) * 2.5;
-      } else if (T < BOX_LAND[k] + .2) { const u = T - BOX_LAND[k]; x += 8; if (u < .067) { sy = .84; sx = 1.08; } else { const b = (u - .067) / .133; y -= 6 * 4 * b * (1 - b); } }
-      else x += 8;
+        if (u < .36) {
+          const v = u / .36, e = E.outCubic(v);
+          for (let j = 0; j < 5; j++) { const a = rnd(931, j) * TAU, r = (30 + 50 * rnd(932, j)) * (.4 + .8 * e), s = (70 + 40 * rnd(933, j)) * (.5 + .7 * e);
+            g.save(); g.globalAlpha = .7 * (1 - v) * (1 - v); g.translate(x + Math.cos(a) * r * 1.2, y - 30 + Math.sin(a) * r * .6 - 24 * v); g.rotate(a); g.drawImage(puffSprite(j % 3), -s, -s * .8, s * 2, s * 1.6); g.restore(); }
+          g.save(); g.globalCompositeOperation = 'lighter';
+          for (let j = 0; j < 5; j++) { const a = -Math.PI * (.15 + .7 * rnd(934, j)), r = 40 + 90 * e * (.6 + .5 * rnd(935, j)); sparkle(g, x + Math.cos(a) * r * 1.3, y - 30 + Math.sin(a) * r, (8 + 8 * rnd(936, j)) * (1 - v), (1 - v)); }
+          g.restore();
+        }
+      } else if (T < BOX_LAND[k]) {   // in flight: tossed in from the left
+        const a = boxArc(k, T); if (!a) continue;
+        x = a.x; y = a.y; rot = a.rot; onRack = false;
+      } else {
+        const u = T - BOX_LAND[k];
+        if (u < 1 / 30) { sy = .85; sx = 1.1; }                                        // one-frame squash on the tok
+        else if (u < 1 / 30 + .12) { const b = (u - 1 / 30) / .12; y -= 6 * 4 * b * (1 - b); }   // 6 px bounce
+        if (u < .3) {   // soan papdi is flaky: a few golden crumbs burst off on the hit
+          for (let j = 0; j < 7; j++) { const q = k * 7 + j, vx = (rnd(941, q) - .5) * 360, vy = -120 - 220 * rnd(942, q), fx = x + (rnd(943, q) - .5) * 100 + vx * u, fy = y - 4 + vy * u + 1800 * u * u;
+            if (fy > rackY + 4) continue; g.fillStyle = L.rgba(j % 2 ? '#F5C76A' : '#E9B655', 1 - u / .3); g.fillRect(fx - 1.5, fy - 1.5, 3, 3); }
+        }
+      }
       if (k < 3 && T >= hx - .067 && T < hx) { sy = .86; sx = 1.07; }
       if (T >= hx) {   // hop off to the right on a parabola (apex y ~640), tumbling
         const u = T - hx; if (u > .75) continue;
-        const yb0 = y, xs = x, g0 = 3600, vy0 = Math.sqrt(2 * g0 * Math.max(40, yb0 - 26 - 640));
-        x = xs + (1150 - xs) / .6 * u; y = yb0 - vy0 * u + .5 * g0 * u * u; rot = 3.6 * u * u + 1.4 * u;
+        const yb0 = y, xs = x, g0 = 3600, vy0 = Math.sqrt(2 * g0 * Math.max(40, yb0 - BH / 2 - 640));
+        x = xs + (1150 - xs) / .6 * u; y = yb0 - vy0 * u + .5 * g0 * u * u; rot = 3.6 * u * u + 1.4 * u; onRack = false;
         if (u < .1) { sy = 1.12 - 1.2 * u; sx = 1 / sy; }
       }
-      g.fillStyle = 'rgba(0,0,0,.3)'; if (T < hx) g.fillRect(x - 54 * sx, y - 2, 108 * sx, 4);
+      if (onRack) { g.fillStyle = 'rgba(0,0,0,.32)'; g.fillRect(x - BW / 2 * sx, y - 2, BW * sx, 4); }
       drawBox(g, x, y, rot, sx, sy);
     }
   }
@@ -902,13 +1150,19 @@
   }
   const cRoad = () => L.cached('s3-croad', 1500, 420, g => {
     g.translate(200, -1440);
-    for (let k = 0; k < 110; k++) {
-      const x = -180 + rnd(951, k) * 1460, y = 1446 + Math.pow(rnd(952, k), 3.6) * 330; if (y > 1488 && y < 1548 && x > 250 && x < 830) continue;
-      const kind = rnd(953, k) * (k % 9 === 0 ? 1 : .95);
-      g.save(); g.translate(x, y); g.rotate(rnd(954, k) * TAU);
-      if (kind < .55) { g.fillStyle = rnd(955, k) > .5 ? 'rgba(217,114,30,.85)' : 'rgba(242,178,62,.85)'; g.beginPath(); g.ellipse(0, 0, 5 + rnd(956, k) * 4, 3, 0, 0, TAU); g.fill(); }
-      else if (kind < .85) { g.fillStyle = ['rgba(238,236,232,.55)', 'rgba(228,225,220,.5)', 'rgba(140,135,131,.6)'][k % 3]; L.poly(g, [[-6, -3], [5, -5], [7, 3], [-4, 5]]); g.fill(); }
-      else { g.fillStyle = 'rgba(8,6,8,.45)'; g.beginPath(); g.arc(0, 0, 9 + rnd(957, k) * 8, 0, TAU); g.fill(); g.strokeStyle = 'rgba(140,135,131,.25)'; g.lineWidth = 1.5; g.stroke(); }
+    // swept-up festival litter: ~70 % banked against the kerb and along two wheel tracks, the rest thin in the open road
+    const N = 170;
+    for (let k = 0; k < N; k++) {
+      const zone = rnd(950, k), x = -180 + rnd(951, k) * 1460;
+      let y;
+      if (zone < .5) y = 1444 + Math.pow(rnd(952, k), 2.2) * 46;                             // kerb bank
+      else if (zone < .78) y = (rnd(958, k) < .5 ? 1568 : 1700) + (rnd(952, k) - .5) * 16;     // two wheel tracks
+      else y = 1500 + rnd(952, k) * 360;                                                       // open road (sparse)
+      const kind = rnd(953, k), sz = 4 + rnd(956, k) * 6;
+      g.save(); g.translate(x, y); g.rotate(rnd(954, k) * TAU); g.scale(1, .55 + .45 * (y - 1440) / 480);
+      if (kind < .58) { g.fillStyle = rnd(955, k) > .5 ? 'rgba(217,114,30,.85)' : 'rgba(242,178,62,.85)'; g.beginPath(); g.ellipse(0, 0, sz, sz * .55, 0, 0, TAU); g.fill(); g.fillStyle = 'rgba(90,40,10,.35)'; g.fillRect(-sz * .6, -.5, sz * 1.2, 1); }
+      else if (kind < .86) { g.fillStyle = ['rgba(238,236,232,.55)', 'rgba(228,225,220,.5)', 'rgba(140,135,131,.6)'][k % 3]; L.poly(g, [[-sz, -sz * .5], [sz * .8, -sz * .8], [sz, sz * .5], [-sz * .6, sz * .8]]); g.fill(); }
+      else { g.fillStyle = 'rgba(8,6,8,.45)'; g.beginPath(); g.arc(0, 0, 6 + sz, 0, TAU); g.fill(); g.strokeStyle = 'rgba(140,135,131,.25)'; g.lineWidth = 1.5; g.stroke(); }
       g.restore();
     }
   });
@@ -937,6 +1191,15 @@
     if (kind) { g.fillStyle = '#1A171C'; g.fillRect(-46, 560, 92, 120); for (let k = 0; k < 7; k++) g.fillRect(-56 + k * 16, 572, 6, 96); g.fillStyle = 'rgba(140,135,131,.35)'; g.fillRect(-46, 560, 92, 2); }
     for (let k = 0; k < 14; k++) { const a = k / 14 * TAU; g.fillStyle = k % 2 ? '#C98A00' : '#B9420A'; g.beginPath(); g.arc(Math.cos(a) * 20, 900 + Math.sin(a) * 6, 8, 0, TAU); g.fill(); }
   });
+  // marigold strands per wire span [u along the span, flowers]: A hold 3 strands top-left, B hold none, C hold 2 long ones
+  const NEAR_STRANDS = { 0: [[.52, 5], [.55, 7], [.6, 4]], 1: [[.366, 6], [.39, 4], [.414, 7]], 2: [[.3, 5], [.34, 6]], 4: [[.38, 4], [.42, 6], [.45, 5], [.5, 7]], 5: [[.508, 9], [.528, 6]] };
+  /** marigold that smears into a streak at whip speed (opaque: alpha conserves coverage) */
+  function mgold(g, x, y, r, tone, seed, vx, vy) {
+    const lx = vx * DT, ly = vy * DT, len = Math.hypot(lx, ly);
+    if (len < r * .8) { L.marigold(g, x, y, r, { tone, seed }); return; }
+    g.save(); g.globalAlpha *= Math.min(1, 2.2 * r / (2 * r + len)); g.strokeStyle = tone === 'orange' ? '#E2741C' : '#EDB33A'; g.lineWidth = r * 1.9; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(x - lx / 2, y - ly / 2); g.lineTo(x + lx / 2, y + ly / 2); g.stroke(); g.restore();
+  }
   function wirePt(x0, y0, x1, y1, sag, u) { return [lerp(x0, x1, u), lerp(y0, y1, u) + sag * 4 * u * (1 - u)]; }
   function drawNear(g, T, c, vx, vy) {
     const [a, b] = visX(c, NZ);
@@ -954,9 +1217,9 @@
       g.save(); g.globalCompositeOperation = 'lighter';
       for (let k = 1; k < n; k++) { const [x, y] = wirePt(p0.x, 150, p1.x, 150, sg, k / n); if (x < a || x > b) continue; const br = .55 + .45 * L.noise1(T * 2.4 + k * 1.3, i + 5); bulb(g, x, y + 7, 3.4, [GOLD, '#FF9F1C', BULB, '#FF5C8A'][k % 4], br, vx, vy); }
       g.restore();
-      for (let k = 0; k < 7; k++) {
-        const u = .12 + k * .028 + (i % 2) * .62, [x, y] = wirePt(p0.x - 72, 96, p1.x - 72, 98, span * .055, u); if (x < a - 40 || x > b + 40) continue;
-        for (let j = 1; j <= 6; j++) { const sw = Math.sin(T * 1.7 + k + j * .4) * j * 1.3; L.marigold(g, x + sw, y + j * 19, 11 - j * .4, { tone: (j + k) % 2 ? 'orange' : 'yellow', seed: k * 7 + j }); }
+      for (const [k, [u, len]] of (NEAR_STRANDS[i] || []).entries()) {   // passing street dressing: different on every span
+        const [x, y] = wirePt(p0.x - 72, 96, p1.x - 72, 98, span * .055, u); if (x < a - 40 || x > b + 40) continue;
+        for (let j = 1; j <= len; j++) { const sw = Math.sin(T * 1.7 + k + i + j * .4) * j * 1.2; mgold(g, x + sw, y + j * 19, 11 - j * .3, (j + k) % 2 ? 'orange' : 'yellow', i * 50 + k * 7 + j, vx, vy); }
       }
     }
   }
@@ -991,12 +1254,23 @@
     }
   }
 
+  function objSpeed(T) {
+    if (T >= 5.2 && T <= 5.63) return 2600;
+    if (T >= 9.4 && T <= 9.76) return 3000;
+    if (T >= 9.66 && T <= 10.3) return 1600;
+    if (T >= 11.12 && T <= 11.95) return 2200;
+    if (T >= 7.9 && T <= 9.45) for (const k of kajuTable()) if (T > k.te && T < k.tl + .15) return 1400;
+    return 0;
+  }
   let ACC = null, TMP = null;
   function buffers() {
     const s = L.baseScale, w = Math.round(W * s), h = Math.round(H * s);
     if (!ACC || ACC.width !== w || ACC.height !== h) { ACC = document.createElement('canvas'); ACC.width = w; ACC.height = h; TMP = document.createElement('canvas'); TMP.width = w; TMP.height = h; }
     return [ACC, TMP];
   }
+  // hand-off for s4: the exact camera of this ride (world units of this file; zoom .5 at 12.400)
+  MM.s3Cam = T => { const c = camAt(T); return { x: c.x, y: c.y, zoom: c.zoom }; };
+  MM.s3EndCam = (() => { const c = camAt(TE); return { T: TE, x: c.x, y: c.y, zoom: c.zoom }; })();   // {x: 1420, y: -980, zoom: .5}
   MM.scene('s3-gag-ride', {
     draw(ctx, t, info) {
       const T = info.T, h = 1 / 600, c0 = camAt(T - h), c1 = camAt(T + h);
@@ -1004,14 +1278,15 @@
       const vz = Math.abs(c1.zoom - c0.zoom) / (2 * h), van = (T > WBC && T < TC) ? 9000 : 0;
       const span = 1 / 240;   // spacing of the engine's motion-blur sub-frames (4 samples, 180° shutter)
       const speed = Math.max(Math.hypot(vel.x, vel.y) / NZ, vz * 1800, van);
-      const k = Math.min(6, Math.max(1, Math.ceil(speed * span / 16)));
+      const kObj = Math.min(3, Math.ceil(objSpeed(T) * span / 4));   // fast props during holds: jhadu, kaju rain, crumble, boxes
+      const k = Math.max(kObj, Math.min(3, Math.max(1, Math.ceil(speed * span / 16))));   // x4 engine sub-frames = 12 samples max
       FAST = k >= 4;
       if (k <= 1) { DT = span; frame(ctx, T, vel); return; }
       const [acc, tmp] = buffers(), a = acc.getContext('2d'), m = tmp.getContext('2d');
       a.setTransform(1, 0, 0, 1, 0, 0); a.clearRect(0, 0, acc.width, acc.height); a.globalCompositeOperation = 'lighter'; a.globalAlpha = 1 / k;
       DT = span / k;
       for (let i = 0; i < k; i++) {
-        const ti = T + ((i + .5) / k - .5) * span;
+        const ti = T + ((i + rnd(977, Math.round(T * 9600) * 7 + i)) / k - .5) * span;   // stratified + jittered per sub-frame
         m.setTransform(L.baseScale, 0, 0, L.baseScale, 0, 0); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over'; m.clearRect(0, 0, W, H);
         frame(m, ti, vel); a.drawImage(tmp, 0, 0);
       }
