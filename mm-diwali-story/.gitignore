@@ -4,3 +4,4 @@ out/*
 node_modules/
 __pycache__/
 audio/sf/*.sf2
+audio/samples/*/

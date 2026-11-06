@@ -431,3 +431,78 @@
     ctx.restore();
   };
 })();
+
+/* ---------------- atmosphere & depth (appended) ---------------- */
+(function () {
+  'use strict';
+  const L = window.L;
+  /** soft fBm cloud texture with alpha (cached) */
+  L.cloudTexture = (seed = 12, size = 384) => L.cached(`cloud-${seed}-${size}`, size, size, g => {
+    const im = g.createImageData(size, size); const d = im.data;
+    const vn = (x, y, f, s) => { const xi = Math.floor(x * f), yi = Math.floor(y * f), xf = x * f - xi, yf = y * f - yi; const h = (a, b) => L.rnd(s + f, ((a % f) + f) % f * 7919 + ((b % f) + f) % f);
+      const u = xf * xf * (3 - 2 * xf), v = yf * yf * (3 - 2 * yf); return L.lerp(L.lerp(h(xi, yi), h(xi + 1, yi), u), L.lerp(h(xi, yi + 1), h(xi + 1, yi + 1), u), v); };
+    for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
+      const nx = x / size, ny = y / size; let v = .5 * vn(nx, ny, 3, seed) + .27 * vn(nx, ny, 6, seed) + .15 * vn(nx, ny, 12, seed) + .08 * vn(nx, ny, 24, seed);
+      v = L.smoothstep(.38, .85, v); const i = (y * size + x) * 4; d[i] = d[i + 1] = d[i + 2] = 255; d[i + 3] = Math.round(v * 255);
+    }
+    g.putImageData(im, 0, 0);
+  });
+  /**
+   * Drifting cracker smoke / Diwali-night haze in a horizontal band. Lit from below/within by `color`.
+   * Two layers move at different speeds for depth. alpha ~ .1-.35.
+   */
+  L.haze = (ctx, t, { y0 = 900, y1 = 1700, color = '#C9A3C8', alpha = .2, speed = 14, seed = 12, scale = 3.2, blend = 'screen' } = {}) => {
+    const tex = L.cloudTexture(seed); const S = 384 * scale;
+    ctx.save(); ctx.beginPath(); ctx.rect(0, y0, L.W, y1 - y0); ctx.clip(); ctx.globalCompositeOperation = blend;
+    // tint the white cloud via an offscreen tinted copy
+    const tinted = L.cached(`cloudT-${seed}-${color}`, 384, 384, g => { g.drawImage(tex, 0, 0); g.globalCompositeOperation = 'source-in'; g.fillStyle = color; g.fillRect(0, 0, 384, 384); });
+    for (let layer = 0; layer < 2; layer++) {
+      const sp = speed * (layer ? 1.7 : 1), off = ((t * sp + layer * 210) % S + S) % S;
+      ctx.globalAlpha = alpha * (layer ? .6 : 1);
+      // vertical fade at the band edges
+      for (let x = -S + off; x < L.W; x += S) for (let y = y0 - (layer * 120) % S; y < y1; y += S) ctx.drawImage(tinted, x, y, S, S);
+    }
+    ctx.restore();
+  };
+  /** volumetric light shaft from (x,y) pointing at angle (rad, 0 = down), spreading to `width` over `length` */
+  L.shaft = (ctx, x, y, angle, length, width, t, { color = '#FFE2B0', alpha = .18, seed = 1, flicker = .15 } = {}) => {
+    const a = alpha * (1 - flicker + flicker * L.noise1(t * 3 + seed, seed));
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle); ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createLinearGradient(0, 0, 0, length); g.addColorStop(0, L.rgba(color, a)); g.addColorStop(.6, L.rgba(color, a * .35)); g.addColorStop(1, L.rgba(color, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-width * .06, 0); ctx.lineTo(width * .06, 0); ctx.lineTo(width / 2, length); ctx.lineTo(-width / 2, length); ctx.closePath(); ctx.fill();
+    // dust streaks inside the beam
+    for (let k = 0; k < 6; k++) { const u = L.rnd(seed, k); const sx = (u - .5) * width * .6; ctx.strokeStyle = L.rgba(color, a * .25); ctx.lineWidth = 2 + 6 * L.rnd(seed, k + 9); ctx.beginPath(); ctx.moveTo(sx * .15, 0); ctx.lineTo(sx, length * .9); ctx.stroke(); }
+    ctx.restore();
+  };
+  /** floating embers / dust motes (additive), drifting up with flicker. Great foreground depth. */
+  L.motes = (ctx, t, { seed = 31, count = 40, x = 0, y = 0, w = L.W, h = L.H, color = '#FFB347', size = [1.5, 4.5], rise = 40, alpha = .8, blur = false } = {}) => {
+    ctx.save(); ctx.globalCompositeOperation = 'lighter';
+    for (let i = 0; i < count; i++) {
+      const life = 3 + L.rnd(seed, i) * 4, ph = L.rnd(seed, i + 100) * life; const age = ((t + ph) % life) / life;
+      const px = x + L.rnd(seed, i + 200) * w + L.snoise(t * .5 + i, seed) * 30;
+      const py = y + h - ((L.rnd(seed, i + 300) * h + (t + ph) * rise * (.6 + .8 * L.rnd(seed, i + 400))) % h);
+      const s = L.lerp(size[0], size[1], L.rnd(seed, i + 500)); const fl = .5 + .5 * L.noise1(t * 8 + i, seed);
+      const a = alpha * Math.sin(age * Math.PI) * fl;
+      if (blur && s > 3) L.glow(ctx, px, py, s * 4, color, a * .6);
+      ctx.fillStyle = L.rgba(color, a); L.circle(ctx, px, py, s * .5); ctx.fill();
+    }
+    ctx.restore();
+  };
+  /**
+   * Depth-of-field layer: draw static art once into a cached canvas, blurred by `blur` px. Draw at (x,y).
+   * For dynamic layers use ctx.filter = `blur(${px}px)` sparingly (it is CPU-costly at full size).
+   */
+  L.blurredCache = (key, w, h, blur, fn) => L.cached(`blur-${key}-${blur}`, w + blur * 4, h + blur * 4, g => {
+    const tmp = document.createElement('canvas'); tmp.width = w; tmp.height = h; fn(tmp.getContext('2d'));
+    g.filter = `blur(${blur}px)`; g.drawImage(tmp, blur * 2, blur * 2);
+  });
+  /**
+   * 2.5D camera. cam = { x, y, zoom } (x/y in px of camera pan from centre). z = layer depth (1 = focus plane,
+   * 2 = far (moves half), .5 = near (moves double)). Usage: L.depth(ctx, cam, 2, () => drawFarLayer());
+   */
+  L.depth = (ctx, cam, z, fn) => {
+    const f = 1 / z; ctx.save();
+    ctx.translate(L.W / 2, L.H / 2); const zz = 1 + ((cam.zoom || 1) - 1) * f; ctx.scale(zz, zz);
+    ctx.translate(-L.W / 2 - (cam.x || 0) * f, -L.H / 2 - (cam.y || 0) * f); fn(ctx); ctx.restore();
+  };
+})();

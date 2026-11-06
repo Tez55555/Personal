@@ -1,0 +1,3 @@
+Samples in this folder are from the Versilian Community Sample Library (VCSL) by Versilian Studios / Sam Gossner,
+https://github.com/sgossner/VCSL — released under Creative Commons 0 (public domain): free for any use, commercial
+included, no attribution required. Converted to 48 kHz / 16-bit and trimmed.
