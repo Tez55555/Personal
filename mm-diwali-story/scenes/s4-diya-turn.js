@@ -14,9 +14,12 @@
    base = (540 + (x-540)/2, 710 + (y-560)/2), so at 17.700 they sit exactly where s6 picks them up.
    Layers (depth factor f for parallax): sky .22 · far .5 · back row .85 · towers/front row 1 · near street 1.2 ·
    railing 1.7 · floor 2.1 · foreground toran 2.6.
-   Camera: arrival settles by 12.233 (5 lit frames + a tubelight stutter at 12.367 before the frame-quantised 12.400 cut);
+   Camera: arrival = s3's whip caught at full speed (dissolve 12.167–12.233 at peak blur), outQuart settle by 12.333
+   (lit boards hold 12.333–12.400 with a tubelight stutter at 12.367 before the frame-quantised 12.400 cut);
    a true dolly toward the railing for the strike (rail 2.0x, city 1.08x about (540,1400), so the roofs stay at y >= 650
-   whenever copy is on screen), released 13.02–13.66; push-in 1.00 -> 1.04 from 13.3; s6's dolly replicated from 17.7.
+   whenever copy is on screen), released 13.02–13.66; push-in 1.00 -> 1.04 from 13.3; s6's dolly replicated from 17.7
+   (same inOutCubic curve as s6, so the towers dissolve onto themselves; the near field takes the full dolly, slides
+   down, racks out of focus and fades 17.700–17.933).
    ========================================================================== */
 (function () {
   'use strict';
@@ -28,9 +31,9 @@
   const killed = T => Math.round(T * 30) >= Math.round(L.beat(20) * 30);
 
   /* ---------------- timing (global seconds, frame aligned) ---------------- */
-  const T_IN = q(12.1334), T_SETTLE = q(12.2333), T_DIE = L.beat(20), T_WAKE = q(12.5667), T_STRIKE = q(12.7), T_LIT = L.beat(21),
+  const T_IN = q(12.1667), T_ARR = q(12.2333), T_ARR_SS = 12.285, T_SETTLE = q(12.3333), T_DIE = L.beat(20), T_WAKE = q(12.5667), T_STRIKE = q(12.7), T_LIT = L.beat(21),
     T_TOWER = q(13.3), T_STR = L.beat(23), T_HOP = L.beat(24), T_HOPEND = q(15.0667), T_LATE = q(15.1),
-    T_COPY_OUT = q(15.5), T_X = 17.7;                       // T_X: s6 dolly starts; the near field leaves, the city dims + defocuses
+    T_COPY_OUT = q(15.5), T_X = 17.7, T_NEAR_OUT = q(17.9333);                       // T_X: s6 dolly starts; the near field leaves, the city dims + defocuses
   const RING_T = [q(13.6), q(13.9), q(14.2), q(14.5), q(14.8)];   // window rings 1..5 (the red tower is ring 0 at 13.300)
   const RING_R = [205, 330, 455, 580];                           // band edges (px from the red tower centre (540,900))
   NS.T = { T_DIE, T_LIT, T_TOWER, T_STR, T_LATE };
@@ -83,10 +86,11 @@
   // lean-in (the strike): a true dolly toward the railing. Rail 2.0x, city only 1.08x (roofs stay at y >= 650, clear of the copy)
   const LEAN = 1.0, LEAN_EXP = Math.log(.08) / Math.log(1 / F.rail), LEAN_CY = 1400;
   const leanZ = (c, f) => 1 + c * Math.pow(Math.min(f, F.rail) / F.rail, LEAN_EXP);   // floor + toran lean with the rail (stay attached)
-  /** camera at T. nearDamp (0..1): fraction of s6's dolly applied (the near field only takes part of it while it fades) */
+  /** camera at T. nearDamp (0..1): fraction of s6's dolly applied (1 everywhere now: the near field takes the full dolly) */
   function camAt(T, nearDamp = 1) {
-    // arrival: the end of s3's whip-up (tilt up + pull back); our world settles by 12.233 (5 lit frames before the cut)
-    const a = T < T_SETTLE ? 1 - E.outCubic(prog(T, T_IN, T_SETTLE)) : 0;
+    // arrival: the end of s3's whip-up (tilt up + pull back). We pick the move up at full speed (outQuart starts at its
+    // maximum velocity, where s3's inCubic whip ends) and decelerate into the wide by 12.333: lit boards hold 12.333–12.400
+    const a = T < T_SETTLE ? 1 - E.outQuart(prog(T, T_IN, T_SETTLE)) : 0;
     // in the dark the camera leans in toward the railing, then releases as the ember climbs
     let c = 0;
     if (T >= 12.45 && T < T_LIT + .02) c = LEAN * E.inOutQuad(prog(T, 12.45, 12.98));
@@ -94,7 +98,7 @@
     // slow push-in 1.00 -> 1.04 about (540,900) (held to s6's start framing at 17.700)
     let z = 1 + .04 * inOutSine(prog(T, T_TOWER, T_X)), cy = 900;
     // s6 hand-over: replicate its dolly so the towers dissolve onto themselves
-    if (T > T_X) { const p = prog(T, T_X, 18.2, E.outCubic) * nearDamp, k = lerp(.52, 1, p), Y = lerp(702.4, 560, p); z = 2 * k; cy = (Y - 1420 * k) / (1 - z); }
+    if (T > T_X) { const p = prog(T, T_X, 18.2, E.inOutCubic) * nearDamp, k = lerp(.52, 1, p), Y = lerp(702.4, 560, p); z = 2 * k; cy = (Y - 1420 * k) / (1 - z); }
     return { a, c, z, cy, sx: 0, sy: 0 };
   }
   function applyCam(g, cam, f) {
@@ -418,10 +422,12 @@
       const u = T - tl, pop = u < 1 / 30 ? 1 : Math.exp(-(u - 1 / 30) * 14) * .4;
       const fl = .78 + .22 * L.noise1(T * 1.3 + id * .7, 5);
       const k = Math.min(1, fl * (1 + .4 * (flareA || 0)));
-      const col = tone === 'red' ? (L.rnd(10, id) > .5 ? '#D2232E' : '#E8452A') : (L.rnd(10, id) > .45 ? '#FFE7A3' : '#FFD27A');
+      const warmV = tone === 'red' && L.rnd(10, id) <= .5;   // half the red windows burn a touch warmer: brand red + amber LIGHT, never a 2nd red
+      const col = tone === 'red' ? RED : (L.rnd(10, id) > .45 ? '#FFE7A3' : '#FFD27A');
       g.fillStyle = pop > .05 ? mix(col, '#FFFFFF', (tone === 'red' ? .35 : .6) * pop, Math.min(1, on * k * fade + pop)) : rgba(col, on * k * fade); g.fillRect(wx, wy, cw, ch);
+      if (warmV) { g.globalCompositeOperation = 'lighter'; g.fillStyle = rgba(ORANGE, .16 * on * k * fade); g.fillRect(wx, wy, cw, ch); g.globalCompositeOperation = 'source-over'; }
       if (tone === 'red' && on > .5) { g.fillStyle = rgba('#FFB547', .55 * k * fade); g.fillRect(wx + 4, wy + 5, cw - 8, ch - 9); }
-      if (pop > .05) { g.globalCompositeOperation = 'lighter'; glow(g, wx + cw / 2, wy + ch / 2, 34, tone === 'red' ? '#FF5A3C' : WARMW, .5 * pop * fade); g.globalCompositeOperation = 'source-over'; }
+      if (pop > .05) { g.globalCompositeOperation = 'lighter'; glow(g, wx + cw / 2, wy + ch / 2, 34, tone === 'red' ? ORANGE : WARMW, .5 * pop * fade); g.globalCompositeOperation = 'source-over'; }
     }
   }
   /** s6's light string (sag to y 700 with an akash kandil at its midpoint). on: 0..1 left-to-right switch-on */
@@ -448,7 +454,7 @@
     g.translate(540, 710); g.scale(.5, .5); g.translate(-540, -560);
     // the red tower's warmth spills onto both neighbours
     const redOn = S.pre ? 0 : sm(T_TOWER, T_TOWER + .3, T);
-    if (redOn > 0) { g.globalCompositeOperation = 'lighter'; glow(g, 540, 820, 420, '#FF5A3C', .14 * redOn); glow(g, 540, 700, 260, AMBER, .1 * redOn); g.globalCompositeOperation = 'source-over'; }
+    if (redOn > 0) { g.globalCompositeOperation = 'lighter'; glow(g, 540, 820, 420, ORANGE, .14 * redOn); glow(g, 540, 700, 260, AMBER, .1 * redOn); g.globalCompositeOperation = 'source-over'; }
     const fa = opt.towerFlare || 0;
     tower(g, PILLAR_X[0][0], PILLAR_X[0][1], 'outer', T, S, fa);
     tower(g, PILLAR_X[1][0], PILLAR_X[1][1], 'red', T, S, fa);
@@ -475,7 +481,7 @@
   const faceLed = () => L.cached('s45-led', 140, 90, g => {
     g.fillStyle = '#0B0A0D'; g.fillRect(0, 0, 140, 90);
     L.text(g, 'डाइट: मंडे से।', 70, 34, { font: 'dev', size: 15, weight: 700, color: '#FFE2B0', maxWidth: 120 });
-    L.text(g, 'काजू कतली: अभी से।', 70, 58, { font: 'dev', size: 16, weight: 800, color: '#FF5A4E', maxWidth: 126 });
+    L.text(g, 'काजू कतली: अभी से।', 70, 58, { font: 'dev', size: 16, weight: 800, color: RED, maxWidth: 126 });
     g.fillStyle = 'rgba(0,0,0,.45)'; for (let y = 0; y < 90; y += 3) g.fillRect(0, y, 140, 1); for (let x = 0; x < 140; x += 3) g.fillRect(x, 0, 1, 90);
     for (let i = 0; i < 6; i++) { g.fillStyle = MUSLIN; g.save(); g.translate(96 + i * 7, 78 - (i % 2) * 4); g.rotate(.3); g.fillRect(-3, -2, 6, 4); g.restore(); }
   });
@@ -627,7 +633,7 @@
     // mode: 'dark' | 'lit'
     const lit = mode === 'lit';
     const parts = L.markParts(); const s = RS;
-    const inkC = lit ? '#4A372F' : '#141114', redC = lit ? '#EE3B2E' : '#1E0E10', edge = lit ? '#F4CF9E' : '#2E2A2B';
+    const inkC = lit ? '#4A372F' : '#141114', redC = lit ? RED : '#1E0E10', edge = lit ? '#F4CF9E' : '#2E2A2B';
     // floor slab edge under the M strip
     g.fillStyle = lit ? '#3A2B25' : '#100E10'; g.fillRect(RAIL_X0, LL_TOP + LL_H - 2, RAIL_W, 16); g.fillStyle = lit ? 'rgba(255,214,160,.55)' : 'rgba(80,74,72,.5)'; g.fillRect(RAIL_X0, LL_TOP + LL_H - 2, RAIL_W, 2);
     for (let i = 0; i < 24; i++) {
@@ -642,7 +648,18 @@
       g.beginPath(); g.moveTo(ch[1][0], ch[1][1] + 1); g.lineTo(ch[2][0], ch[2][1] + 1); g.lineTo(ch[3][0], ch[3][1] + 1); g.stroke();
       g.globalAlpha = 1;
       const cx = bx + PW / 2;
-      if (lit) {
+      if (lit && i === RED_I) {
+        // the Legacy-Line pillar stays true MM Red; the flame's warmth sits on it as additive amber LIGHT (top-lit, falls off)
+        g.save(); g.translate(bx, LL_TOP); g.scale(s, s); L.poly(g, parts.pillars[0]); g.restore(); g.save(); g.clip();
+        g.globalCompositeOperation = 'lighter';
+        const ag = g.createRadialGradient(cx, LL_TOP - 6, 0, cx, LL_TOP - 6, LL_H * .95);
+        ag.addColorStop(0, rgba(ORANGE, .25)); ag.addColorStop(.55, rgba(ORANGE, .1)); ag.addColorStop(1, rgba(ORANGE, 0));
+        g.fillStyle = ag; g.fillRect(bx, LL_TOP, PW, LL_H);
+        g.globalCompositeOperation = 'source-over';
+        const vg = g.createLinearGradient(0, LL_TOP, 0, LL_TOP + LL_H); vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(.55, 'rgba(0,0,0,0)'); vg.addColorStop(1, 'rgba(0,0,0,.3)');
+        g.fillStyle = vg; g.fillRect(bx, LL_TOP, PW, LL_H);
+        g.restore();
+      } else if (lit) {
         const side = cx < 540 ? 1 : cx > 540 ? -1 : 0;
         const gr = g.createLinearGradient(bx, 0, bx + PW, 0);
         if (side > 0) { gr.addColorStop(0, 'rgba(0,0,0,.25)'); gr.addColorStop(.7, 'rgba(255,200,140,0)'); gr.addColorStop(1, 'rgba(255,214,160,.4)'); }
@@ -779,6 +796,39 @@
     if (burnt > 0) { g.globalCompositeOperation = 'lighter'; const e = (1 - sm(13.3, 14.4, T)) * burnt; g.fillStyle = rgba('#FF5A1F', .55 * e * (.7 + .3 * L.noise1(T * 9, 3))); g.beginPath(); g.ellipse(-1, 1, 6, 4.5, 0, 0, TAU); g.fill(); glow(g, 0, 0, 16, ORANGE, .25 * e); }
     g.restore();
     return [hx, hy];
+  }
+  /** the match while it moves fast (lift, strike, tilt, retire): supersampled in-scene so the 4-sample shutter shows one
+      smeared stick, not a fan of red copies. Each of N sub-poses inside one engine sub-sample interval is drawn normally
+      into a small device-space canvas and averaged additively (premultiplied), then laid over g in one draw. */
+  const MATCH_SS = 8, MATCH_SPAN = (window.MMPost ? MMPost.DEFAULTS.shutter / MMPost.DEFAULTS.samples : .125) / 30;
+  const matchFast = T => (T > T_WAKE - .02 && T < 13.0) || (T > 13.29 && T < T_MATCH_GONE);
+  function ssCanvas(key, w, h) {
+    let c = NS['_ss_' + key];
+    if (!c || c.width < w || c.height < h) { c = document.createElement('canvas'); c.width = Math.max(w, c ? c.width : 0); c.height = Math.max(h, c ? c.height : 0); NS['_ss_' + key] = c; }
+    return c;
+  }
+  function drawMatchSS(g, T, light) {
+    const m = g.getTransform(), N = MATCH_SS, ts = [];
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (let j = 0; j < N; j++) {
+      const tt = T + ((j + .5) / N - .5) * MATCH_SPAN; ts.push(tt);
+      const [hx, hy, ang] = matchPose(tt), tx = hx + Math.cos(ang * DEG) * 82, ty = hy + Math.sin(ang * DEG) * 82;
+      x0 = Math.min(x0, hx, tx); x1 = Math.max(x1, hx, tx); y0 = Math.min(y0, hy, ty); y1 = Math.max(y1, hy, ty);
+    }
+    x0 -= 22; y0 -= 22; x1 += 22; y1 += 22;
+    const dx0 = Math.floor(m.a * x0 + m.c * y0 + m.e), dy0 = Math.floor(m.b * x0 + m.d * y0 + m.f);
+    const dx1 = Math.ceil(m.a * x1 + m.c * y1 + m.e), dy1 = Math.ceil(m.b * x1 + m.d * y1 + m.f);
+    const w = Math.max(1, dx1 - dx0), h = Math.max(1, dy1 - dy0);
+    const A = ssCanvas('acc', w, h), B = ssCanvas('one', w, h), a = A.getContext('2d'), b = B.getContext('2d');
+    a.setTransform(1, 0, 0, 1, 0, 0); a.globalAlpha = 1; a.globalCompositeOperation = 'source-over'; a.clearRect(0, 0, w, h);
+    for (const tt of ts) {
+      b.setTransform(1, 0, 0, 1, 0, 0); b.globalAlpha = 1; b.globalCompositeOperation = 'source-over'; b.clearRect(0, 0, w, h);
+      b.setTransform(m.a, m.b, m.c, m.d, m.e - dx0, m.f - dy0);
+      drawMatch(b, tt, light);
+      a.globalCompositeOperation = 'lighter'; a.globalAlpha = 1 / N; a.drawImage(B, 0, 0, w, h, 0, 0, w, h);
+    }
+    const bs = L.baseScale;
+    g.save(); L.resetTransform(g); g.drawImage(A, 0, 0, w, h, dx0 / bs, dy0 / bs, w / bs, h / bs); g.restore();
   }
   /** strike sparks: 24 sparks born along the strike, ballistic, analytic */
   const SPARKS = (() => { const a = []; for (let i = 0; i < 24; i++) { a.push({ b: 12.72 + rnd(31, i) * .08, ang: Math.PI + (rnd(32, i) - .62) * 1.9, v: 300 + rnd(33, i) * 680, life: .16 + rnd(34, i) * .11, c: rnd(35, i) < .4 ? '#FFFFFF' : rnd(35, i) < .75 ? GOLD : ORANGE }); } return a; })();
@@ -926,7 +976,7 @@
     const pos = tt => { const cam = camAt(tt); const u = inOutSine((tt - T_HOP) / (T_HOPEND - T_HOP)); const [ax, ay] = camPt(cam, F.city, 561, 760), [bx, by] = camPt(cam, F.city, WSTAR.x + 30, WSTAR.y + 25);
       return [lerp(ax, bx, u), lerp(ay, by, u) - Math.sin(u * Math.PI) * 120]; };
     const pts = []; for (let i = 0; i < 10; i++) { const tt = T - i * .008; if (tt < T_HOP) break; pts.push(pos(Math.min(tt, T_HOPEND))); }
-    for (let i = 1; i < pts.length; i++) { const k = 1 - i / 10; g.strokeStyle = rgba('#FF5A3C', .7 * k); g.lineWidth = 1 + 3 * k; g.beginPath(); g.moveTo(pts[i - 1][0], pts[i - 1][1]); g.lineTo(pts[i][0], pts[i][1]); g.stroke(); }
+    for (let i = 1; i < pts.length; i++) { const k = 1 - i / 10; g.strokeStyle = rgba(ORANGE, .7 * k); g.lineWidth = 1 + 3 * k; g.beginPath(); g.moveTo(pts[i - 1][0], pts[i - 1][1]); g.lineTo(pts[i][0], pts[i][1]); g.stroke(); }
     const [hx, hy] = pos(Math.min(T, T_HOPEND));
     glow(g, hx, hy, 46, RED, .7); glow(g, hx, hy, 16, AMBER, .8); g.fillStyle = BULB; L.circle(g, hx, hy, 2.2); g.fill();
     g.restore();
@@ -986,7 +1036,7 @@
     const cam = camAt(T); if (opt.shake) { cam.sx = opt.shake.x; cam.sy = opt.shake.y; }
     const S = stateAt(T); const life = boardLife(T);
     const trans = T > T_X;                                               // s6 dolly running
-    const exitA = trans ? E.outQuad(clamp((T - T_X) / .1)) : 0;          // near field gone by 17.80
+    const exitA = trans ? sm(T_X, T_NEAR_OUT, T) : 0;                    // near field: 7-frame exit, gone by 17.933
     drawSky(g, T, cam, S);
     if (opt.skyFx && !trans) { g.save(); applyCam(g, cam, F.far); opt.skyFx(g, cam); g.restore(); }
     drawFar(g, T, cam, S);
@@ -1005,13 +1055,17 @@
       drawTowers(g, T, cam, S, opt);
     }
     if (exitA >= 1) return cam;
-    // ---- the near field (railing, diyas, floor, toran): during the hand-over it fades out as one layer and only takes
-    //      part of the dolly, so it does not strobe through the 4-sample shutter
+    // ---- the near field (railing, diyas, floor, toran): during the hand-over it takes the FULL s6 dolly (it is nearest the
+    //      lens, so parallax slides it down and out), racks out of focus as the focus pulls to the towers, and fades as one
+    //      layer (no inner overlaps flashing through), 17.700 – 17.933
     let out = g, off = null;
     if (exitA > 0) { off = offscreen('near'); g = off[1]; }
-    const ncam = trans ? camAt(T, .35) : cam; if (opt.shake) { ncam.sx = opt.shake.x; ncam.sy = opt.shake.y; }
-    drawNearField(g, T, ncam, S, opt);
-    if (off) { out.save(); L.resetTransform(out); out.globalAlpha = 1 - exitA; out.drawImage(off[0], 0, 0, W, H); out.restore(); }
+    drawNearField(g, T, cam, S, opt);
+    if (off) {
+      out.save(); L.resetTransform(out); out.globalAlpha = 1 - exitA;
+      const bl = 10 * E.outQuad(exitA) * L.baseScale; if (bl > .3) out.filter = `blur(${bl.toFixed(2)}px)`;
+      out.drawImage(off[0], 0, 0, W, H); out.filter = 'none'; out.restore();
+    }
     return cam;
   };
   function drawNearField(g, T, cam, S, opt) {
@@ -1032,7 +1086,7 @@
     const matchDraw = () => {
       if (T >= T_MATCH_GONE) return;
       if (falling) { g.save(); g.beginPath(); g.rect(-2000, -2000, 5000, RAIL_TOP + 2000); g.clip(); }   // drops behind the coping
-      drawMatch(g, T, matchLight);
+      if (matchFast(T)) drawMatchSS(g, T, matchLight); else drawMatch(g, T, matchLight);
       if (mI > 0) { const [hx, hy] = matchPose(T); flame(g, hx, hy - 2, 24, T, 21, mI, { glow: .8 }); }
       if (falling) g.restore();
     };
@@ -1103,11 +1157,20 @@
   /* ======================= SCENE ======================= */
   MM.scene('s4-lights-off-diya-on', {
     draw(ctx, t, { T }) {
-      if (T < T_SETTLE) {
-        // arrival: we fade in over s3's whip-up, already sliding into the wide shot (settled by 12.233)
-        const a = sm(T_IN, T_SETTLE, T);
-        const [c, g] = offscreen('arr');
-        NS.drawWorld(g, T);
+      if (T < T_ARR_SS) {
+        // arrival: we cross-dissolve over s3's whip-up at peak speed/blur (12.167–12.233), already sliding into the wide shot;
+        // the slide decelerates until 12.333. While it is fast the world is supersampled in-scene (3 sub-poses inside each
+        // engine sub-sample, averaged additively), so the boards smear instead of printing stepped copies.
+        const a = sm(T_IN, T_ARR, T), P = MM.params ? MM.params(T) : { shutter: .5, samples: 4 };
+        const span = P.shutter / Math.max(1, P.samples) / (MM.fps || 30), N = 3;
+        const [c, acc] = offscreen('arr'), bs = L.baseScale;
+        acc.setTransform(1, 0, 0, 1, 0, 0); acc.globalCompositeOperation = 'lighter'; acc.globalAlpha = 1 / N;
+        for (let j = 0; j < N; j++) {
+          const [c1, g1] = offscreen('arr1');
+          NS.drawWorld(g1, T + ((j + .5) / N - .5) * span);
+          acc.drawImage(c1, 0, 0);
+        }
+        acc.globalCompositeOperation = 'source-over'; acc.globalAlpha = 1; acc.setTransform(bs, 0, 0, bs, 0, 0);
         ctx.save(); L.resetTransform(ctx); ctx.globalAlpha = a; ctx.drawImage(c, 0, 0, W, H); ctx.restore();
         return;
       }

@@ -76,7 +76,7 @@
       c = mix(vec3(l), c, sat);
       c = (c - .5) * con + .5;
       float v = smoothstep(1.05, .2, length(d * vec2(1.05, .92)) * 1.25); c *= mix(1., v, vig);
-      float n = hash(floor(uv * res / 1.8) + fract(time * 7.13) * 917.) - .5;  // ~2px grain survives WhatsApp recompression
+      float n = hash(floor(uv * res / 2.6) + fract(floor(time * 15.) / 15. * 7.13) * 917.) - .5;  // ~2.6px grain refreshed on twos: survives WhatsApp recompression, costs fewer bits
       c += n * grain * (1. - .55 * l);
       c += (hash(uv * res * 1.37 + 31.7) - .5) / 255.;
       o = vec4(clamp(c, 0., 1.), 1.); }`,

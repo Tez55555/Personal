@@ -84,6 +84,7 @@ async function reportErrors(pages) {
         const page = await openPage(browser, port, scale); pages.push(page);
         const seg = path.join(tmp, `seg_${w}.mp4`);
         const ff = spawn('ffmpeg', ['-y', '-loglevel', 'error', '-f', 'image2pipe', '-framerate', String(fps), '-c:v', fmt === 'jpeg' ? 'mjpeg' : 'png', '-i', '-',
+          '-vf', 'scale=out_color_matrix=bt709:out_range=tv,format=yuv420p', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
           '-c:v', 'libx264', '-preset', args.preset || 'medium', '-crf', String(args.crf || 17), '-pix_fmt', 'yuv420p', '-profile:v', 'high', '-level', '4.2', '-r', String(fps), seg], { stdio: ['pipe', 'inherit', 'inherit'] });
         const done = new Promise((ok, fail) => ff.on('close', c => c === 0 ? ok() : fail(new Error('ffmpeg exit ' + c))));
         for (let i = a; i < b; i++) {

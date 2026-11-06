@@ -576,7 +576,6 @@
     });
   }
   const stampSolid = () => L.cached('mmh-stamp-solid', STW, STH, g => stampArt(g, true));
-  const stampBlock = () => L.cached('mmh-stamp-block', STW + 120, STH + 120, g => { g.filter = 'blur(18px)'; g.fillStyle = '#120E18'; g.fillRect(60 + 30, 60 + 35, 700, 250); });
   // spatter: ink flicked off the block's edges on impact (closed form: exponential drag), then it stays
   const SPECKS = (() => {
     const a = [];
@@ -832,12 +831,6 @@
   // everything printed / stamped / written ON the face (before the lighting multiply)
   function drawFaceMarks(g, T) {
     const cx = 540, cy = 900, rot = -9 * DEG;
-    const sh0 = TM.drop - 2 / 30;
-    if (T >= sh0 && T < TH) {                                                          // anticipation: the block's shadow arrives first, then converges
-      const u = clamp((T - sh0) / (TH - sh0)), e = u * u;
-      g.save(); g.translate(cx + 18 * (1 - e), cy + 120 * (1 - e)); g.rotate(lerp(-15, -9, e) * DEG); const s = lerp(1.5, 1.02, e); g.scale(s, s);
-      g.globalAlpha = (.12 + .38 * e) * (.5 + .5 * lampI(T)); g.drawImage(stampBlock(), -(STW + 120) / 2, -(STH + 120) / 2); g.restore();
-    }
     if (T >= TH) {                                                                     // contact from .39 so every sub-frame of the .400 frame is the squash pose
       const tau = Math.max(0, T - TM.hit);
       g.save(); g.translate(cx, cy); g.rotate(rot); H.drawImpression(g, tau, 40, 1); wetSheen(g, T);
@@ -847,6 +840,7 @@
       }
       g.restore();
     }
+    stampShadow(g, T);                                                                 // the airborne/held/lifted block's shadow (<= 25%, face only)
     // ---- handwriting: "for you" (stroke-mask write-on, italic slant edge)
     if (T >= TM.write0) writeOn(g, T);
     if (T >= TM.hi0) {
@@ -908,17 +902,92 @@
     }
     g.drawImage(WC, 540 - 300, FY_W - 150);
   }
-  /* ---- the airborne block: a solid Ink wood block (700x250 footprint) seen from behind, its Stone side facing the
-     optical centre (real perspective about the vanishing point), the inked violet rubber showing only as a rim,
-     plus a grip. Motion-blurred by supersampling the block alone (the camera is still here). */
+  /* ---- the rubber stamp: a real prop, modelled in 3D and projected about the optical centre, so it reads as a
+     rubber stamp from every angle: an Ink wood mount (700 x 250) with a 16 px Stone top bevel, the violet rubber die
+     under it (its inked edge shows while it is in the air) and a turned knob (120 wide, 160 tall, 2 px Stone highlight).
+     Local units: the 700 x 250 footprint centred on the rubber face, +z away from the board.
+     Hero choreography: it swings in from the right (the hand's side) leaning on its handle, hangs a beat below the
+     tubelights, slams flat (contact .39), holds 2 frames, then is lifted up and out to the right, which reveals the
+     ink left to right (B-O-O-K-E-D). It never crosses the sky or the lamps. Motion blur: the prop is supersampled. */
   const TH = q(.4) - .01;                                                              // contact threshold (.39)
   const VPX = 540, VPY = 960;
-  function flightPose(T) {
-    const u = clamp((T - TM.drop) / (TH - TM.drop)), WU = .3;
-    let sc, dy, rot;
-    if (u < WU) { const v = Ez.outQuad(u / WU); sc = lerp(1.75, 2.05, v); dy = lerp(-700, -780, v); rot = lerp(-11, -16, v); }
-    else { const v = Math.pow((u - WU) / (1 - WU), 2.2); sc = lerp(2.05, 1, v); dy = lerp(-780, 0, v); rot = lerp(-16, -9, v); }
-    return { cx: 540, cy: 900 + dy, sc, rot: rot * DEG };
+  const STK = { rw: 349, rh: 124, rz: 20, hw: 350, hh: 125, wz: 60, bev: 16, bz: 74, ballH: 100, ballR: 60 };
+  // turned knob [height above the mount's back, radius]: a flange and a waisted neck (lathe discs), then the ball
+  // (r 60 at h 100: 120 wide, 160 tall overall)
+  const KNOB = [[0, 44], [7, 44], [11, 35], [16, 27], [24, 20], [34, 17.5], [44, 18], [52, 22], [58, 30]];
+  const STAMP_D = 1800;                                                                // hook px: a ~40 deg lens
+  const LDIR = (() => { const v = [-.2, -.8, .57], n = Math.hypot(v[0], v[1], v[2]); return v.map(x => x / n); })();   // the tubelights: above, in front
+  const RGB = h => L.rgb(h), mixA = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
+  const css = c => `rgb(${Math.round(c[0])},${Math.round(c[1])},${Math.round(c[2])})`;
+  const W_LO = RGB('#141112'), W_HI = RGB(C.stone), W_INK = RGB(C.ink), WARM = RGB('#5E3D24'), V_LO = RGB('#2C2570'), V_HI = RGB('#7A70CC'), BOUNCE = [128, 84, 50];
+  const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  /** wood under the lamps (+ a warm bounce from the diya on faces that look down) */
+  function woodCol(n, lift) { const l = dot3(n, LDIR); let c = mixA(W_LO, W_HI, L.smoothstep(.1, .97, l) * (lift || 1)); if (n[1] > .15) c = mixA(c, WARM, .28 * n[1]); return c; }
+  function rubberCol(n) { const l = dot3(n, LDIR); return mixA(V_LO, V_HI, L.smoothstep(-.2, .9, l)); }
+  /** orientation: in-plane rotation rot, then a lean of `tilt` rad that tips the handle toward screen angle tdir */
+  function orient(rot, tilt, tdir) {
+    const cr = Math.cos(rot), sr = Math.sin(rot), kx = -Math.sin(tdir), ky = Math.cos(tdir), c = Math.cos(tilt), s = Math.sin(tilt);
+    return (x, y, z) => {
+      const vx = x * cr - y * sr, vy = x * sr + y * cr, kd = kx * vx + ky * vy;
+      return [vx * c + ky * z * s + kx * kd * (1 - c), vy * c - kx * z * s + ky * kd * (1 - c), z * c + (kx * vy - ky * vx) * s];
+    };
+  }
+  /** pose -> painter-ordered polygons. P: { cx, cy, Z (rubber face centre in layer px, Z toward the lens), u (layer px per
+      stamp unit), rot, tilt, tdir, D (lens distance, layer px), vx, vy (optical centre in layer coords), alpha, discs } */
+  function stampGeom(P) {
+    const R = orient(P.rot, P.tilt, P.tdir), u = P.u, D = P.D, cam = [P.vx, P.vy, D];
+    const W = (x, y, z) => { const v = R(x, y, z); return [P.cx + v[0] * u, P.cy + v[1] * u, P.Z + v[2] * u]; };
+    const pj = w => { const s = D / Math.max(D * .1, D - w[2]); return [P.vx + (w[0] - P.vx) * s, P.vy + (w[1] - P.vy) * s]; };
+    const polys = [], pts = [];
+    const quad = (ws, nLocal, colFn) => {
+      const n = R(nLocal[0], nLocal[1], nLocal[2]), c = [(ws[0][0] + ws[2][0]) / 2, (ws[0][1] + ws[2][1]) / 2, (ws[0][2] + ws[2][2]) / 2];
+      if (dot3(n, [cam[0] - c[0], cam[1] - c[1], cam[2] - c[2]]) <= 0) return;
+      const p = ws.map(pj); polys.push({ p, fill: css(colFn(n)) }); for (const q2 of p) pts.push(q2);
+    };
+    const box = (hw, hh, z0, z1, colFn) => {
+      const c = [[-hw, -hh], [hw, -hh], [hw, hh], [-hw, hh]];
+      for (let i = 0; i < 4; i++) {
+        const a = c[i], b = c[(i + 1) % 4], nl = [[0, -1, 0], [1, 0, 0], [0, 1, 0], [-1, 0, 0]][i];
+        quad([W(a[0], a[1], z0), W(b[0], b[1], z0), W(b[0], b[1], z1), W(a[0], a[1], z1)], nl, colFn);
+      }
+    };
+    box(STK.rw, STK.rh, 0, STK.rz, rubberCol);                                         // the inked rubber die
+    box(STK.hw, STK.hh, STK.rz, STK.wz, n => woodCol(n, .8));                          // the wood mount's sides
+    const b = STK.bev, o = [[-STK.hw, -STK.hh], [STK.hw, -STK.hh], [STK.hw, STK.hh], [-STK.hw, STK.hh]], ii = [[-STK.hw + b, -STK.hh + b], [STK.hw - b, -STK.hh + b], [STK.hw - b, STK.hh - b], [-STK.hw + b, STK.hh - b]];
+    const bevN = [[0, -.707, .707], [.707, 0, .707], [0, .707, .707], [-.707, 0, .707]];
+    for (let i = 0; i < 4; i++) {                                                      // the 16 px bevel: Stone where it faces the lamps
+      const j = (i + 1) % 4;
+      quad([W(o[i][0], o[i][1], STK.wz), W(o[j][0], o[j][1], STK.wz), W(ii[j][0], ii[j][1], STK.bz), W(ii[i][0], ii[i][1], STK.bz)], bevN[i], n => woodCol(n, 1));
+    }
+    const back = ii.map(c => pj(W(c[0], c[1], STK.bz)));
+    // the turned knob: stacked discs (a solid of revolution), each shaded by its profile slope against the light
+    const A = R(0, 0, 1), e1 = R(1, 0, 0), e2 = R(0, 1, 0);
+    let rl = [LDIR[0] - dot3(LDIR, A) * A[0], LDIR[1] - dot3(LDIR, A) * A[1], LDIR[2] - dot3(LDIR, A) * A[2]]; const rn = Math.hypot(rl[0], rl[1], rl[2]) || 1; rl = rl.map(x => x / rn);
+    const thL = Math.atan2(dot3(rl, e2), dot3(rl, e1));
+    const discs = [], nd = P.discs || 24, seg = nd > 16 ? 26 : 16;
+    for (let i = 0; i < nd; i++) {
+      const h = 58 * i / (nd - 1);
+      let k = 1; while (k < KNOB.length - 1 && KNOB[k][0] < h) k++;
+      const [h0, r0] = KNOB[k - 1], [h1, r1] = KNOB[k], r = r0 + (r1 - r0) * clamp((h - h0) / Math.max(1e-6, h1 - h0)), slope = (r1 - r0) / Math.max(1e-6, h1 - h0);
+      if (r < .5) continue;
+      const ca = 1 / Math.hypot(1, slope), sa = -slope * ca, z = STK.bz + h;
+      const nLit = [rl[0] * ca + A[0] * sa, rl[1] * ca + A[1] * sa, rl[2] * ca + A[2] * sa], nDk = [-rl[0] * ca + A[0] * sa, -rl[1] * ca + A[1] * sa, -rl[2] * ca + A[2] * sa];
+      const p = [];
+      for (let s = 0; s < seg; s++) { const th = s / seg * 6.2832, cx = Math.cos(th) * r, cy = Math.sin(th) * r; p.push(pj(W(cx, cy, z))); }
+      const pl = pj(W(Math.cos(thL) * r, Math.sin(thL) * r, z)), pd = pj(W(-Math.cos(thL) * r, -Math.sin(thL) * r, z));
+      discs.push({ p, pl, pd, cl: css(mixA(woodCol(nLit, .8), W_INK, .12)), cd: css(mixA(mixA(woodCol(nDk, .7), W_LO, .2), BOUNCE, .32)), r, h });
+      if (i === 0) for (const q2 of p) pts.push(q2);
+    }
+    // the ball: a sphere seen in perspective (a circle about its projected centre), lit from the lamps' side
+    const bw = W(0, 0, STK.bz + STK.ballH), bc = pj(bw), bs = D / Math.max(D * .1, D - bw[2]), br = STK.ballR * u * bs;
+    let lx = LDIR[0], ly = LDIR[1]; const ln = Math.hypot(lx, ly) || 1; lx /= ln; ly /= ln;      // the light's direction on screen
+    const ball = { x: bc[0], y: bc[1], r: br, lx, ly };
+    pts.push([bc[0] - br, bc[1] - br], [bc[0] + br, bc[1] + br]);
+    const hl = [];
+    // the back face's affine frame (for its wood grain)
+    const a0 = pj(W(ii[0][0], ii[0][1], STK.bz)), a1 = pj(W(ii[1][0], ii[1][1], STK.bz)), a3 = pj(W(ii[3][0], ii[3][1], STK.bz));
+    for (const q2 of back) pts.push(q2);
+    return { polys, back, discs, hl, ball, grain: [a0, a1, a3], pts, u, alpha: P.alpha == null ? 1 : P.alpha, s0: Math.hypot(a1[0] - a0[0], a1[1] - a0[1]) / (2 * (STK.hw - b)) };
   }
   function hull(pts) {
     const p = pts.slice().sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]);
@@ -928,39 +997,65 @@
     return lo.slice(0, -1).concat(up.slice(0, -1));
   }
   function polyFill(g, pts, fill) { g.fillStyle = fill; g.beginPath(); pts.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.fill(); }
-  /** draws a stamp block whose inked face is the local rect +-hw x +-hh at (cx,cy), rot, scale sc; beta = depth factor */
-  function drawBlock(g, cx, cy, rot, sc, beta, hw = 350, hh = 125, vpx = VPX, vpy = VPY) {
-    const ca = Math.cos(rot), sa = Math.sin(rot);
-    const P0 = (lx, ly) => [cx + (lx * ca - ly * sa) * sc, cy + (lx * sa + ly * ca) * sc];
-    const at = (p, m) => [vpx + (p[0] - vpx) * m, vpy + (p[1] - vpy) * m];
-    const far = [P0(-hw, -hh), P0(hw, -hh), P0(hw, hh), P0(-hw, hh)];
-    const rub = far.map(p => at(p, 1 + beta * .14)), near = far.map(p => at(p, 1 + beta));
-    polyFill(g, hull(far.concat(rub)), C.violet);                                        // inked rubber: a rim only
-    const sg = g.createLinearGradient(vpx, vpy, cx, cy); sg.addColorStop(0, '#A7A29C'); sg.addColorStop(1, '#6E6965');
-    polyFill(g, hull(rub.concat(near)), sg);                                              // wood side (Stone), lit by the tubelights below
-    g.save(); g.globalAlpha = .35; polyFill(g, hull(rub.concat(rub.map(p => at(p, 1 + beta * .3)))), '#4A4542'); g.restore();   // occlusion near the rubber
-    const bg = g.createLinearGradient(near[0][0], near[0][1], near[3][0], near[3][1]); bg.addColorStop(0, '#2B2728'); bg.addColorStop(1, '#3A3536');
-    polyFill(g, near, bg);                                                               // the back of the block (Ink, a little volume)
-    // wood grain on the back + a 2 px Stone highlight on its top edge
-    g.save(); g.beginPath(); near.forEach((p, i) => i ? g.lineTo(p[0], p[1]) : g.moveTo(p[0], p[1])); g.closePath(); g.clip();
-    const m = 1 + beta, gs = sc * m;
-    g.translate(vpx + (cx - vpx) * m, vpy + (cy - vpy) * m); g.rotate(rot); g.scale(gs, gs);
-    g.strokeStyle = 'rgba(140,135,131,.24)'; g.lineWidth = 1.6 / gs * 1.2;
-    for (let i = 0; i < 9; i++) { const y = -hh + (i + .5) * hh * 2 / 9 + (rnd(611, i) - .5) * 10; g.beginPath(); g.moveTo(-hw, y); g.bezierCurveTo(-hw * .3, y - 6 + rnd(612, i) * 12, hw * .3, y + 6 - rnd(613, i) * 12, hw, y + (rnd(614, i) - .5) * 8); g.stroke(); }
-    g.fillStyle = 'rgba(140,135,131,.85)'; g.fillRect(-hw, -hh, hw * 2, 2 / gs * 1.4);
-    // the grip: a raised bar handle with its own side
+  function polyPath(g, p) { g.beginPath(); for (let i = 0; i < p.length; i++) i ? g.lineTo(p[i][0], p[i][1]) : g.moveTo(p[i][0], p[i][1]); g.closePath(); }
+  /** paint a stamp pose (layer coords). Returns its outline points (for bbox / supersampling). */
+  function stamp3D(g, P) {
+    const G = stampGeom(P);
+    if (!g) return G.pts;
+    g.save(); g.globalAlpha = G.alpha; g.lineJoin = 'round';
+    for (const f of G.polys) { g.fillStyle = f.fill; polyPath(g, f.p); g.fill(); g.strokeStyle = f.fill; g.lineWidth = .6 * Math.max(.5, G.u); g.stroke(); }   // hairline stroke seals the seams
+    const [a0, a1, a3] = G.grain, ux = [(a1[0] - a0[0]) / 668, (a1[1] - a0[1]) / 668], uy = [(a3[0] - a0[0]) / 218, (a3[1] - a0[1]) / 218];
+    const bg = g.createLinearGradient(a0[0], a0[1], a3[0], a3[1]); bg.addColorStop(0, '#332E2F'); bg.addColorStop(1, C.ink);
+    g.fillStyle = bg; polyPath(g, G.back); g.fill();                                  // the mount's back: Ink, a touch lighter toward the lamps
+    if (!H.FAST) {                                                                     // wood grain on the back
+      g.save(); polyPath(g, G.back); g.clip();
+      g.transform(ux[0], ux[1], uy[0], uy[1], a0[0] + 334 * ux[0] + 109 * uy[0], a0[1] + 334 * ux[1] + 109 * uy[1]);
+      g.strokeStyle = C.stone;
+      for (let i = 0; i < 22; i++) {                                                   // sheesham grain: uneven runs, a knot's ripple
+        const y = -109 + rnd(611, i) * 218, x0 = -334 + rnd(615, i) * 300, x1 = Math.min(334, x0 + 180 + rnd(616, i) * 520), bow = (rnd(612, i) - .5) * 14;
+        g.globalAlpha = G.alpha * (.05 + rnd(613, i) * .13); g.lineWidth = .8 + rnd(614, i) * 1.6;
+        g.beginPath(); g.moveTo(x0, y); g.bezierCurveTo(lerp(x0, x1, .33), y + bow, lerp(x0, x1, .66), y - bow * .6 + (y > 20 && y < 40 ? 7 : 0), x1, y + bow * .2); g.stroke();
+      }
+      g.globalAlpha = G.alpha;
+      g.restore();
+    }
+    for (const d of G.discs) {                                                         // the knob, lowest disc first
+      const gr = g.createLinearGradient(d.pl[0], d.pl[1], d.pd[0], d.pd[1]); gr.addColorStop(0, d.cl); gr.addColorStop(.55, d.cd); gr.addColorStop(1, d.cd);
+      g.fillStyle = gr; polyPath(g, d.p); g.fill();
+    }
+    const B = G.ball, bx = B.x + B.lx * B.r * .38, by = B.y + B.ly * B.r * .38;
+    const rg = g.createRadialGradient(bx, by, 0, B.x + B.lx * B.r * .15, B.y + B.ly * B.r * .15, B.r);
+    rg.addColorStop(0, '#6A6462'); rg.addColorStop(.35, '#3E393A'); rg.addColorStop(.75, C.ink); rg.addColorStop(1, '#161314');
+    g.fillStyle = rg; L.circle(g, B.x, B.y, B.r); g.fill();
+    const lw = Math.max(2 * G.u, .9), a0r = Math.atan2(B.ly, B.lx);
+    g.strokeStyle = C.stone; g.lineWidth = lw; g.lineCap = 'round';                   // the 2 px Stone highlight on the ball's lit rim
+    g.beginPath(); g.arc(B.x, B.y, Math.max(.5, B.r - lw * .6), a0r - 1.05, a0r + 1.05); g.stroke();
+    g.strokeStyle = 'rgba(150,98,56,.55)'; g.lineWidth = lw * 1.6;                     // the diya's warm bounce on the shadow side
+    g.beginPath(); g.arc(B.x, B.y, Math.max(.5, B.r - lw * .9), a0r + Math.PI - .8, a0r + Math.PI + .8); g.stroke();
+    if (!H.FAST) { g.fillStyle = 'rgba(244,242,238,.32)'; g.beginPath(); g.ellipse(bx, by, B.r * .16, B.r * .1, a0r + 1.5708, 0, 6.2832); g.fill(); }   // lacquer glint
     g.restore();
-    const gw = hw * .56, gh = hh * .3;
-    const gb = [P0(-gw, -gh), P0(gw, -gh), P0(gw, gh), P0(-gw, gh)].map(p => at(p, 1 + beta)), gt = gb.map(p => at(p, (1 + beta * 2.4) / (1 + beta)));
-    polyFill(g, hull(gb.concat(gt)), '#3A3536');
-    polyFill(g, gt, '#2F2B2C');
-    const e0 = gt[0], e1 = gt[1]; g.strokeStyle = 'rgba(140,135,131,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(e0[0], e0[1]); g.lineTo(e1[0], e1[1]); g.stroke();
-    return far.concat(near, gt);
+    return G.pts;
   }
-  function blockAt(g, T) {
-    const p = flightPose(T);
-    return drawBlock(g, p.cx, p.cy, p.rot, p.sc, .048 * p.sc);
+  /** hero pose in hook (frame-0) coords. Screen-space keys: centre (sx, sy), apparent scale sc of the rubber face. */
+  const T_IN0 = TM.drop - 1 / 30, T_IN1 = q(.3) + .01, T_L0 = q(.467), T_L1 = q(.633);
+  function heroKeys(T) {
+    if (T < T_IN1) {                                                                   // swings in from the right, leaning on its handle
+      const w = clamp((T - T_IN0) / (T_IN1 - T_IN0)), e = Ez.outCubic(w);
+      return { sx: lerp(1430, 600, e), sy: lerp(640, 762, e), sc: 1.3, tilt: lerp(52, 34, e), tdir: -38, rot: lerp(-11, -16, Ez.outQuad(w)), alpha: lerp(.6, 1, clamp(w / .45)) };
+    }
+    if (T < TH) {                                                                      // hangs, then slams flat
+      const w = clamp((T - T_IN1) / (TH - T_IN1)), e = Math.pow(w, 2.2);
+      return { sx: lerp(600, 540, e), sy: lerp(762, 900, e), sc: lerp(1.3, 1, e), tilt: lerp(34, 0, e), tdir: -38, rot: lerp(-16, -9, e), alpha: 1 };
+    }
+    if (T < T_L0) return { sx: 540, sy: 900, sc: 1, tilt: 0, tdir: -38, rot: -9, alpha: 1 };   // held 2 frames
+    const e = Ez.inCubic(clamp((T - T_L0) / (T_L1 - T_L0)));                          // lifted up and out to the right
+    return { sx: 540 + 1120 * e, sy: 900 - 170 * e, sc: lerp(1, 1.12, e), tilt: 34 * L.smoothstep(0, .5, e), tdir: -40, rot: -9, alpha: 1 };
   }
+  function heroPose(T) {
+    const k = heroKeys(T), Z = STAMP_D * (1 - 1 / k.sc);
+    return { cx: VPX + (k.sx - VPX) / k.sc, cy: VPY + (k.sy - VPY) / k.sc, Z, u: 1, rot: k.rot * DEG, tilt: k.tilt * DEG, tdir: k.tdir * DEG, D: STAMP_D, vx: VPX, vy: VPY, alpha: k.alpha, sc: k.sc };
+  }
+  const heroLive = T => T >= T_IN0 && T < T_L1;
   /** accumulate K sub-samples of a moving prop into the current frame (premultiplied average, source-over per sample).
       Only the prop's device-space bbox is touched, so it stays cheap. */
   let SB = null;
@@ -975,7 +1070,6 @@
     const samples = [];
     for (let i = 0; i < K; i++) samples.push(T + ((i + .5) / K - .5) * span);
     // pass 1: bbox in device px (drawFn returns its outline points in local coords)
-    m.setTransform(M); m.globalAlpha = 1; m.globalCompositeOperation = 'source-over';
     for (const ti of samples) { const pts = drawFn(null, ti); if (!pts) continue; for (const p of pts) { const X = M.a * p[0] + M.c * p[1] + M.e, Y = M.b * p[0] + M.d * p[1] + M.f; x0 = Math.min(x0, X); y0 = Math.min(y0, Y); x1 = Math.max(x1, X); y1 = Math.max(y1, Y); } }
     const pad = 4 + (blurPx || 0) * 3 * L.baseScale;
     x0 = Math.max(0, Math.floor(x0 - pad)); y0 = Math.max(0, Math.floor(y0 - pad)); x1 = Math.min(cw, Math.ceil(x1 + pad)); y1 = Math.min(ch, Math.ceil(y1 + pad));
@@ -993,14 +1087,24 @@
     g.drawImage(acc, x0, y0, bw, bh, x0 / bs, y0 / bs, bw / bs, bh / bs); g.filter = 'none'; g.restore();
   };
   function stampFlight(g, T) {
-    if (T < TM.drop - 1 / 240 || T >= TH) return;
-    const drawFn = (gg, ti) => { if (ti < TM.drop || ti >= TH) return null; if (!gg) { const p = flightPose(ti); return drawBlock(fakeG, p.cx, p.cy, p.rot, p.sc, .048 * p.sc); } return blockAt(gg, ti); };
-    const p = flightPose(clamp(T, TM.drop, TH - 1e-4)), blurPx = Math.min(4, (p.sc - 1) * 3.6);   // defocus <= 4 px (nearer the lens)
-    if (H.SSK > 1) { g.save(); if (blurPx > .5) setBlur(g, blurPx); blockAt(g, T); g.restore(); return; }
+    if (T < T_IN0 - 1 / 240 || T >= T_L1 + 1 / 240) return;
+    const drawFn = (gg, ti) => heroLive(ti) ? stamp3D(gg, heroPose(ti)) : null;
+    const sc = heroKeys(clamp(T, T_IN0, T_L1 - 1e-4)).sc, blurPx = Math.min(3, (sc - 1) * 3.6);   // a touch of defocus when nearer the lens
+    if (H.SSK > 1) { if (!heroLive(T)) return; g.save(); if (blurPx > .5) setBlur(g, blurPx); stamp3D(g, heroPose(T)); g.restore(); return; }
     H.propSS(g, T, 8, 1 / 240, drawFn, blurPx);
   }
-  // a no-op drawing context used to compute the block's outline without painting
-  const fakeG = new Proxy({}, { get: (o, k) => k === 'createLinearGradient' ? () => ({ addColorStop() {} }) : () => {}, set: () => true });
+  // the stamp's shadow on the face (drawn under the lighting multiply, so it is clipped to the face and lit with it):
+  // the top lamps throw it down-right of the block; it sharpens and darkens as the block nears the board (<= 25%)
+  const shadowSpr = soft => L.cached('mmh-stsh-' + soft, 1000, 560, g => { g.filter = `blur(${soft}px)`; g.fillStyle = '#120E18'; g.fillRect(150, 155, 700, 250); g.filter = 'none'; });
+  function stampShadow(g, T) {
+    if (!heroLive(T)) return;
+    const P = heroPose(T), z = P.Z + 40, near = clamp(1 - z / 700);
+    const x = P.cx + .05 * z + 4, y = P.cy + .3 * z + 9, s = 1 + z / 2600, a = .25 * (.35 + .65 * near) * (.5 + .5 * lampI(T)) * P.alpha;
+    g.save(); g.translate(x, y); g.rotate(P.rot); g.scale(s, s);
+    g.globalAlpha = a * near; g.drawImage(shadowSpr(10), -500, -280);
+    g.globalAlpha = a * (1 - near) * .9; g.drawImage(shadowSpr(34), -500, -280);
+    g.restore();
+  }
 
   /* ------------------------------------------------------------------ sky (screen space, slight parallax) */
   const SPARKS = [
@@ -1109,7 +1213,7 @@
     H.layer(ctx, cam, .42, (g, k, blur) => drawFore(g, T, k, blur));
     ctx.restore();
   };
-  H.util = { put, lamp, glowSpr, bulbSpr, discSpr, softSpr, setBlur, rimFill, FR, DEG, drawBlock, hull, polyFill };
+  H.util = { put, lamp, glowSpr, bulbSpr, discSpr, softSpr, setBlur, rimFill, FR, DEG, stamp3D, hull, polyFill };
 
   /* ------------------------------------------------------------------ in-scene temporal supersampling
      The engine averages 4 sub-frames 1/240 s apart. On the pull-back (2.55-3.15) and the whip (4.933-5.2) the image moves

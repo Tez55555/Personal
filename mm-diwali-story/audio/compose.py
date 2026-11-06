@@ -13,36 +13,44 @@ Musical frame
 * Sa = D with a Raag Yaman colour (D E F# G# A B C#); the tanpura drones on D and A.
 * Sonic logo: D5-A5-D6 (left pillar, red pillar, right pillar), 4 frames apart, played on santoor + sitar +
   hand-chimes, with a temple bell doubling the A (the red pillar). It is stated big at the 18.400 snap and signed off
-  at 20.800 when the mark lands in the lockup. The van horn (D4-A4) and the 19.000 rocket whistles (D5/A5/D6)
-  foreshadow and echo it.
+  at 20.800 on the end card, where the three railing diyas light on its notes. The van horn (D4-A4) foreshadows it and
+  the 19.000 rocket whistles echo it an octave up (D6/A6/D7).
 
 Structure (global seconds; every cue time lives in CUE so the score can be retimed in one place)
 --------------------------------------------------------------------------------------------------
  s1  0.000-2.800  hook: tubelight hum + flicker, shehnai pickup, BOOKED stamp at 0.400, shehnai mangal flourish,
                   santoor + glock 'for you', diya flare, riser.
  s2  2.800-5.200  the keherwa groove drops in (dholak = darbuka samples + synth tabla, dhol on the 1s, shaker,
-                  claps, manjira, ghungroo, bass), the stamp cascade climbs D, D#, E, and the sitar hook plays Ni Re Ga Re Sa.
+                  claps, manjira, ghungroo, bass), the stamp cascade climbs D, D# (rubber) and E (the rooftop LED's
+                  digital clunk, then a blip as its pixel BOOKED appears), and the sitar hook plays Ni Re Ga Re Sa.
  s3  5.200-12.400 three gags, each punchline on a downbeat with a stinger: safai (slats, jhadu, back-crack and
                   the hook 'breaks its back'), diet (LED blips, sitar ta-daa, a kaju katli melody, crumble + trombone womp
                   over a groove break) and the van (putter, brake, box toks D-E-F#, horn D-A answered by the sitar,
-                  hops, 'huh?' meend).
+                  three hops, last year's carton thupping onto the rack in loft dust, the band's 'huh?' meend and a
+                  groove stop, the sheepish 4th hop).
  s4  12.400-16.000 the turn: relay thunk and power-down, the music hard-stops, one cricket, the match, the diya whoomp,
-                  then tanpura + bowed strings + bansuri (Ni Re Ga .. Re .. Sa) under a rising santoor Yaman ladder (one
-                  note per ring of light). The late-latif window gets a half-beat of silence (14.85-15.10) and then
+                  then the tanpura alone under the bansuri (Ni Re Ga .. Re .. Sa) and a rising santoor Yaman ladder (one
+                  note per ring of light); bowed strings enter with the light strings at 14.200. The late-latif window
+                  gets a half-beat pause (14.85-15.10) whose only sound is the red ember's fizz hopping to it, and then
                   pops brightest, landing the bansuri's delayed Sa.
  s5  15.400-18.400 riser, then the FULLY BOOKED mega stamp at 16.000: the full band returns (double-energy keherwa,
                   claps on 2 and 4, the sitar + shehnai hook an octave up, strings + choir), with rockets and bursts on the beat,
                   and a tutti tabla tihai (walking A, B, C#) that lands on the 18.400 CLACK.
- s6  18.400-20.800 the towers snap into the mark: the CLACK + sonic logo #1, a hold, three launch whistles
-                  that glide to the logo chord, the triple burst, and two beats of groove through an opening low-pass.
- s7  20.800-24.400 the end card: sonic logo #2 on the lockup, a warm Dmaj9(#11) pad, ticker plucks per name, a soft
-                  tihai that lands on 'Sabko!', the temple bell on the bar-10 downbeat, a tanpura fade,
-                  and the tubelight hum back at 24.100 for the loop (its phase is continuous with frame 0).
+ s6  18.400-20.800 the towers snap into the mark (a 2-frame suck-out, then the CLACK + sonic logo #1), a hold, three
+                  launch whistles that glide to the logo chord an octave up while the music draws back (the mark glides
+                  into the end-card lockup under them), a 2-frame coast, the triple burst, soft glitter-rain willows
+                  (their times are read from scenes/s6-mark.js), and two beats of groove through an opening low-pass.
+ s7  19.000-24.400 the end card (its cue times are read from scenes/s7-endcard.js): toran ticks, the pad chord on the
+                  lockup's word wipe, the signature's pen, the block-print seal on the final dhol DHA at 20.800 with
+                  sonic logo #2 on the railing diyas, ticker plucks + typing per name, a soft tihai that lands on
+                  'Sabko!', the temple bell on the bar-10 downbeat, a tanpura fade, and the tubelight hum back at
+                  24.100 for the loop (its phase is continuous with frame 0).
 
 Mix: six buses (music A/B, drums A/B, SFX, BIG hits) with a short room (0-12.4 s) and a long open-air hall (from 13 s).
-Music is ducked 3.5 dB (drums 2 dB) under the big hits. Pads and strings are high-passed at 150 Hz.
-Every boom carries a 120-250 Hz body and a 2-4 kHz attack so it reads on phone speakers. The master is
-synth.Mix.render (EQ, glue compression, limiter, -14 LUFS), with a -1 dBTP true-peak check.
+Music is ducked 3.5 dB (drums 2 dB) under the big hits; the end-card beds duck under 'Sabko!'. Pads and strings are
+high-passed at 150 Hz. Every boom carries a 120-250 Hz body and a 2-4 kHz attack so it reads on phone speakers. The
+master high-passes at 45 Hz and shelves the whole mix -3 dB below 110 Hz (phones can't play it; the limiter's headroom
+goes to the mids), then synth.Mix.render (EQ, glue compression, limiter, -14 LUFS), with a -1 dBTP true-peak check.
 """
 import argparse
 import os
@@ -83,7 +91,87 @@ def beat(n):
 
 
 # =====================================================================================================================
-# CUE TABLE: every picture-sync time in one place (global seconds). Retime here.
+# PICTURE SYNC: the end card (scenes/s7-endcard.js) is retimed on its own, so its cue times are read from its timing
+# constants at compose time; if a constant is missing or unreadable, the default below is used (and reported).
+# =====================================================================================================================
+S7_FILE = os.path.join(HERE, '..', 'scenes', 's7-endcard.js')
+S7_DEFAULT = dict(T_GLIDE=[19.0, 19.6], T_TORAN=[19.167, 19.6], T_WORDS=[19.6, 19.867], T_SIGN=[19.9, 20.267],
+                  T_LABEL=20.2, T_SEAL=20.8, T_SABKO=22.6, DIYA_T=dict(l=20.8, c=20.933, r=21.067),
+                  NAMES=[('Mummy-Papa…', 20.5, 21.0), ('Bestie…', 21.0, 21.4), ('Boss…', 21.4, 21.8),
+                         ('Pados wale uncle…', 21.8, 22.6), ('Sabko!', 22.6, 99.0)])
+
+
+def read_s7_timing(path=S7_FILE):
+    """-> (timing dict, [names of constants that fell back to S7_DEFAULT])"""
+    import re
+    try:
+        with open(path, encoding='utf-8') as f:
+            src = f.read()
+    except OSError:
+        return dict(S7_DEFAULT), list(S7_DEFAULT)
+    num = r'-?\d+(?:\.\d+)?'
+    out, missing = {}, []
+    for k, v in S7_DEFAULT.items():
+        val = None
+        if k == 'NAMES':
+            mt = re.search(r'\bNAMES\s*=\s*\[(.*?)\]\s*;', src, re.S)
+            if mt:
+                val = [(nm, float(a), float(b)) for nm, a, b in
+                       re.findall(r"\[\s*'([^']*)'\s*,\s*(" + num + r")\s*,\s*(" + num + r")\s*\]", mt.group(1))] or None
+        elif k == 'DIYA_T':
+            mt = re.search(r'\bDIYA_T\s*=\s*\{([^}]*)\}', src)
+            if mt:
+                d = {a: float(b) for a, b in re.findall(r'(\w+)\s*:\s*(' + num + r')', mt.group(1))}
+                val = d if all(x in d for x in 'lcr') else None
+        elif isinstance(v, list):
+            mt = re.search(r'\b' + k + r'\s*=\s*\[\s*(' + num + r')\s*,\s*(' + num + r')\s*\]', src)
+            val = [float(mt.group(1)), float(mt.group(2))] if mt else None
+        else:
+            mt = re.search(r'\b' + k + r'\s*=\s*(' + num + r')\s*[,;]', src)
+            val = float(mt.group(1)) if mt else None
+        if val is None:
+            missing.append(k)
+        out[k] = v if val is None else val
+    return out, missing
+
+
+S7T, S7_MISSING = read_s7_timing()
+TICKER = [n for n in S7T['NAMES'] if not n[0].startswith('Sabko')][:4]      # (name, typed from, cleared by)
+
+S6_FILE = os.path.join(HERE, '..', 'scenes', 's6-mark.js')
+S6_DEFAULT = dict(T_LAUNCH=19.0, T_BURST=19.6, RAIN=[(150.0, .22), (930.0, .22), (540.0, .27)])
+
+
+def read_s6_timing(path=S6_FILE):
+    """the rockets' launch, the triple burst and the glitter-rain willows (x, delay after the burst) from s6"""
+    import re
+    try:
+        with open(path, encoding='utf-8') as f:
+            src = f.read()
+    except OSError:
+        return dict(S6_DEFAULT), list(S6_DEFAULT)
+    out, missing = dict(S6_DEFAULT), []
+    for k in ('T_LAUNCH', 'T_BURST'):
+        mt = re.search(r'\b' + k + r'\s*=\s*(\d+(?:\.\d+)?)\s*[,;]', src)
+        if mt:
+            out[k] = float(mt.group(1))
+        else:
+            missing.append(k)
+    mt = re.search(r'\bRAIN\s*=\s*\[(.*?)\]\s*;', src, re.S)
+    rain = [(float(x), float(d)) for x, d in re.findall(r'\{\s*x:\s*(\d+(?:\.\d+)?)[^}]*?\bdt:\s*(\d*\.?\d+)', mt.group(1))] \
+        if mt else []
+    if rain:
+        out['RAIN'] = rain
+    else:
+        missing.append('RAIN')
+    return out, missing
+
+
+S6T, S6_MISSING = read_s6_timing()
+
+
+# =====================================================================================================================
+# CUE TABLE: every picture-sync time in one place (global seconds). Retime here (s7: in its scene file, see above).
 # =====================================================================================================================
 CUE = dict(
     # s1 hook ------------------------------------------------------------------------------------------------------
@@ -91,36 +179,47 @@ CUE = dict(
     for_you=beat(1), aapke_liye=1.300, diya_flare=beat(2), riser_hook=beat(3), ge_pick=2.500, ke_pick=2.700,
     hum_fade=2.200,
     # s2 whole city booked -----------------------------------------------------------------------------------------
-    groove_in=beat(4), cascade=[beat(4), beat(5), beat(6)], hook=beat(5), led_flip=beat(6), boards_pulse=beat(7),
-    whip1=4.933, slats=5.067,
+    groove_in=beat(4), cascade=[beat(4), beat(5), beat(6)], hook=beat(5), boards_pulse=beat(7),
+    whip1=4.933, slats=5.067, led_glitch=beat(6), led_booked=q(beat(6) + 2 / FPS),
     # s3 gags ------------------------------------------------------------------------------------------------------
-    gag1=beat(8), jhadu=[5.267, 5.400], dust_twinkle=5.500, back_crack=beat(10), fill1=beat(11), whip2=7.333,
-    led_boot=7.467,
+    # jhadu: two flicks (on twos) along the floor band, a hop over the pile, set down against the frame at 5.800
+    gag1=beat(8), jhadu=[(5.233, .167, -.45, -.2), (5.533, .133, -.1, .1)], jhadu_rest=5.800, dust_twinkle=5.500,
+    back_crack=beat(10), fill1=beat(11), whip2=7.333, led_boot=7.467,
     gag2=beat(12), word_blips=[7.600, 7.633, 7.667], tadaa=7.900,
     kaju=[8.100, 8.267, 8.400, 8.567, 8.733, 8.933, 9.100, 9.267], crumble=beat(15), whip3=9.733, squeak=9.967,
     gag3=beat(16), boxes=[10.000, 10.100, 10.200], boing=10.033, horn=[10.600, 10.700],
-    hops=[11.200, 11.333, 11.467, 11.600], mystery_box=11.533, huh=11.600, fill2=beat(19), whip_up=12.133,
+    hops=[10.900, 11.033, 11.167, 11.700], mystery_box=11.300, huh=11.367, fill2=beat(19), whip_up=12.133,
     # s4 the turn --------------------------------------------------------------------------------------------------
-    turn=beat(20), cricket=[12.567, 14.567], match=12.700, diya=beat(21),
+    turn=beat(20), cricket=[12.567, 14.567], match=12.700, match_ignite=12.767, diya=beat(21),
     rings=[13.300, 13.600, 13.900, 14.200, 14.500, 14.800], late_window=15.100, ember_hop=14.800,
     late_pause=(14.850, 15.100), heartbeat=[beat(22), beat(23), beat(24), beat(25)], strings_on=beat(23),
     riser_turn=beat(25), whistle_fall=15.700,
     # s5 fully booked ----------------------------------------------------------------------------------------------
     mega=beat(26), rockets=[16.100, 16.200, 16.300, 16.400], bursts=[16.600, 16.700, 17.200, 17.300],
-    phuljhadi=[17.200, 17.400, 17.567], tihai=17.400, whoosh_up=17.700,
+    phuljhadi=[17.200, 17.400, 17.567], tihai=17.400, whoosh_up=17.700, suck_out=18.360,
     # s6 the mark --------------------------------------------------------------------------------------------------
-    clack=beat(30), snap=18.433, logo1=beat(30), pad_back=18.667, launch3=beat(31), triple=beat(32),
-    low_whoosh=beat(33), toran=20.367,
-    # s7 end card --------------------------------------------------------------------------------------------------
-    logo2=beat(34), pad_chord=21.067, pen=21.100, fwd_label=beat(35), ticker=[21.567, 21.800, 22.067, 22.300],
-    ticker_chars=[4, 3, 2, 5], tihai_end=21.600, spark=beat(36), sabko=beat(37), bell=beat(38),
-    tanpura_fade=beat(39), hum_back=24.100, end=DUR,
+    # (from 19.000 the end card glides the mark into the lockup while s6 keeps the rockets, the triple burst at
+    # 19.600 and the glitter-rain willows that break a few frames after it: their times and x come from s6-mark.js)
+    clack=beat(30), snap=18.433, logo1=beat(30), pad_back=18.667, launch3=beat(31), whistle_end=19.533,
+    triple=beat(32), willows=[(q(S6T['T_BURST'] + d), round((x - 540) / 540 * .8, 2)) for x, d in S6T['RAIN']],
+    low_whoosh=q(S7T['T_GLIDE'][0]),
+    toran=q(S7T['T_TORAN'][0]), toran_dur=S7T['T_TORAN'][1] - S7T['T_TORAN'][0],
+    # s7 end card (from its scene file) ----------------------------------------------------------------------------
+    pad_chord=q(S7T['T_WORDS'][1]), pen=q(S7T['T_SIGN'][0]), pen_dur=S7T['T_SIGN'][1] - S7T['T_SIGN'][0],
+    fwd_label=q(S7T['T_LABEL']), seal=q(S7T['T_SEAL']), logo2=q(S7T['DIYA_T']['l']),
+    ticker=[q(a) for _, a, _ in TICKER], ticker_out=[q(b) for _, _, b in TICKER], ticker_chars=[len(n) for n, _, _ in TICKER],
+    spark=beat(36), sabko=beat(37), bell=beat(38), tanpura_fade=beat(39), hum_back=24.100, end=DUR,
 )
-# moments that duck the music (big SFX): (time, depth scale). The 18.400 CLACK only ducks the drums: the sonic logo
-# that rings over it must stay clean.
+CUE['tihai2'] = q(CUE['sabko'] - 1.0)          # the soft end-card tihai (dha tin dha x3) starts here and lands on 'Sabko!'
+# moments that duck the music (big SFX): (time, depth scale[, attack, hold, release]). The 18.400 CLACK only ducks the
+# drums: the sonic logo that rings over it must stay clean, so the music's 18.400 entry is a 2-frame pre-hit suck-out
+# that has recovered 15 ms after the hit. The triple's duck leans in over the rockets' whole .6 s climb (the city
+# holds its breath; the whistles carry the motion), so the burst opens out of a held breath.
 DUCK_MUS = [(CUE['stamp'], 1.0), (CUE['mega'], 1.0), (16.600, .8), (16.700, .8), (17.200, .8), (17.300, .8),
-            (CUE['triple'], 1.0)]
+            (CUE['clack'], .6, .04, 0.0, .015), (CUE['triple'], 1.3, .6)]
 DUCK_DRM = DUCK_MUS + [(CUE['clack'], 1.0)]
+# beds ducked under 'Sabko!' (pads, strings, oohs, tanpura only: the Sabko santoor, dhol and ghungroo stay full)
+DUCK_BED = [(CUE['sabko'], .8)]
 
 # Scene faders (dB) per bus family: the coarse balance of the film. The arc it encodes (post-master, short-term):
 # hook ~-14 with the stamp on top, gags ~-13, the tender turn ~6 LU under the gags, the finale loudest, end card ~-16.
@@ -548,6 +647,39 @@ def puff(dur=.12, seed=0):
     return peak1(fft_filter(noise(dur, seed), 200, 1600) * np.clip(t / .012, 0, 1) * np.exp(-t / .035))
 
 
+def dusty_thup(seed=0):
+    """last year's carton dropped onto the rack in a cloud of loft dust: a muffled cardboard 'thup', the puff, a dry
+    dust hiss that hangs a moment, and a tiny comic pop on top"""
+    d = .5
+    t = tt(d)
+    dust = fft_filter(pink(d, seed), 600, 4500) * np.clip(t / .02, 0, 1) * np.exp(-t / .15)
+    return peak1(layer((body(165, .22, .05, 1.15), 0), (puff(.16, seed), -1), (dust, -8),
+                       (tick(.008, 900, 2600, .002, seed + 1), -9), (S.pop(700, 1400, .09, seed), -13)))
+
+
+def digital_clunk(root='E3', seed=7):
+    """an LED board 'stamping' itself: relay body on the cascade pitch + a hard digital tick + an 8-bit up-blip"""
+    f = hz(root)
+    return peak1(layer((body(f, .18, .04), 0), (tick(.006, 3000, 9000, .0015, seed), -3),
+                       (blip8([hz('E5'), hz('B5'), hz('E6')], .02, .09), -2)))
+
+
+def seal_stamp(seed=0):
+    """the end card's block-print seal: a hand block on card (wood knock + paper slap + a small tuned body); the
+    hook's BOOKED stamp, in miniature"""
+    return peak1(layer((body(hz('D3'), .28, .07, 1.2), 0), (body(hz('D3') * 2, .12, .03, 1.1), -6),
+                       (S.tabla_ke(.12, seed), -4), (tick(.03, 2000, 6000, .005, seed), -5),
+                       (tick(.012, 2500, 4200, .003, seed + 1), -7),
+                       (smp('frame_drum', 'HDrumL_HitMuted_v3', rr=seed, max_len=.5), -6)))
+
+
+def willow_break(seed=0):
+    """a far glitter-rain willow: a soft, muffled break and a long thin crackle of falling glitter"""
+    b = lpf(S.firework_burst(.35, 0.0, seed), 1800)[:n_samples(1.0)] * np.exp(-tt(1.0) / .25)
+    c = S.crackle(1.3, 45, seed + 1) * np.linspace(1, .4, n_samples(1.3))
+    return peak1(layer((peak1(b), 0), (c, -5, .1)))
+
+
 def tirakita(t0, bus, g=0.0, room=.08, seed=0):
     """ti-ra-ki-ta on the 0.1 s sub-grid"""
     for i, (k, gg) in enumerate([('tin', -2), ('ka', -4), ('na', -3), ('ka', 0)]):
@@ -635,7 +767,7 @@ def tape_stop(dur=.35):
 def mega_stamp(seed=0):
     return peak1(layer(
         (S.sub_boom(1.3, 45, 30, seed), -13), (body(180, .45, .12, 1.3), 0), (body(hz('D3'), .4, .1), -2),
-        (body(300, .15, .035, 1.1), -3),
+        (body(300, .15, .035, 1.1), 0), (body(hz('A3'), .3, .08), -3),     # the extra size, where phones play it
         (S.dhol_boom(62, .8, seed), -13), (S.dhol_boom(68, .8, seed + 1), -13), (S.dhol_boom(76, .8, seed + 2), -14),
         (tape_stop(), -6), (smp('bass_drum_1', 'v7', rr=1, max_len=1.4), -8),
         (smp('frame_drum', 'HDrumL_Hit_v3', rr=1, max_len=1.4), 0), (smp('darbuka', 'Darbuka_1_hit_vl2', rr=1), 0),
@@ -645,7 +777,14 @@ def mega_stamp(seed=0):
         (smp('gong_1', 'gong_f', max_len=2.2, fade_out=.9), -16)))
 
 
-def burst(size=1.0, crackle_dur=1.2, seed=0):
+def burst(size=1.0, crackle_dur=1.2, seed=0, mid=False):
+    """firework shell. mid: the climax version, its weight moved up out of the sub into the 250-3500 Hz band a phone
+    plays (a wider 'crack' and two body partials), ~1.6 dB more phone-band energy for the same peak."""
+    if mid:
+        return peak1(layer((hpf(S.firework_burst(size, crackle_dur, seed), 140, .5), -2), (body(140, .35, .1), -8),
+                           (body(260, .2, .06), -2), (body(390, .12, .05), -6),
+                           (fft_filter(noise(.2, seed + 5), 300, 3500) * np.exp(-tt(.2) / .045), -3),
+                           (tick(.03, 1200, 5000, .008, seed), -3)))
     return peak1(layer((hpf(S.firework_burst(size, crackle_dur, seed), 90, .5), -2), (body(140, .35, .1), -3),
                        (body(260, .15, .04), -6), (tick(.03, 1200, 5000, .008, seed), -3)))
 
@@ -660,23 +799,25 @@ def launch(dur=.6, f_end=2400, seed=0):
     return S.firework_launch(dur, f_end / 2.6, f_end, True, seed)
 
 
-def launch_whistle(target, dur=.6, seed=0):
+def launch_whistle(target, dur=.6, seed=0, fade_out=.03):
     t = tt(dur)
     fr = glide(target / 2.4, target, dur, dur * .78) * (1 + .004 * np.sin(TAU * 21 * t))
     tone = np.sin(TAU * np.cumsum(fr) / SR) * np.clip(t / .08, 0, 1)
     hiss = sweep_filter(noise(dur, seed), 2500, 6000, 2.0) * (.3 + .7 * t / dur)
     thump = fft_filter(noise(dur, seed + 1), hi=900) * np.exp(-t / .01)
-    return fade(peak1(tone * .7 + hiss * .35 + thump * .6), .001, .03)
+    return fade(peak1(tone * .7 + hiss * .35 + thump * .6), .001, fade_out)
 
 
 def clack_hit(seed=0):
-    """18.400 CLACK: crisp wood + sub drop + body; metallic snap 1 frame later."""
+    """18.400 CLACK: crisp wood (two partials) + a light sub + bodies on 180 Hz and D4; metallic snap 1 frame later.
+    The weight sits where a phone plays it: the sub only takes the limiter's headroom."""
     wood = gm(0, [(0.0, DRUM['claves'], .1, 120), (0.0, DRUM['hi_wood'], .1, 110)], 0.0, .4, drums=True)
     snap_t = tt(.04)
     snap = layer((smp('finger_cymbals', 'Fing', max_len=.35, fade_out=.2), 0),
                  (tick(.004, 4000, 10000, .001, seed), -4), ((np.sin(TAU * 2900 * snap_t) * np.exp(-snap_t / .01)), -8))
-    return peak1(layer((peak1(wood), -1), (wood_clack(240, seed), -4), (S.sub_boom(.8, 70, 35, seed), -5),
-                       (body(180, .3, .08), -2), (snap, -6, q(CUE['snap']) - CUE['clack'])))
+    return peak1(layer((peak1(wood), -1), (wood_clack(240, seed), -4), (wood_clack(480, seed + 1), -7),
+                       (S.sub_boom(.8, 70, 35, seed), -11), (body(180, .3, .08), -5), (body(hz('D4'), .2, .05), -4),
+                       (snap, -6, q(CUE['snap']) - CUE['clack'])))
 
 
 # =====================================================================================================================
@@ -862,15 +1003,36 @@ def env_db(points, n=NTOT):
 
 
 def duck_env(events, depth, attack=.012, hold=.22, release=.5, n=NTOT):
+    """events: (t0, depth scale[, attack, hold, release]) -> linear gain multiplier"""
     t = np.arange(n) / SR
     d = np.zeros(n)
-    for (t0, k) in events:
+    for ev in events:
+        t0, k = ev[0], ev[1]
+        at, ho, re_ = tuple(ev[2:]) + (attack, hold, release)[len(ev) - 2:]
         dd = depth * k
-        seg = np.where(t < t0 - attack, 0,
-                       np.where(t < t0, -dd * (t - t0 + attack) / attack,
-                                np.where(t < t0 + hold, -dd, -dd * np.clip(1 - (t - t0 - hold) / release, 0, 1))))
+        seg = np.where(t < t0 - at, 0,
+                       np.where(t < t0, -dd * (t - t0 + at) / at,
+                                np.where(t < t0 + ho, -dd, -dd * np.clip(1 - (t - t0 - ho) / re_, 0, 1))))
         d = np.minimum(d, seg)
     return db(d)
+
+
+def env_at(env, t0, sig):
+    """the slice of a full-length gain envelope under a signal placed at t0 (frame-snapped, as Bus.add places it)"""
+    a = int(round(q(t0) * SR))
+    k = np.asarray(sig).shape[-1]
+    seg = env[a:a + k]
+    return np.pad(seg, (0, k - len(seg)), constant_values=1.0)
+
+
+BED_DUCK = None      # built lazily (needs NTOT): duck_env(DUCK_BED, 3.5)
+
+
+def bed_ducked(sig, t0):
+    global BED_DUCK
+    if BED_DUCK is None:
+        BED_DUCK = duck_env(DUCK_BED, 3.5, attack=.03, hold=.25, release=.6)
+    return np.asarray(sig, float) * env_at(BED_DUCK, t0, sig)
 
 
 def gate_env(closings, n=NTOT):
@@ -956,11 +1118,15 @@ def santoor_phrase(bus, notes, g, pans=None, room=0.0, hall=0.0, synth_db=-6, du
 
 def s2_city(B):
     mus, drm, sfx, big = scene(B, 's2')
-    # --- stamp cascade climbing D, D#, E (two boards each, panned)
+    # --- stamp cascade climbing D, D#, E: two boards are stamped on beats 4 and 5; on beat 6 the rooftop LED (L1)
+    # 'stamps' itself digitally (2-frame glitch, then a pixel BOOKED), so the E is a digital clunk, not rubber
     for i, (t, root, pp) in enumerate(zip(CUE['cascade'], ['D3', 'D#3', 'E3'], [.3, .4, .3])):
-        big.add(stamp_thud(root, seed=i + 1), t, -6, pan=-pp, room=.08, label=f'cascade {root}')
-        big.add(stamp_thud(root, seed=i + 4), t + 1 / FPS, -8, pan=pp, room=.08)
-    sfx.add(blip8([900, 1200, 1500]), CUE['led_flip'], -17, pan=.25, room=.05, label='LED flip blip')
+        if i < 2:
+            big.add(stamp_thud(root, seed=i + 1), t, -6, pan=-pp, room=.08, label=f'cascade {root}')
+            big.add(stamp_thud(root, seed=i + 4), t + 1 / FPS, -8, pan=pp, room=.08)
+        else:
+            big.add(digital_clunk(root), CUE['led_glitch'], -9, pan=.25, room=.05, label=f'LED clunk {root}')
+    sfx.add(blip8([900, 1200, 1500]), CUE['led_booked'], -13, pan=.25, room=.05, label='LED BOOKED blip')
 
     # --- sitar hook: Ni Re Ga Re Sa (C#4 E4 F#4 E4 D4) with small meends
     h = CUE['hook']
@@ -1008,10 +1174,16 @@ def s3_gags(B):
 
     # ------------------------------------------------ gag 1: safai (tri-vision)
     g1 = CUE['gag1']
-    big.add(stereo(wood_clack(200, 7)), g1, -6, room=.06, label='slat landing')       # the flip IS the reveal
-    stinger(mus, g1, ['D3', 'A3', 'D4', 'F#4', 'A4'], 1)
-    for i, tj in enumerate(CUE['jhadu']):
-        sfx.add(jhadu(.12, i), tj, -16, pan=-.3 + .5 * i, room=.05, label='jhadu')
+    # the flip IS the reveal: the last slat lands (wood on two partials + a D4 body, so it carries on a phone)
+    land = layer((wood_clack(200, 7), 0), (wood_clack(330, 8), -5), (body(hz('D4'), .16, .045), -5),
+                 (tick(.01, 2000, 5000, .003, 9), -9))
+    big.add(peak1(land), g1, -6, room=.06, label='slat landing')
+    stinger(mus, g1, ['D3', 'A3', 'D4', 'F#4', 'A4'], 1, g=-10)      # under the broom, so the jhadu reads
+    # the broom is the action: one bristle stroke per flick, following the jhadu across the band, then it is set down
+    for i, (tj, dj, p0, p1) in enumerate(CUE['jhadu']):
+        sfx.add(pan_sweep(jhadu(dj, i), p0, p1), tj, -10, room=.05, label='jhadu')
+    sfx.add(layer((jhadu(.07, 5), 0), (wood_clack(260, 11) * np.exp(-tt(.12) / .02), -9, .033)), CUE['jhadu_rest'],
+            -17, pan=.35, room=.05, label='jhadu set down')
     sfx.add(stereo(S.twinkle([hz('D6'), hz('E6'), hz('F#6')], step=.067, dur_each=1.0, seed=3)),
             CUE['dust_twinkle'], -17, pan=.2, room=.15, label='twinkle')
     # the hook climbs (Ni Re Ga) ... and its back gives out on the 'हाफ़' crack
@@ -1055,11 +1227,12 @@ def s3_gags(B):
     mus.add(peak1(ans), beat(17) + E8, -10, pan=.15, room=.12)
     for i, (th, nm) in enumerate(zip(CUE['hops'], ['G#5', 'A5', 'B5', 'C#6'])):
         sfx.add(kaju_tin(nm, 20 + i), th, -12, pan=.1 + .1 * i, room=.1, label='hop')
-    sfx.add(layer((S.pop(700, 1400, .09, 3), 0), (puff(.12, 4), -6)), CUE['mystery_box'], -13, pan=.3, room=.06,
-            label='mystery pop')
-    huh = gm('sitar', [(CUE['huh'], 'D4', .5, 104)], CUE['huh'], 1.0, bend_range=12,
-             bends=bend_path([(CUE['huh'], 0), (CUE['huh'] + .04, 0), (q(11.867), 7), (12.1, 7)]))
-    mus.add(peak1(huh), CUE['huh'], -10, pan=-.1, room=.12)
+    # box #4 (last year's) pops onto the empty rack in a cloud of loft dust; the band asks 'huh?' 2 frames later
+    sfx.add(dusty_thup(4), CUE['mystery_box'], -11, pan=.2, room=.06, label='mystery thup')
+    hu = CUE['huh']
+    huh = gm('sitar', [(hu, 'D4', .5, 104)], hu, 1.0, bend_range=12,
+             bends=bend_path([(hu, 0), (hu + .04, 0), (q(hu + .267), 7), (hu + .5, 7)]))
+    mus.add(peak1(huh), hu, -10, pan=-.1, room=.12)
     sfx.add(whoosh(.267, 600, 4000, seed=10), CUE['whip_up'], -13, room=.03, label='whip up')
 
 
@@ -1071,7 +1244,11 @@ def s4_turn(B):
     sfx.add(power_down(.5), tn, -13, pan=.1, room=.05, hall=.1, label='power down')
     sfx.add(stereo(night_air(1.8, 3)), tn, -35, room=.0)
     sfx.add(cricket(1), CUE['cricket'][0], -24, pan=.2, hall=.25, label='cricket')
-    sfx.add(stereo(S.match_strike(5)), CUE['match'], -13, pan=-.05, hall=.12, label='match')
+    # the match: scratch on the rail ... then 'fwip', the ignition on the frame the head flares (the brightest event
+    # in the blackout)
+    sfx.add(stereo(S.match_strike(5)), CUE['match'], -16, pan=-.05, hall=.12, label='match')
+    sfx.add(layer((tick(.012, 1200, 6000, .004, 5), 0), (puff(.12, 5), -4), (flame_flutter(.25, 9), -8)),
+            CUE['match_ignite'], -12, pan=-.05, hall=.12, label='match ignite')
 
     # --- the diya: whoomp, ember arcs to the red tower
     d = CUE['diya']
@@ -1079,17 +1256,15 @@ def s4_turn(B):
     sfx.add(ember_fizz(.3, 2000, 7000, 7), d, -22, pan=0, hall=.15, label='ember')
     santoor_phrase(mus, [(d, 'D4')], -12, hall=.35, synth_db=-5)
 
-    # --- tanpura (Sa = D) + synth pad + bowed strings, all high-passed
+    # --- one diya, one drone: the tanpura (Sa = D) alone under the bansuri and the santoor ladder; the bowed strings
+    # only enter with the light strings (14.200), swell into the late-latif pause, and have room to bloom at 15.100
     tan = S.tanpura(hz('D3'), 3.8, cycle=1.2, seed=5)
     mus.add(lpf(hpf(tan, 90), 2500), d, -18, hall=.3)
-    pad = S.pad([hz('D3'), hz('A3'), hz('F#4'), hz('E5'), hz('G#4')], 3.2, bright=.35, seed=2)
-    mus.add(hpf(pad, 150), d, -18, hall=.35)
-    sn = [(d, 'D4', 1.84, 70), (d, 'A4', 1.84, 64), (CUE['rings'][1], 'F#4', 1.24, 60),
-          (CUE['strings_on'], 'E5', .64, 56),
-          (CUE['late_window'], 'D4', .9, 76), (CUE['late_window'], 'F#4', .9, 72), (CUE['late_window'], 'A4', .9, 72),
-          (CUE['late_window'], 'C#5', .9, 70), (CUE['late_window'], 'E5', .9, 74)]
-    strings = gm('slow_strings', sn, d, 3.2, cc=[(d, 11, 45)] + ramp_cc(d, 14.8, 45, 100) + ramp_cc(15.1, 15.95, 96, 127))
-    mus.add(hpf(peak1(strings), 150), d, -13, hall=.35)
+    so, lw_ = CUE['strings_on'], CUE['late_window']
+    sn = [(so, 'D4', .64, 70), (so, 'A4', .64, 64), (so, 'F#4', .64, 60), (so, 'E5', .64, 56),
+          (lw_, 'D4', .9, 76), (lw_, 'F#4', .9, 72), (lw_, 'A4', .9, 72), (lw_, 'C#5', .9, 70), (lw_, 'E5', .9, 74)]
+    strings = gm('slow_strings', sn, so, 2.0, cc=[(so, 11, 45)] + ramp_cc(so, 14.8, 45, 100) + ramp_cc(lw_, 15.95, 96, 127))
+    mus.add(hpf(peak1(strings), 150), so, -13, hall=.35)
 
     # --- bansuri: Ni Re Ga .. Re .. (the late-latif pause) .. Sa lands with the late window
     fl = [(d, 'C#5', .3, 92), (CUE['rings'][0], 'E5', .3, 96), (CUE['rings'][1], 'F#5', .9, 104),
@@ -1113,7 +1288,10 @@ def s4_turn(B):
         drm.add(heartbeat(i), t, -14, pan=0, hall=.15, label='heartbeat')
     sfx.add(ghungroo(.3, 15, 3), rings[3], -24, pan=-.25, hall=.2, label='ghungroo grains')
     sfx.add(cricket(2), CUE['cricket'][1], -25, pan=.35, hall=.25, label='cricket (late window)')
-    sfx.add(pan_sweep(ember_fizz(.267, 2500, 6500, 8), 0, .35), CUE['ember_hop'], -24, hall=.1, label='ember hop')
+    # the red ember's hop to the late window is the one sound inside the pause: it grows into the pop, ends on it
+    eh = CUE['ember_hop']
+    ef = ember_fizz(CUE['late_window'] - eh, 2500, 7500, 8)
+    sfx.add(pan_sweep(ef * np.linspace(.5, 1, len(ef)), 0, .35), eh, -17, hall=.05, label='ember hop')
     # --- 15.100: the late window pops on, brightest: santoor C#6 + glock + chime + ghungroo flick
     lw = CUE['late_window']
     santoor_phrase(mus, [(lw, 'C#6')], -6, pans=[.35], hall=.3, synth_db=-4, vel=120)
@@ -1163,8 +1341,9 @@ def s5_fully_booked(B):
     mus.add(hpf(peak1(ch), 180), mg - .03, -16, hall=.3, snap=False)
 
     # --- tihai (17.400 -> 18.400): dha ti dha x3, tutti; stabs walk A4, B4, C#5 to land D5 on the CLACK
+    # tremolo strings swell to full by 18.300, then a 2-frame suck-out (CC 11 -> 25) right before the CLACK
     tw = gm('tremolo_strings' if 'tremolo_strings' in GM else 44, [(17.8, 'D4', .6, 90), (17.8, 'A4', .6, 86)],
-            17.8, 1.0, cc=[(17.8, 11, 50)] + ramp_cc(17.8, 18.38, 50, 127))
+            17.8, 1.0, cc=[(17.8, 11, 50)] + ramp_cc(17.8, 18.30, 50, 127) + [(CUE['suck_out'], 11, 25)])
     mus.add(hpf(peak1(tw), 160), 17.8, -18, hall=.2)
     for k in range(3):
         p0 = q(th + .4 * k)
@@ -1179,9 +1358,11 @@ def s5_fully_booked(B):
         mus.add(hpf(peak1(stab), 180), p0 - .02, -14 + k, hall=.18, snap=False)
         sst = gm('sitar', [(p0, ['A4', 'B4', 'C#5'][k], .2, 116), (q(p0 + .2), ['A4', 'B4', 'C#5'][k], .2, 120)], p0, .8)
         mus.add(peak1(sst), p0, -12 + k, pan=-.1, hall=.15)
-    # sitar tremolo on D4 for the trembling light-strings (32nds into the snap)
-    trem = gm('sitar', [(q(18.2) + .05 * i, 'D4', .06, 70 + 12 * i) for i in range(4)], 18.2, .6, snap=False)
-    mus.add(peak1(trem), 18.2, -15, pan=.15, hall=.12)
+    # sitar tremolo on D4 for the trembling light-strings (32nds), choked at 18.330 so the snap lands in a breath
+    trem = gm('sitar', [(q(18.2) + .05 * i, 'D4', .05, 70 + 12 * i) for i in range(3)], 18.2, .6, snap=False)
+    trem = peak1(trem)
+    trem = trem * np.clip((18.33 - (q(18.2) + np.arange(trem.shape[-1]) / SR)) / .02, 0, 1)
+    mus.add(trem, 18.2, -15, pan=.15, hall=.12)
 
     # --- fireworks on the beat: launches in pairs, bursts with crackle tails + city slap-back
     r = rng(23)
@@ -1206,9 +1387,10 @@ def s5_fully_booked(B):
     sfx.add(whoosh(.4, 300, 5000, seed=13), CUE['whoosh_up'], -17, hall=.1, label='whoosh up')
 
 
-def sonic_logo(bus, t0, g=0.0, hall=.3, big=False):
-    """D5-A5-D6, 4 frames apart: santoor + sitar pluck + hand-chime; temple bell doubles the A (the red pillar)."""
-    ts = [q(t0), q(t0 + LOGO_STEP), q(t0 + 2 * LOGO_STEP)]
+def sonic_logo(bus, t0, g=0.0, hall=.3, big=False, times=None):
+    """D5-A5-D6, 4 frames apart (or at `times`): santoor + sitar pluck + hand-chime; temple bell doubles the A (the red
+    pillar)."""
+    ts = [q(t) for t in times] if times else [q(t0), q(t0 + LOGO_STEP), q(t0 + 2 * LOGO_STEP)]
     ns = ['D5', 'A5', 'D6']
     pans = [-.3, 0, .3]
     santoor_phrase(bus, list(zip(ts, ns)), g - 2, pans=pans, hall=hall, synth_db=-3, vel=118, dur=2.2)
@@ -1231,24 +1413,32 @@ def sonic_logo(bus, t0, g=0.0, hall=.3, big=False):
 def s6_mark(B):
     mus, drm, sfx, big = scene(B, 's6', 'b')
     ck = CUE['clack']
-    big.add(clack_hit(3), ck, -2, room=.04, hall=.1, label='CLACK')
+    big.add(clack_hit(3), ck, -.5, room=.04, hall=.1, label='CLACK')
     sonic_logo(mus, CUE['logo1'], g=-5, hall=.3, big=True)
     # --- tanpura + pad return (soft), they carry to the end card
     tan = S.tanpura(hz('D3'), 5.4, cycle=1.2, seed=8)
-    mus.add(hpf(tan, 90), CUE['pad_back'], -20, hall=.3)
+    mus.add(bed_ducked(hpf(tan, 90), CUE['pad_back']), CUE['pad_back'], -20, hall=.3)
     pad = S.pad([hz('D3'), hz('A3'), hz('D4'), hz('A4')], 2.4, bright=.3, seed=4)
     mus.add(hpf(pad, 150), CUE['pad_back'], -26, hall=.3)
-    # --- three launch whistles glide up to the logo chord D5 / A5 / D6
-    for i, (nm, p, gg) in enumerate([('D5', -.5, -22), ('A5', 0, -19), ('D6', .5, -22)]):
-        sfx.add(launch_whistle(hz(nm), .6, seed=80 + i), CUE['launch3'], gg, pan=p, hall=.2, label='launch' if i == 0 else '')
+    # --- three launch whistles glide up to the logo chord an octave above the ringing logo (D6 / A6 / D7, where a phone
+    # speaker is at its best), and stop 2 frames before the break: a breath of coast, then the triple burst
+    wl = CUE['whistle_end'] - CUE['launch3']
+    for i, (nm, p, gg) in enumerate([('D6', -.5, -19), ('A6', 0, -17), ('D7', .5, -19)]):
+        sfx.add(launch_whistle(hz(nm), wl, seed=80 + i, fade_out=.06), CUE['launch3'], gg, pan=p, hall=.2,
+                label='launch' if i == 0 else '')
+    # the mark's glide into the lockup (19.0-19.6): a low, soft air under the whistles, gone with them
+    sfx.add(whoosh(wl, 200, 1500, seed=14), CUE['low_whoosh'], -24, hall=.15, label='low whoosh')
     # --- TRIPLE BURST + wordless choir/strings lift + groove back for two beats through an opening low-pass
     tb = CUE['triple']
     for i, p in enumerate([-.5, 0, .5]):
-        b = burst(1.3, 1.4, seed=90 + i)
+        b = burst(1.3, 1.4, seed=90 + i, mid=True)
         big.add(b, tb, -6 - (0 if i == 1 else 1.5), pan=p, hall=.22, label='TRIPLE BURST' if i == 0 else '')
         sfx.add(city_echo(b, .2 + .04 * i), tb, -15, pan=-p)
-    sfx.add(S.crackle(1.4, 50, seed=95), tb + .35, -22, pan=.2, hall=.2)
     sfx.add(ghungroo(.45, 35, 6), tb, -18, pan=-.2, hall=.15)
+    # glitter rain: the three gold willows break soft and far a few frames after the peonies and crackle down the sides
+    for i, (tw_, p) in enumerate(CUE['willows']):
+        sfx.add(willow_break(96 + 3 * i), tw_, -23 - (1 if p == 0 else 0), pan=p, hall=.3, label='willows' if i == 0 else '')
+    sfx.add(S.crackle(1.4, 50, seed=95), CUE['willows'][0][0], -24, pan=.2, hall=.2)
     ch = gm('choir', [(tb, n, 1.2, 88) for n in ['D4', 'A4', 'D5', 'E5']], tb, 1.8, cc=[(tb, 11, 50)] + ramp_cc(tb, 20.75, 50, 118))
     mus.add(hpf(peak1(ch), 180), tb - .03, -15, hall=.3, snap=False)
     st = gm('strings', [(tb, n, 1.2, 90) for n in ['D3', 'A3', 'E4', 'F#4', 'A4']], tb, 1.8,
@@ -1262,10 +1452,9 @@ def s6_mark(B):
     bn = [(tb, 'D2', .5, 110), (q(tb + E8 * 2), 'A2', .4, 100), (q(tb + E8 * 3), 'C#3', .25, 100)]
     bass = np.tanh(peak1(gm('bass_finger', bn, tb, 1.4, volume=120)) * 1.3)
     mus.add(lpf(bass, 2500), tb, -18, hall=.04)
-    sfx.add(whoosh(.6, 200, 1500, seed=14), CUE['low_whoosh'], -19, hall=.15, label='low whoosh')
     # --- toran unfurls centre -> sides: 12 tiny ghungroo ticks
     for i in range(12):
-        t = CUE['toran'] + i * .433 / 11
+        t = CUE['toran'] + i * CUE['toran_dur'] / 11
         p = (-1) ** i * (.05 + .45 * i / 11)
         sfx.add(smp('sleigh_bells', 'Sleighbells_Hit', rr=i, max_len=.18, fade_out=.1), t, -27 + i * .3, pan=p,
                 hall=.15, snap=False, label='toran' if i == 0 else '')
@@ -1273,43 +1462,67 @@ def s6_mark(B):
 
 def s7_endcard(B):
     mus, drm, sfx, big = scene(B, 's7', 'b')
+    # --- the seal: the film's block-print stamp seals the card 'BOOKED · आपके नाम' on the final dhol DHA (the groove
+    # ends here) while the three railing diyas light on the sonic-logo notes (left pillar, red pillar + bell, right)
+    se = CUE['seal']
+    drm.add(stroke('dhol', 99), se, -5, hall=.1)
+    drm.add(stroke('dha', 98), se, -7, hall=.1)
+    big.add(seal_stamp(5), se, -7, pan=.3, room=.04, hall=.08, label='seal stamp')
+    sfx.add(ink_pops(7), q(se + 1 / FPS), -28, pan=.3, hall=.05)
+    dy = S7T['DIYA_T']
     lg = CUE['logo2']
-    drm.add(stroke('dhol', 99), lg, -5, hall=.1)                          # the final dhol DHA (groove ends here)
-    drm.add(stroke('dha', 98), lg, -7, hall=.1)
-    sonic_logo(mus, lg, g=-6, hall=.32)
-    # --- warm resolution: Dmaj9(#11) pad, strings, soft oohs
+    sonic_logo(mus, lg, g=-6 - (2 if abs(lg - CUE['triple']) < .3 else 0), hall=.32, times=[dy['l'], dy['c'], dy['r']])
+    logo_ts = [q(dy[k]) for k in 'lcr']
+    # --- warm resolution: Dmaj9(#11) pad, strings, soft oohs from the lockup's word wipe; they sustain to the same
+    # ends as before the retime, sit 3 dB lower (CC 11) under the ticker and 'Sabko!', and duck under the Sabko hit
     pc = CUE['pad_chord']
-    pad = S.pad([hz('D3'), hz('A3'), hz('E4'), hz('F#4'), hz('G#4')], 3.0, bright=.3, seed=6)
-    mus.add(hpf(pad, 150), pc, -24, hall=.35)
-    sl = gm('slow_strings', [(pc, n, 2.4, 70) for n in ['D4', 'A4', 'E5', 'F#5']], pc, 3.2,
-            cc=[(pc, 11, 40)] + ramp_cc(pc, 22.6, 40, 96) + ramp_cc(22.6, 23.9, 110, 30))
-    mus.add(hpf(peak1(sl), 150), pc, -17, hall=.35)
-    oo = gm('voice_oohs', [(pc, n, 2.2, 64) for n in ['A4', 'D5', 'F#5']], pc, 3.0,
-            cc=[(pc, 11, 30)] + ramp_cc(pc, 22.6, 30, 90) + ramp_cc(22.6, 23.6, 100, 20))
-    mus.add(hpf(peak1(oo), 200), pc, -22, hall=.35)
-    sfx.add(pen_scratch(.367, 2), CUE['pen'], -23, pan=.15, hall=.05, label='pen')
+    pad = S.pad([hz('D3'), hz('A3'), hz('E4'), hz('F#4'), hz('G#4')], 24.067 - pc, bright=.3, seed=6)
+    mus.add(bed_ducked(hpf(pad, 150), pc), pc, -24, hall=.35)
+    def cc_curve(pts, duck_db=3.0, win=(21.5, 22.75), ramp=.1):
+        dk = 10 ** (-duck_db / 40)          # CC 11 acts ~ (cc/127)^2 on amplitude
+        out = []
+        for t in np.arange(pc, pts[-1][0] + 1e-6, .03):
+            v = np.interp(t, [p_[0] for p_ in pts], [p_[1] for p_ in pts])
+            w = np.clip(min(t - win[0] + ramp, win[1] + ramp - t) / ramp, 0, 1)
+            out.append((float(t), 11, int(round(v * (1 - (1 - dk) * w)))))
+        return out
+    sl_end, oo_end = 23.467, 23.267
+    sl = gm('slow_strings', [(pc, n, sl_end - pc, 70) for n in ['D4', 'A4', 'E5', 'F#5']], pc, 24.267 - pc,
+            cc=cc_curve([(pc, 40), (22.6 - 1e-3, 96), (22.6, 110), (23.9, 30)]))
+    mus.add(bed_ducked(hpf(peak1(sl), 150), pc), pc, -17, hall=.35)
+    oo = gm('voice_oohs', [(pc, n, oo_end - pc, 64) for n in ['A4', 'D5', 'F#5']], pc, 24.067 - pc,
+            cc=cc_curve([(pc, 30), (22.6 - 1e-3, 90), (22.6, 100), (23.6, 20)]))
+    mus.add(bed_ducked(hpf(peak1(oo), 200), pc), pc, -22, hall=.35)
+    sfx.add(pen_scratch(CUE['pen_dur'], 2), CUE['pen'], -23, pan=.15, hall=.05, label='pen')
     drm.add(stroke('na', 97), CUE['fwd_label'], -15, hall=.12)
 
-    # --- ticker: rising santoor per name + typing ticks (~40 chars/s)
-    tnames = ['E5', 'F#5', 'G#5', 'A5']
-    santoor_phrase(mus, list(zip(CUE['ticker'], tnames)), -12, pans=[-.2, -.05, .1, .25], hall=.3, dur=1.4)
-    for k, (t, nch) in enumerate(zip(CUE['ticker'], CUE['ticker_chars'])):
-        for c in range(nch):
-            sfx.add(S.ui_tap(10 * k + c), q(t) + c * .025, -25, pan=.1, hall=.05, snap=False,
+    # --- ticker: a rising santoor pluck per name (none where it would land inside the sonic logo), typing ticks on
+    # every frame the name grows (60 chars/s on screen = 2 per frame), and a 2-tick backspace as it clears
+    tnames, tpans = ['E5', 'F#5', 'G#5', 'A5'], [-.2, -.05, .1, .25]
+    plucks = [(t, tnames[i]) for i, t in enumerate(CUE['ticker']) if min(abs(t - x) for x in logo_ts) > .2]
+    santoor_phrase(mus, plucks, -8, pans=[tpans[CUE['ticker'].index(t)] for t, _ in plucks], hall=.3, dur=1.4)
+    r = rng(31)
+    for k, (t, tout, nch) in enumerate(zip(CUE['ticker'], CUE['ticker_out'], CUE['ticker_chars'])):
+        f0, f1 = int(round(t * FPS)), int(round(tout * FPS))
+        frames = [f for f in range(f0, f0 + (nch + 1) // 2) if f < f1 - 2]
+        for c, f in enumerate(frames):
+            sfx.add(S.ui_tap(10 * k + c), f / FPS, -19 + r.uniform(-1.5, .5), pan=.1 + r.uniform(-.06, .06), hall=.05,
                     label='typing' if c == 0 else '')
+        for c, f in enumerate((f1 - 2, f1 - 1)):
+            sfx.add(S.ui_tap(10 * k + 7 + c), f / FPS, -23, pan=.08, hall=.05)
     # --- soft tihai landing on 'Sabko!' (dha tin dha x3 on the 0.1 s grid, crescendo)
     for k in range(3):
-        p0 = q(CUE['tihai_end'] + .4 * k)
+        p0 = q(CUE['tihai2'] + .4 * k)
         for j, (bol, gg) in enumerate([('dha', 0), ('tin', -5), ('dha', 0)]):
             t = q(p0 + .1 * j)
             drm.add(stroke(bol, 80 + 3 * k + j), t, -17 + 3 * k + gg, pan=-.1, hall=.12)
     sfx.add(pan_sweep(S.sparkler(.4, 15), -.4, .4), CUE['spark'], -21, hall=.1, label='phuljhadi spark')
     # --- 'Sabko!' : ghungroo flourish + dha + santoor D6 + a soft tutti D
     sb = CUE['sabko']
-    sfx.add(ghungroo(.4, 45, 7), sb, -15, pan=.15, hall=.2, label='Sabko ghungroo')
-    drm.add(stroke('dhol', 77), sb, -9, hall=.12)
-    santoor_phrase(mus, [(sb, 'D6')], -8, pans=[.1], hall=.3, synth_db=-4, vel=118, dur=2.0)
-    mus.add(chime('D6'), sb, -13, pan=.1, hall=.3)
+    sfx.add(ghungroo(.4, 45, 7), sb, -12, pan=.15, hall=.2, label='Sabko ghungroo')
+    drm.add(stroke('dhol', 77), sb, -7, hall=.12)
+    santoor_phrase(mus, [(sb, 'D6')], -5, pans=[.1], hall=.3, synth_db=-4, vel=118, dur=2.0)    # 3 dB over the ticker
+    mus.add(chime('D6'), sb, -11, pan=.1, hall=.3)
     tut = gm('strings', [(sb, n, .9, 96) for n in ['D3', 'A3', 'D4', 'F#4', 'A4']], sb, 2.0,
              cc=[(sb, 11, 100)] + ramp_cc(sb + .1, sb + 1.0, 100, 50))
     mus.add(hpf(peak1(tut), 150), sb - .02, -16, hall=.3, snap=False)
@@ -1357,7 +1570,7 @@ def mixdown(B):
     out['mus_a'] *= gA * duck_m
     out['drm_a'] *= gA * duck_d
     # B buses: the late-latif half-beat of silence
-    gB = gate_env([(a, z, .03, .012)])
+    gB = gate_env([(a, z, .08, .012)])                 # 80 ms close: the hall tails breathe out instead of being cut
     out['mus_b'] *= gB * duck_m
     out['drm_b'] *= gB * duck_d
     # tanpura fade at -6 dB/s from beat 39 is applied to the music-B bus tail
@@ -1370,7 +1583,10 @@ def mixdown(B):
 
 def master(out, ceiling_db=-1.0):
     total = sum(out.values())
-    total = np.vstack([fft_filter(c, lo=32, hi=12500, width=.4) for c in total])     # sub rumble + >12 kHz roll-off
+    total = np.vstack([fft_filter(c, lo=45, hi=12500, width=.4) for c in total])     # sub rumble + >12 kHz roll-off
+    # phones can't play the lowest band but it eats the limiter's headroom: a gentle shelf on the WHOLE mix (sfx and big
+    # included), so the -14 LUFS normalisation hands that headroom to the 300 Hz-8 kHz band
+    total = low_shelf(total, 110, -3.0)
     mix = S.Mix(DUR + .6)                       # +0.6 s so Mix's built-in 0.5 s end fade misses the loop seam
     mix.add(total[:, :mix.n], 0.0)
     st = mix.render(reverb=0.0, lufs=-14.0, ceiling_db=ceiling_db, air_db=.5, warmth_db=.5)
@@ -1557,6 +1773,18 @@ def main():
     ap.add_argument('--stems', default=None, help='also write each bus (pre-master) as a WAV into this directory')
     args = ap.parse_args()
     t0 = time.time()
+    print('end card cues read from scenes/s7-endcard.js: logo2/diyas ' + '/'.join(f"{S7T['DIYA_T'][k]:.3f}" for k in 'lcr')
+          + f" | seal {CUE['seal']:.3f} | toran {CUE['toran']:.3f} | pad {CUE['pad_chord']:.3f} | pen {CUE['pen']:.3f}"
+          f" | label {CUE['fwd_label']:.3f} | ticker " + ', '.join(f'{t:.3f}' for t in CUE['ticker'])
+          + (f" | DEFAULTS used for: {', '.join(S7_MISSING)}" if S7_MISSING else ''))
+    print('s6 rockets/burst/willows read from scenes/s6-mark.js: launch %.3f | burst %.3f | willows %s%s' % (
+        S6T['T_LAUNCH'], S6T['T_BURST'], ', '.join(f'{t:.3f}' for t, _ in CUE['willows']),
+        f" | DEFAULTS used for: {', '.join(S6_MISSING)}" if S6_MISSING else ''))
+    for nm, a, b in (('rocket launch', S6T['T_LAUNCH'], CUE['launch3']), ('triple burst', S6T['T_BURST'], CUE['triple'])):
+        if abs(a - b) > .5 / FPS:
+            print(f'WARNING: s6 {nm} is at {a:.3f} but the music has it on {b:.3f}')
+    if abs(S7T['T_SABKO'] - CUE['sabko']) > .5 / FPS:
+        print(f"WARNING: s7 'Sabko!' is at {S7T['T_SABKO']:.3f} but the music lands it on beat 37 ({CUE['sabko']:.3f})")
     print('composing...')
     B = build()
     out = mixdown(B)

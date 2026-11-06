@@ -84,40 +84,57 @@
       g.restore();
     }
   }
-  const PW = 108;
-  const plateImg = () => L.cached('mmh-plate', PW * 4, 28 * 4, g => {
-    g.scale(4, 4); g.fillStyle = C.ink; g.fillRect(0, 0, PW, 28); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(0, 0, PW, 1.2);
-    L.drawLogo(g, 'mark', { x: 5, y: 5, h: 18, anchor: 'topleft', way: 'reverse' });
-    L.text(g, 'MM Advertising', 28, 18.5, { font: 'lat', size: 9.5, weight: 650, color: C.paper, align: 'left', maxWidth: PW - 32 });
+  // media-owner plates. Only the hook board (H1, in s1) carries the full mark + wordmark plate and the gantry G1 a
+  // mark-only plate (h 14): the rest are the network's plain Ink plates with a Stone site number, so the wide frame
+  // reads as one owner's real sites, not a logo wall.
+  const PW = 108, PH = 28;
+  const plateImg = code => L.cached('mmh-plate-site-' + code, PW * 4, PH * 4, g => {
+    g.scale(4, 4); g.fillStyle = C.ink; g.fillRect(0, 0, PW, PH); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(0, 0, PW, 1.2);
+    g.fillStyle = 'rgba(140,135,131,.75)'; for (const bx of [4.5, PW - 4.5]) { L.circle(g, bx, PH / 2, 1.3); g.fill(); }   // rivets
+    L.text(g, code, PW / 2, PH / 2 + 3.2, { font: 'lat', size: 8.5, weight: 600, color: L.rgba(C.stone, .85), maxWidth: PW - 20, tracking: 1.2 });
   });
-  function plate(g, x, y, blur) {   // tiny MM media-owner plate (decorative at this scale)
-    U.setBlur(g, blur || 0); g.drawImage(plateImg(), x, y, PW, 28); g.filter = 'none';
+  function plate(g, x, y, blur, code) {   // plain site plate (decorative at this scale)
+    U.setBlur(g, blur || 0); g.drawImage(plateImg(code), x, y, PW, PH); g.filter = 'none';
   }
-  /** mini stamp. Before `at`: the wood block slams in (scale 1.5 -> 1 in .1 s, real perspective about the camera's
-      vanishing point). From `at`: the dense impression (clipped to the face), 16 violet specks and a violet ring racing out
-      from the stamp's edge (0 -> 70 screen px in .15 s). sw = stamp width in layer px (BOOKED cap = .114 sw). */
+  const MK_H = 14, MK_W = MK_H * L.logoSize('mark').w / L.logoSize('mark').h, MPW = Math.round(MK_W + 11), MPH = MK_H + 10;
+  const markPlateImg = () => L.cached('mmh-plate-mark', MPW * 4, MPH * 4, g => {
+    g.scale(4, 4); g.fillStyle = C.ink; g.fillRect(0, 0, MPW, MPH); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(0, 0, MPW, 1.2);
+    L.drawLogo(g, 'mark', { x: MPW / 2, y: MPH / 2 + .4, h: MK_H, anchor: 'center', way: 'reverse' });
+  });
+  function markPlate(g, x, y, blur) { U.setBlur(g, blur || 0); g.drawImage(markPlateImg(), x, y, MPW, MPH); g.filter = 'none'; }
+  /** mini stamp: the same rubber-stamp prop as the hook (U.stamp3D), scaled. Before `at`: it slams in (apparent scale
+      1.3 -> 1 in .1 s, as the hook stamp; leaning on its knob -> flat, real perspective about the camera's optical centre). From `at`: the
+      dense impression (clipped to the face), 16 violet specks and a violet ring racing out from the stamp's edge; the
+      block holds 2 frames, then is lifted off over 3 frames (up, toward the lens, tipping back, fading), revealing the ink.
+      sw = stamp width in layer px (BOOKED cap = .114 sw). */
+  const MS_HOLD = 2 / 30, MS_LIFT = 3 / 30;
   function miniStamp(g, face, cx, cy, sw, rotDeg, at, T, d, k) {
     const sc = sw / 700;
     if (T < at - .1) return;
-    if (T < at) {
-      const u = clamp((T - (at - .1)) / .1), s = lerp(1.5, 1, u * u * u), cm = H.cam(T);
-      g.save(); g.globalAlpha = clamp(.35 + u * 2);
-      U.drawBlock(g, cx, cy, rotDeg * DEG, sc * s, .07 * s, 350, 125, 540 - cm.ex / d, 960 - cm.ey / d);
-      g.restore();
-      return;
-    }
     const tau = T - at;
-    g.save(); g.beginPath(); g.rect(face[0], face[1], face[2], face[3]); g.clip();
-    g.translate(cx, cy); g.rotate(rotDeg * DEG); g.scale(sc, sc);
-    H.drawImpression(g, tau, 16, .55 / sc * .22);
-    g.restore();
-    if (tau < .15) {                                                                   // the hit, readable even under blur
-      const u = tau / .15, r = 70 * Ez.outQuad(u) / k, a = .5 * (1 - u);
-      g.save(); g.translate(cx, cy); g.rotate(rotDeg * DEG);
-      g.strokeStyle = L.rgba(C.violet, a); g.lineWidth = 3.2 / k;
-      L.rrect(g, -350 * sc - r, -125 * sc - r, 700 * sc + 2 * r, 250 * sc + 2 * r, r * .6); g.stroke();
+    if (tau >= 0) {
+      g.save(); g.beginPath(); g.rect(face[0], face[1], face[2], face[3]); g.clip();
+      g.translate(cx, cy); g.rotate(rotDeg * DEG); g.scale(sc, sc);
+      H.drawImpression(g, tau, 16, .55 / sc * .22);
       g.restore();
+      if (tau < .15) {                                                                 // the hit, readable even under blur
+        const u = tau / .15, r = 70 * Ez.outQuad(u) / k, a = .5 * (1 - u);
+        g.save(); g.translate(cx, cy); g.rotate(rotDeg * DEG);
+        g.strokeStyle = L.rgba(C.violet, a); g.lineWidth = 3.2 / k;
+        L.rrect(g, -350 * sc - r, -125 * sc - r, 700 * sc + 2 * r, 250 * sc + 2 * r, r * .6); g.stroke();
+        g.restore();
+      }
     }
+    // the block: screen-space keys (apparent scale s, lean, offset), then placed in 3D about the optical centre
+    if (tau >= MS_HOLD + MS_LIFT) return;
+    let s, tilt, ox, oy, alpha;
+    if (tau < 0) { const w = clamp((tau + .1) / .1), e = w * w * w; s = lerp(1.3, 1, e); tilt = lerp(34, 0, e); ox = 34 * sc / .25 * (1 - e); oy = -22 * sc / .25 * (1 - e); alpha = clamp(.6 + w * 2); }
+    else if (tau < MS_HOLD) { s = 1; tilt = 0; ox = oy = 0; alpha = 1; }
+    else { const w = clamp((tau - MS_HOLD) / MS_LIFT), e = w * w; s = lerp(1, 1.3, e); tilt = 30 * e; ox = 40 * sc / .25 * e; oy = -130 * sc / .25 * e; alpha = 1 - L.smoothstep(.3, 1, w); }
+    if (alpha <= .01) return;
+    const cm = H.cam(T), vx = 540 - cm.ex / d, vy = 960 - cm.ey / d, Dl = 1800 * sc;
+    const sx = cx + ox, sy = cy + oy;
+    U.stamp3D(g, { cx: vx + (sx - vx) / s, cy: vy + (sy - vy) / s, Z: Dl * (1 - 1 / s), u: sc, rot: rotDeg * DEG, tilt: tilt * DEG, tdir: -38 * DEG, D: Dl, vx, vy, alpha, discs: 12 });
   }
 
   /* ---------------------------------------------------------------- the five city boards */
@@ -132,7 +149,7 @@
     litFace(g, faceCanvas('U1b', w, h, 'top'), x, y, w, h, T, blur, .04, 214, 160, TM.b5);
     miniStamp(g, U1, x + w * .52, y + h * .66, 166, -10, TM.b5, T, 2, k);
     lampsOn(g, x, y, w, h, 2, k, blur, .9);
-    plate(g, x + w - PW, y + h + 12, blur);
+    plate(g, x + w - PW, y + h + 12, blur, 'LKO · 0127');
   } });
   // W1 building wrap (mid layer, on the tall tower x 830–1040), lit from below by two floods
   const W1 = [838, 682, 168, 256];
@@ -144,7 +161,7 @@
     g.save(); g.globalCompositeOperation = 'lighter';
     for (const lx of [x + 32, x + w - 32]) { const cg = g.createLinearGradient(0, y + h + 10, 0, y + 60); cg.addColorStop(0, 'rgba(255,236,206,.16)'); cg.addColorStop(1, 'rgba(255,236,206,0)'); g.fillStyle = cg; g.beginPath(); g.moveTo(lx - 5, y + h + 10); g.lineTo(lx + 5, y + h + 10); g.lineTo(lx + 66, y + 60); g.lineTo(lx - 66, y + 60); g.closePath(); g.fill(); U.lamp(g, lx, y + h + 12, 2, '#FFE9C8', .9, k, blur); }
     g.restore();
-    plate(g, x + w - PW, y + h + 10, blur);
+    plate(g, x + w - PW - 12, y + h + 10, blur, 'LKO · 0309');
   } });
   // L1 rooftop LED screen (mid layer): test pattern in palette light colours -> 2-frame glitch -> pixel BOOKED
   const PIX = { B: ['11110', '10001', '10001', '11110', '10001', '10001', '11110'], O: ['01110', '10001', '10001', '10001', '10001', '10001', '01110'],
@@ -203,7 +220,7 @@
     U.put(g, U.softSpr(f < fl ? '#E8DCC0' : '#FFF1DC'), x + w / 2, y + h / 2, 110, .1 * pulse * boot);
     if (f >= fl && f < fl + 2) U.put(g, U.softSpr('#FFFFFF'), x + w / 2, y + h / 2, 90, .25);
     g.restore();
-    plate(g, x + w - PW, y + h + 8, blur);
+    plate(g, x + w - PW, y + h + 8, blur, 'LKO · 0221');
   } });
   // H2 rooftop hoarding (d 1.6; its trusses and building live in the h2 block cache): the brightest board after the hook
   const H2F = [500, 1000, 300, 176];
@@ -214,7 +231,7 @@
     litFace(g, faceCanvas('H2c', w, h, 'high'), x, y, w, h, T, blur, 0, 246, 200, TM.b4);
     miniStamp(g, H2F, x + w * .53, y + h * .71, 188, -7, TM.b4, T, H2_D, k);
     lampsOn(g, x, y, w, h, 3, k, blur, 1);
-    plate(g, x + w - PW - 4, y + h + 16, blur);
+    plate(g, x + w - PW - 4, y + h + 16, blur, 'LKO · 0412');
   } });
   // G1 gantry over the flyover (d .8): a wide, short face laid out in two columns; the stamp lands in the left box,
   // which is the part already in frame on the beat-4 downbeat
@@ -232,7 +249,7 @@
     litFace(g, faceCanvas('G1b', w, h, 'split'), x, y, w, h, T, blur, 0, 222, 172, TM.b4);
     miniStamp(g, G1F, x + w * .23, y + h * .52, 168, -9, TM.b4, T, H.FLY_D, k);
     lampsOn(g, x, y - 18, w, h + 18, 3, k, blur, .85);
-    plate(g, x + 8, y + h + 4, blur);
+    markPlate(g, x + 8, y + h + 4, blur);
   } });
 
   /* ---------------------------------------------------------------- beat-7 glints along the parapets

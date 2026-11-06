@@ -294,12 +294,21 @@
   }
 
   /* ======================= STREET (z 1, world) ======================= */
+  /** asphalt tile: coarse bitumen mottling plus 2-4 px aggregate stones, light and dark (drawn at 4 %) */
+  const asphaltTex = () => L.cached('s3-asphalt', 512, 512, g => {
+    g.drawImage(L.textureCanvas('ink', 512, 61), 0, 0);
+    for (let k = 0; k < 2600; k++) { const x = rnd(1301, k) * 512, y = rnd(1302, k) * 512, r = 1 + rnd(1303, k) * 1.6, v = rnd(1304, k);
+      g.fillStyle = v > .55 ? `rgb(${190 + v * 60 | 0},${185 + v * 60 | 0},${180 + v * 60 | 0})` : 'rgb(10,9,12)'; g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill(); }
+  });
   function drawStreet(g, c) {
     const [xa, xb] = visX(c, 1), xL = Math.floor(xa / 160) * 160 - 160, xR = xb + 160;
     g.fillStyle = '#2A2629'; g.fillRect(xL, 1632, xR - xL, 30); topEdge(g, xL, 1632, xR - xL, .5);
     g.fillStyle = '#1D1A1E'; for (let x = xL; x < xR; x += 64) g.fillRect(x, 1650, 2, 12);
-    const gr = g.createLinearGradient(0, 1662, 0, 2400); gr.addColorStop(0, '#201D21'); gr.addColorStop(1, '#141215');
+    // lifted, textured blacks: the road never drops below ~(26,21,30) after the grade + vignette, and carries a 4 %
+    // asphalt aggregate so the dark band has detail to survive WhatsApp recompression (no flat blocks)
+    const gr = g.createLinearGradient(0, 1662, 0, 2400); gr.addColorStop(0, '#36313A'); gr.addColorStop(1, '#2C2731');
     g.fillStyle = gr; g.fillRect(xL, 1662, xR - xL, 1400);
+    g.save(); g.globalAlpha = .04; const at = asphaltTex(); for (let y = 1662; y < 2420; y += 512) for (let x = Math.floor(xL / 512) * 512; x < xR; x += 512) g.drawImage(at, x, y); g.restore();
     g.fillStyle = 'rgba(140,135,131,.5)'; for (let x = xL; x < xR; x += 160) g.fillRect(x, 1918, 86, 7);
     if (!FAST) L.textureOverlay(g, 'powder', xL, 1662, xR - xL, 760, { alpha: .09, blend: 'overlay', scale: .5, seed: 9 });
   }
@@ -439,40 +448,101 @@
       topEdge(g, x, 1552, 190, .4);
     }
     grime(g, -320, 1290, 1560, 360, 1);
-    for (let k = 0; k < 7; k++) L.toran(g, { x0: -275 + k * 220, x1: -95 + k * 220, y: 1580, t: 0, seed: 50 + k, flower: 7, strands: 4, strandLen: 2, sway: 0 });
+    ownMarigolds(() => { for (let k = 0; k < 7; k++) L.toran(g, { x0: -275 + k * 220, x1: -95 + k * 220, y: 1580, t: 0, seed: 50 + k, flower: 7, strands: 4, strandLen: 2, sway: 0 }); });
   });
   function slatAngle(T, i) {
     const t0 = 5.0667 + i * .0035, d = .08, u = (T - t0) / d;
     if (u <= 0) return 0; if (u < 1) return 120 * E.inOutQuad(u);
     const v = T - (t0 + d); return v > .6 ? 120 : 120 + 5 * Math.exp(-30 * v) * Math.sin(60 * v);
   }
-  // jhadu sweep keyframes: t, contact x, lift, angle (deg), bristle bend
-  const JK = [[5.2, 150, 8, -52, -.3], [5.233, 215, 0, -50, -.9], [5.35, 560, 0, -36, -.7], [5.383, 615, 0, -30, .8], [5.417, 585, 24, -46, .2], [5.45, 610, 0, -50, -.9], [5.53, 930, 0, -36, -.7], [5.567, 1010, 4, -28, .8], [5.62, 1110, 34, -22, .4]];
-  const JX = JK.map(k => [k[0], k[1]]), JL = JK.map(k => [k[0], k[2]]), JA = JK.map(k => [k[0], k[3]]), JB = JK.map(k => [k[0], k[4]]);
-  function jhadu(g, bend, shadow) {
-    // phool-jhadu: a dense fan of dark grass strands (Ink 85 %) with pale Stone tips, a wrapped binding, an Ink handle
-    const ink = shadow ? [INK] : ['#2B2728', '#352F31', '#241F21', '#3D3638'], tip = shadow ? [INK] : [STONE, '#A39D96', '#7E7974'];
-    g.lineCap = 'butt';
-    for (let k = 0; k < 40; k++) {
-      const u = k / 39 - .5, len = 92 * (.84 + .16 * rnd(71, k)) * (1 - .18 * Math.abs(u));
-      const tx = u * 130 + bend * 30 * (.55 + .45 * rnd(72, k)) * (.4 + Math.abs(u)), ty = len, sx = u * 20, cxq = sx + (tx - sx) * .3 - bend * 6, cyq = ty * .55;
-      const w = 2.6 + .9 * rnd(74, k), split = .68 + .1 * rnd(75, k);
-      // quadratic split at `split`: first part Ink, last part Stone tip
-      const q = (a, b, c, s) => (1 - s) * (1 - s) * a + 2 * s * (1 - s) * b + s * s * c;
-      const mx = q(sx, cxq, tx, split), my = q(8, cyq, ty, split), c1x = lerp(sx, cxq, split), c1y = lerp(8, cyq, split);
-      g.lineWidth = w; g.strokeStyle = L.rgba(ink[Math.floor(rnd(73, k) * ink.length)], .85);
-      g.beginPath(); g.moveTo(sx, 8); g.quadraticCurveTo(c1x, c1y, mx, my); g.stroke();
-      g.lineWidth = w * .8; g.strokeStyle = tip[Math.floor(rnd(76, k) * tip.length)];
-      g.beginPath(); g.moveTo(mx, my); g.quadraticCurveTo(lerp(cxq, tx, split), lerp(cyq, ty, split), tx, ty); g.stroke();
-    }
-    // wrapped binding: 12 px darker band with diagonal wraps
-    g.fillStyle = '#1A1618'; g.beginPath(); g.moveTo(-13, -4); g.lineTo(13, -4); g.lineTo(11, 12); g.lineTo(-11, 12); g.closePath(); g.fill();
-    if (!shadow) { g.strokeStyle = 'rgba(140,135,131,.7)'; g.lineWidth = 2; g.beginPath(); for (let k = 0; k < 4; k++) { g.moveTo(-12, -1 + k * 4); g.lineTo(12, -4 + k * 4); } g.stroke(); }
-    g.fillStyle = INK; g.beginPath(); g.roundRect(-5, -152, 10, 150, 4); g.fill();
-    if (!shadow) { g.fillStyle = 'rgba(140,135,131,.8)'; g.fillRect(-4, -148, 2, 140); }
-    g.strokeStyle = shadow ? INK : STONE; g.lineWidth = 2.5; g.beginPath(); g.arc(0, -158, 6, 0, TAU); g.stroke();
+  /* ---- the jhadu: a solid, sharp phool-jhadu animated ON TWOS (a new pose every 2 frames, held across the frame's
+     motion-blur sub-samples, so it never smears). Two flicks along the printed floor 5.200-5.667 that push the dust
+     into a pile, a hop over the pile, then it is set down (5.800) leaning in the face's bottom-right corner against
+     the frame, beside its pile, until the whip. On the 'हाफ़' crack (6.400) it slumps 3°, like the back. ---- */
+  const FLOOR = 1176, J_HANDLE = 230, J_FAN = 150, J_FANW = 210, J_WALL = 952;
+  const twos = T => { const f = Math.round(T * 30); return (f - (f & 1)) / 30; };   // pose clock: steps every 2 frames
+  // poses: frame, tip-centre x on the floor, lift, axis angle (deg, + = handle top to the right), bristle bend, press into
+  // the floor, lean on the frame (x then solved so the handle top rests on the right frame edge)
+  const JK = [[156, 150, 6, -62, -.2, 6], [158, 250, 0, -62, -.9, 14], [160, 350, 0, -57, -.7, 14], [162, 430, 4, -52, .8, 6],
+    [164, 400, 22, -60, .3, 0], [166, 470, 0, -62, -.9, 14], [168, 545, 0, -57, -.7, 14], [170, 600, 4, -52, .8, 6],
+    [172, 800, 18, -64, .2, 0], [174, 0, 0, 21, -.25, 22, 1], [176, 0, 0, 15.5, .15, 22, 1], [178, 0, 0, 17, 0, 22, 1],
+    [192, 0, 0, 17, 0, 22, 1], [194, 0, 0, 21, -.15, 22, 1], [196, 0, 0, 19.8, .05, 22, 1]];
+  function jPose(T) { const f = Math.round(twos(T) * 30); let p = null; for (const k of JK) if (k[0] <= f) p = k; return p; }
+  const J_STR = [];
+  for (let k = 0; k < 29; k++) { const u = k / 28 - .5;
+    J_STR.push({ k, u, sx: u * 22, cx: u * 74, cy: J_FAN * .42, tx: u * J_FANW * (.95 + .05 * rnd(71, k)), ty: J_FAN * (.9 + .1 * rnd(72, k)) * (1 - .16 * (2 * u) ** 2) }); }
+  const qb = (a, b, c, s) => (1 - s) * (1 - s) * a + 2 * s * (1 - s) * b + s * s * c;
+  function jGeom(p) {
+    const a = p[3] * DEG, bend = p[4];
+    // the grass fan flexes: its local rotation eases off toward the tips, and the tips shear with the stroke
+    const loc = (lx, ly) => { const v = clamp(ly / J_FAN), aa = a * (1 - .45 * v), bx = lx + bend * 40 * v * v; return [bx * Math.cos(aa) - ly * Math.sin(aa), bx * Math.sin(aa) + ly * Math.cos(aa)]; };
+    const tc = loc(0, J_FAN);
+    let Bx = p[1] - tc[0]; const By = FLOOR - p[2] + p[5] - tc[1];
+    if (p[6]) Bx += J_WALL - (Bx + (J_HANDLE + 4) * Math.sin(a) + 7 * Math.cos(a));
+    return { a, loc, Bx, By };
   }
-  const PUFFS = [[5.29, 430, 1128], [5.383, 655, 1124], [5.55, 958, 1124]];
+  function jStrand(G, s, n = 8) {
+    const pts = [];
+    for (let i = 0; i <= n; i++) { const t = i / n, [wx, wy] = G.loc(qb(s.sx, s.cx, s.tx, t), qb(10, s.cy, s.ty, t)); pts.push([G.Bx + wx, G.By + wy]); }
+    // floor contact: bristles that would pass through the floor are pressed flat and splay outward along it
+    const dx = pts[n][0] - pts[0][0], dy = pts[n][1] - pts[0][1], sp = clamp(dx / (Math.hypot(dx, dy) || 1) * 1.3 + s.u * 1.5, -1.5, 1.5);
+    for (const q of pts) if (q[1] > FLOOR - 1) { q[0] += (q[1] - FLOOR + 1) * sp; q[1] = FLOOR - 1 - 2 * rnd(77, s.k); }
+    return pts;
+  }
+  function drawJhadu(g, T) {
+    const p = jPose(T); if (!p) return;
+    const G = jGeom(p), strands = J_STR.map(s => jStrand(G, s));
+    // fan: solid Ink silhouette with a ragged tip edge
+    const P = new Path2D(), N = strands.length;
+    strands[0].forEach((q, i) => i ? P.lineTo(q[0], q[1]) : P.moveTo(q[0], q[1]));
+    for (let k = 1; k < N; k++) { const v = strands[k][strands[k].length - 2], tp = strands[k][strands[k].length - 1]; P.lineTo((v[0] + tp[0]) / 2, (v[1] + tp[1]) / 2 - 3); P.lineTo(tp[0], tp[1]); }
+    for (let i = strands[N - 1].length - 1; i >= 0; i--) P.lineTo(strands[N - 1][i][0], strands[N - 1][i][1]);
+    P.closePath(); g.fillStyle = INK; g.fill(P);
+    // grass strands: Stone strokes on every other strand, a near-Ink sheen line between; pale fluffy tips
+    g.lineCap = 'round'; g.lineJoin = 'round';
+    for (const [k, pts] of strands.entries()) {
+      g.strokeStyle = k % 2 ? STONE : '#4A4446'; g.lineWidth = k % 2 ? 1.6 : 1.2;
+      g.beginPath(); g.moveTo(pts[1][0], pts[1][1]); for (let i = 2; i < pts.length; i++) g.lineTo(pts[i][0], pts[i][1]); g.stroke();
+      const a = pts[pts.length - 2], b = pts[pts.length - 1];
+      g.strokeStyle = k % 3 ? '#A39D96' : STONE; g.lineWidth = 3;
+      g.beginPath(); g.moveTo(lerp(a[0], b[0], .35), lerp(a[1], b[1], .35)); g.lineTo(b[0], b[1]); g.stroke();
+    }
+    // handle: Ink, Stone edge highlight, Stone tape wraps at the grip, hanging loop; Stone binding band with Ink wraps
+    g.save(); g.translate(G.Bx, G.By); g.rotate(G.a);
+    g.fillStyle = INK; g.beginPath(); g.roundRect(-7, -J_HANDLE, 14, J_HANDLE + 4, 4); g.fill();
+    g.fillStyle = STONE; g.fillRect(-5, -J_HANDLE + 6, 2, J_HANDLE - 14);
+    g.strokeStyle = STONE; g.lineWidth = 2; g.beginPath(); for (let k = 0; k < 4; k++) { g.moveTo(-7, -J_HANDLE + 14 + k * 7); g.lineTo(7, -J_HANDLE + 9 + k * 7); } g.stroke();
+    g.beginPath(); g.arc(0, -J_HANDLE - 6, 6, 0, TAU); g.stroke();
+    g.fillStyle = STONE; g.beginPath(); g.roundRect(-14, -10, 28, 22, 3); g.fill();
+    g.strokeStyle = INK; g.lineWidth = 2.2; g.beginPath(); for (let k = 0; k < 4; k++) { g.moveTo(-14, -5 + k * 5.5); g.lineTo(14, -9 + k * 5.5); } g.stroke();
+    g.fillStyle = 'rgba(43,39,40,.5)'; g.fillRect(-14, 10, 28, 2);
+    g.restore();
+  }
+  /** the swept dust: pushed ahead of the fan on every contact pose, left as a small heap (with a marigold petal, a
+      scrap of cracker paper and a burnt sparkler wire) beside the leaning jhadu */
+  function jPile(T) {
+    const f = Math.round(twos(T) * 30); if (f < 156) return null;
+    let x = 0; for (const k of JK) if (k[0] <= f && k[0] <= 170 && k[2] < 5) x = Math.max(x, k[1] + 90);
+    return { x, s: .45 + .75 * clamp((f - 156) / 14) };
+  }
+  const pileSprite = () => L.cached('s3-pile', 120, 44, g => {
+    g.translate(60, 40);
+    const pts = []; for (let k = 0; k <= 16; k++) { const u = k / 16, x = (u - .5) * 104, h = 30 * Math.pow(Math.sin(u * Math.PI), .8) * (.82 + .3 * rnd(781, k)); pts.push([x, -h]); }
+    g.fillStyle = '#7E7974'; L.poly(g, [[-54, 2], ...pts, [54, 2]]); g.fill();
+    g.save(); g.clip(); L.textureOverlay(g, 'powder', -60, -40, 120, 44, { alpha: .55, blend: 'multiply', scale: .3, seed: 31 });
+    g.fillStyle = 'rgba(201,196,191,.45)'; for (let k = 0; k < 34; k++) g.fillRect((rnd(782, k) - .5) * 96, -rnd(783, k) * 26, 2, 2);
+    g.fillStyle = 'rgba(43,39,40,.55)'; for (let k = 0; k < 26; k++) g.fillRect((rnd(784, k) - .5) * 96, -rnd(785, k) * 22, 2, 2);
+    g.restore();
+    g.strokeStyle = '#3D3638'; g.lineWidth = 2; g.beginPath(); g.moveTo(-8, -12); g.lineTo(30, -34); g.stroke();      // burnt sparkler wire
+    g.fillStyle = '#E2741C'; g.beginPath(); g.ellipse(-26, -12, 7, 4, -.5, 0, TAU); g.fill();                          // marigold petal
+    g.fillStyle = '#D9C9A8'; L.poly(g, [[12, -6], [24, -11], [27, -2], [15, 1]]); g.fill();                              // cracker paper scrap
+    g.fillStyle = 'rgba(43,39,40,.35)'; g.fillRect(-54, 0, 108, 2);
+  });
+  function drawPile(g, T) {
+    const pl = jPile(T); if (!pl || pl.x <= 0) return;
+    g.save(); g.translate(pl.x, FLOOR + 1); g.scale(pl.s, pl.s); g.drawImage(pileSprite(), -60, -40); g.restore();
+  }
+  const PUFFS = [[5.4, 470, 1150], [5.667, 650, 1150], [5.8, 790, 1160]];
   /** irregular powder clouds: soft lumpy blobs with a powder-grain alpha (cached variants) */
   const puffSprite = v => L.cached('s3-puff' + v, 128, 128, g => {
     const im = g.createImageData(128, 128), d = im.data, tex = L.textureCanvas('powder', 512, 30 + v).getContext('2d').getImageData(v * 100, v * 60, 128, 128).data;
@@ -485,7 +555,8 @@
     }
     g.putImageData(im, 0, 0);
   });
-  function drawPuffs(g, T) {
+  function drawPuffs(g, T0) {
+    const T = twos(T0);   // on twos, with the jhadu
     for (let p = 0; p < 3; p++) {
       const [t0, px, py] = PUFFS[p], u = (T - t0) / .3; if (u < 0 || u > 1) continue;
       const e = E.outCubic(u);
@@ -510,12 +581,12 @@
     g.fillStyle = L.rgba('#FFFFFF', a); g.beginPath(); g.arc(x, y, s * .16 + .8, 0, TAU); g.fill();
   }
   function drawSparkles(g, T) {
-    if (T < 5.45 || T > 6.5) return;
+    if (T < 5.45 || T > 6.46) return;
     // the swept dust turns to gold glitter that runs OUT along the floor band, then rises up the board's two edges
     // into the sky (never over the copy: x 150..930 x y 690..915 is kept clean)
     g.save(); g.globalCompositeOperation = 'lighter';
     for (let k = 0; k < 24; k++) {
-      const p = k % 3, [, px, py] = PUFFS[p], ts = 5.48 + rnd(91, k) * .3, te = 6.4 - rnd(92, k) * .12, u = (T - ts) / (te - ts); if (u < 0 || u > 1) continue;
+      const p = k % 3, [, px, py] = PUFFS[p], ts = PUFFS[p][0] + .06 + rnd(91, k) * .2, te = 6.45 - rnd(92, k) * .12, u = (T - ts) / (te - ts); if (u < 0 || u > 1) continue;
       const side = p === 0 ? -1 : p === 2 ? 1 : (Math.floor(k / 3) % 2 ? 1 : -1);
       const ex = side < 0 ? 62 + rnd(93, k) * 80 : 942 + rnd(93, k) * 80;          // corridor beside the frame
       const x0 = px + (rnd(97, k) - .5) * 70, y0 = py - 14 - rnd(94, k) * 30, ym = 1050 + rnd(98, k) * 60, y1 = 400 + rnd(95, k) * 110;
@@ -545,27 +616,29 @@
     g.save(); g.translate(wd.x + wh / 2, 240 + cr.dy); g.transform(1, 0, -Math.tan(cr.sk * DEG), 1, 0, 0); g.scale(1, cr.sy);
     L.text(g, HAF, 0, 0, Object.assign({}, o, { color: RED, maxWidth: wh + 2 }));
     g.restore();
-    if (T >= 6.4 && T < 6.6) {   // 'krrk' ticks: three bold Ink strokes radiating off the danda
+    if (T >= 6.4 && T < 6.6) {   // 'krrk' ticks: three bold Ink strokes radiating off the top of 'हाफ़' (its back)
       const a = 1 - E.inQuad(clamp((T - 6.53) / .07)); g.strokeStyle = L.rgba(INK, .95 * a); g.lineWidth = 6; g.lineCap = 'round';
-      const cx = wd.x + wh + 14, cy = 166, grow = E.outCubic(clamp((T - 6.4) / .05));
-      for (let j = 0; j < 3; j++) { const ang = -1.25 + j * .55, r0 = 12, r1 = 12 + 36 * grow; g.beginPath(); g.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0); g.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1); g.stroke(); }
+      const cx = wd.x + wh * .62, cy = 150, grow = E.outCubic(clamp((T - 6.4) / .05));
+      for (let j = 0; j < 3; j++) { const ang = -2.2 + j * .6, r0 = 10, r1 = 10 + 30 * grow; g.beginPath(); g.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0); g.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1); g.stroke(); }
     }
-    const fa = prog(T, 6.4, 6.6, E.outQuad);
+    // fine print, readable on a phone: 40 px Ink at 85 %, centred in the clear band under the sub; the two MM Red
+    // asterisks (after 'हाफ़।' and at the start of the line) tie the footnote to the punch word
+    const fa = prog(T, 5.9, 6.1, E.outQuad);
     if (fa > 0) {
-      const ew = L.measure(g, FINE_A_EN, { font: 'lat', size: 28, weight: 500 });
-      L.text(g, FINE_A_EN, 810, 590, { font: 'lat', size: 28, weight: 500, color: STONE, align: 'right', alpha: fa, maxWidth: 260 });
-      L.text(g, FINE_A_HI, 810 - ew, 590, { font: 'dev', size: 28, weight: 500, color: STONE, align: 'right', alpha: fa, maxWidth: 230 });
+      const oh = { font: 'dev', size: 40, weight: 500 }, oe = { font: 'lat', size: 40, weight: 500 }, oa = { font: 'lat', size: 40, weight: 600 };
+      const sa = L.measure(g, '*', oa), w1 = L.measure(g, FINE_A_HI.slice(1), oh), wm = L.measure(g, '  ·  ', oe), w2 = L.measure(g, FINE_A_EN.slice(6), oe);
+      let x = 420 - (2 * sa + w1 + wm + w2) / 2; const y = 440, al = .85 * fa;   // baseline 1000: descenders clear the floor rule
+      for (const [str, o, col, w] of [['*', oa, RED, sa], [FINE_A_HI.slice(1), oh, INK, w1], ['  ·  ', oe, INK, wm], ['*', oa, RED, sa], [FINE_A_EN.slice(6), oe, INK, w2]]) {
+        L.text(g, str, x, y, Object.assign({}, o, { align: 'left', color: col, alpha: col === RED ? fa : al, maxWidth: w + 2 })); x += w;
+      }
+      // the footnote mark on the hero, stamped in on the same beat
+      const wD = L.measure(g, DANDA, o), sc = keys(T - 5.9, [[0, 1.6], [.1, .9], [.167, 1]]);
+      g.save(); g.translate(wd.x + wh + wD + 16, 240 - 40); g.scale(sc, sc);
+      L.text(g, '*', 0, 22, { font: 'lat', size: 64, weight: 700, color: RED, alpha: fa, maxWidth: 40 }); g.restore();
     }
     g.restore();
-    // jhadu: two strokes along the printed floor, shadow on the face
-    if (T >= 5.2 && T <= 5.64) {
-      const x = keys(T, JX), lift = keys(T, JL), ang = keys(T, JA) * DEG, bend = keys(T, JB);
-      for (const sh of [1, 0]) {   // soft Ink shadow on the face (offset 8,10), then the broom
-        g.save(); g.translate(x + sh * 8, 1150 - lift + sh * 10); g.rotate(ang); g.scale(1.22, 1.22); g.translate(0, -86);
-        if (sh) { g.globalAlpha = .12; g.filter = 'blur(3px)'; }
-        jhadu(g, bend, !!sh); g.restore();
-      }
-    }
+    drawPile(g, T);
+    drawJhadu(g, T);
     drawPuffs(g, T);
   }
   /** the face as it stands after the gag (slumped 'हाफ़', fine print on): used for the smeared whip-out */
@@ -687,13 +760,13 @@
       // off its neighbours, lies at its own depth (dz) and keeps a random ±20° turn
       const target = clamp(772 + (rnd(44, i * 3) + rnd(44, i * 3 + 7) - 1) * 118, 690, 856); let best = null;
       for (let cx = Math.max(668, target - 40); cx <= Math.min(874, target + 40); cx += 2) {
-        let top = 1e9; for (let x = cx - 18; x <= cx + 18; x += 2) top = Math.min(top, Hf[Math.round(x) - 620]);
+        let top = 1e9; for (let x = cx - 21; x <= cx + 21; x += 2) top = Math.min(top, Hf[Math.round(x) - 620]);
         const score = top - Math.abs(cx - target) * .35; if (!best || score > best.score) best = { cx, top, score };
       }
       const tx = best.cx + (rnd(44, i * 3 + 5) - .5) * 14, dz = rnd(44, i * 3 + 9) * 9, cy = best.top - 6 + dz;
-      const sl = (Hf[Math.round(tx + 20) - 620] - Hf[Math.round(tx - 20) - 620]) / 40;
+      const sl = (Hf[Math.round(tx + 23) - 620] - Hf[Math.round(tx - 23) - 620]) / 46;
       const ang = clamp(Math.atan(sl) * .5 + (rnd(44, i * 3 + 1) - .5) * .7, -.4, .4);
-      for (let x = Math.round(tx - 26); x <= tx + 26; x++) { const q = x - 620; if (q >= 0 && q < 320) Hf[q] = Math.min(Hf[q], cy - dz - 5 + Math.abs(x - tx) * .3); }
+      for (let x = Math.round(tx - 30); x <= tx + 30; x++) { const q = x - 620; if (q >= 0 && q < 320) Hf[q] = Math.min(Hf[q], cy - dz - 6 + Math.abs(x - tx) * .28); }
       const tl = te + (j - (cnt[e] - 1) / 2) * .012, d = cy - KJ_Y0;
       const fall = (-KJ_V0 + Math.sqrt(KJ_V0 * KJ_V0 + 2 * KJ_G * d)) / KJ_G;   // y = y0 + v0 u + g u²/2 reaches cy
       const tin = (-KJ_V0 + Math.sqrt(KJ_V0 * KJ_V0 + 2 * KJ_G * (KJ_TOP - KJ_Y0))) / KJ_G;   // crosses the emitter line
@@ -701,30 +774,37 @@
     } });
     return KAJU;
   }
-  const kajuSprite = () => L.cached('s3-kaju3', 76, 64, g => {
-    g.translate(38, 26);
-    // a thin diamond slab: two narrow side faces, the top, a soft bevel, crinkled silver vark
-    g.fillStyle = '#D3C8B6'; L.poly(g, [[-28, 0], [0, 17], [0, 22], [-28, 5]]); g.fill();
-    g.fillStyle = '#B2A690'; L.poly(g, [[0, 17], [28, 0], [28, 5], [0, 22]]); g.fill();
-    g.fillStyle = 'rgba(255,250,240,.3)'; L.poly(g, [[-28, 0], [0, 17], [0, 18.2], [-28, 1.2]]); g.fill();
-    const tg = g.createLinearGradient(-20, -14, 18, 14); tg.addColorStop(0, '#F1ECE3'); tg.addColorStop(1, '#DED3C0');
-    g.fillStyle = tg; L.poly(g, [[0, -17], [28, 0], [0, 17], [-28, 0]]); g.fill();
-    const bv = g.createLinearGradient(0, -12, 0, 12); bv.addColorStop(0, 'rgba(255,255,255,.22)'); bv.addColorStop(1, 'rgba(150,135,110,.2)');
-    g.fillStyle = bv; L.poly(g, [[0, -12], [19, 0], [0, 12], [-19, 0]]); g.fill();
-    for (let k = 0; k < 6; k++) {   // vark: irregular 3-5 px leaf scraps, Paper with a Stone shadow edge
-      const x = (rnd(48, k) - .5) * 28, y = (rnd(49, k) - .5) * 13, s = 2.8 + rnd(50, k) * 1.6, n = 5, pts = [];
-      for (let v = 0; v < n; v++) { const a = v / n * TAU + rnd(51, k * 9 + v) * .9, rr = s * (.35 + .9 * rnd(52, k * 9 + v)); pts.push([x + Math.cos(a) * rr * 1.3, y + Math.sin(a) * rr * .65]); }
-      g.fillStyle = 'rgba(140,135,131,.35)'; L.poly(g, pts.map(([a, b]) => [a + .6, b + .7])); g.fill();
-      g.fillStyle = k % 2 ? '#F4F3F1' : '#CFCDCA'; L.poly(g, pts); g.fill();
+  /* kaju katli as mithai, not sugar cubes: a 64x40 diamond slab, warm cashew-fudge top #E9DCC2 over a 5 px
+     #CBB894 side face, a 1 px Stone edge and four 2 px silver-leaf flecks (Paper #F4F2EE). Every channel stays
+     below the bloom threshold (Paper is the brightest, 244), so the pile never glows like light */
+  const kajuSprite = () => L.cached('s3-kaju4', 80, 64, g => {
+    g.translate(40, 24);
+    g.fillStyle = '#CBB894'; L.poly(g, [[-32, 0], [0, 20], [0, 25], [-32, 5]]); g.fill();
+    g.fillStyle = '#BCA882'; L.poly(g, [[0, 20], [32, 0], [32, 5], [0, 25]]); g.fill();
+    g.fillStyle = '#E9DCC2'; L.poly(g, [[0, -20], [32, 0], [0, 20], [-32, 0]]); g.fill();
+    const tg = g.createLinearGradient(-16, -12, 16, 12); tg.addColorStop(0, 'rgba(236,226,204,.5)'); tg.addColorStop(1, 'rgba(176,150,108,.16)');
+    g.fillStyle = tg; L.poly(g, [[0, -20], [32, 0], [0, 20], [-32, 0]]); g.fill();
+    g.fillStyle = 'rgba(150,128,90,.18)'; for (let k = 0; k < 18; k++) g.fillRect((rnd(53, k) - .5) * 34, (rnd(54, k) - .5) * 18, 1.5, 1.5);   // cashew grain
+    g.strokeStyle = STONE; g.lineWidth = 1; g.lineJoin = 'round';
+    L.poly(g, [[-32, 0], [0, -20], [32, 0], [32, 5], [0, 25], [-32, 5]]); g.stroke();
+    g.beginPath(); g.moveTo(-32, 0); g.lineTo(0, 20); g.lineTo(32, 0); g.moveTo(0, 20); g.lineTo(0, 25); g.stroke();
+    for (const [x, y, r] of [[-12, -4, .4], [6, -9, 1.1], [13, 4, 2.2], [-2, 8, 2.9]]) {   // vark flecks: 2-3 px scraps
+      const pts = [[x - 1.6, y - .6], [x + .4, y - 1.4], [x + 1.7, y - .2], [x + .8, y + 1.2], [x - 1.2, y + .9]].map(([px, py]) => [x + (px - x) * Math.cos(r) - (py - y) * Math.sin(r), y + (px - x) * Math.sin(r) + (py - y) * Math.cos(r)]);
+      g.fillStyle = 'rgba(140,135,131,.55)'; L.poly(g, pts.map(([a, b]) => [a + .7, b + .7])); g.fill();
+      g.fillStyle = PAPER; L.poly(g, pts); g.fill();
     }
   });
   /** the same piece as coarse LED cells (materialise frames) */
-  const kajuCells = () => L.cached('s3-kajucells3', 76, 64, g => {
-    const sm = L.cached('s3-kajusm3', 13, 11, s => s.drawImage(kajuSprite(), 0, 0, 13, 11));
-    g.imageSmoothingEnabled = false; g.drawImage(sm, 0, 0, 78, 66);
-    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,248,236,.35)'; g.fillRect(0, 0, 76, 64);
-    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; for (let x = 0; x < 76; x += 6) g.fillRect(x, 0, 1, 64); for (let y = 0; y < 64; y += 6) g.fillRect(0, y, 76, 1);
+  const kajuCells = () => L.cached('s3-kajucells4', 80, 64, g => {
+    const sm = L.cached('s3-kajusm4', 14, 11, s => s.drawImage(kajuSprite(), 0, 0, 14, 11));
+    g.imageSmoothingEnabled = false; g.drawImage(sm, 0, 0, 84, 66);
+    g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(255,248,236,.2)'; g.fillRect(0, 0, 80, 64);
+    g.globalCompositeOperation = 'destination-out'; g.fillStyle = '#000'; for (let x = 0; x < 80; x += 6) g.fillRect(x, 0, 1, 64); for (let y = 0; y < 64; y += 6) g.fillRect(0, y, 80, 1);
   });
+  function vark(g, x, y, s) {   // silver-leaf glint: a thin Paper 4-point star, drawn source-over (no bloom)
+    if (s < .8) return; g.fillStyle = PAPER; g.beginPath();
+    g.moveTo(x, y - s); g.lineTo(x + s * .18, y - s * .18); g.lineTo(x + s, y); g.lineTo(x + s * .18, y + s * .18); g.lineTo(x, y + s); g.lineTo(x - s * .18, y + s * .18); g.lineTo(x - s, y); g.lineTo(x - s * .18, y - s * .18); g.closePath(); g.fill();
+  }
   function drawKaju(g, T) {
     const sp = kajuSprite(), cells = kajuCells(), MAT = 2 / 30;
     for (const k of kajuTable()) {
@@ -737,18 +817,18 @@
       g.save();
       if (falling) { g.beginPath(); g.rect(SCR.x, KJ_TOP, SCR.w, SCR.y + SCR.h - KJ_TOP); g.clip(); }
       if (!falling) {   // contact shadow on the screen glass / on the piece below
-        g.fillStyle = 'rgba(8,6,10,.3)'; g.beginPath(); g.ellipse(x + 2, y + 13, 24, 5, a, 0, TAU); g.fill();
+        g.fillStyle = 'rgba(8,6,10,.3)'; g.beginPath(); g.ellipse(x + 2, y + 16, 28, 6, a, 0, TAU); g.fill();
       }
       g.translate(x, y); g.rotate(a); g.scale(1 + (1 - sy) * .5, sy);
-      if (mat < 1) { g.globalAlpha = 1 - mat * mat; g.drawImage(cells, -38, -26); g.globalAlpha = mat; }
-      g.drawImage(sp, -38, -26);
+      if (mat < 1) { g.globalAlpha = 1 - mat * mat; g.drawImage(cells, -40, -24); g.globalAlpha = mat; }
+      g.drawImage(sp, -40, -24);
       g.restore();
       if (falling && mat < 1) {   // the emitter line flares where the piece pushes through
         g.save(); g.globalCompositeOperation = 'lighter'; g.fillStyle = `rgba(255,236,210,${.55 * (1 - mat)})`;
         for (let c = -5; c <= 5; c++) g.fillRect(Math.round((x + c * 6) / 6) * 6 - 2, KJ_TOP - 2, 4, 4);
         glow(g, x, KJ_TOP, 46, '#FFE7C4', .35 * (1 - mat)); g.restore();
       }
-      if (!falling && k.glint > .55) { const ph = (T * 1.3 + k.glint * 7) % 2.2; if (ph < .25) { g.save(); g.globalCompositeOperation = 'lighter'; sparkle(g, x + 6, y - 6, 6 * Math.sin(ph / .25 * Math.PI), .9); g.restore(); } }
+      if (!falling && k.glint > .55) { const ph = (T * 1.3 + k.glint * 7) % 2.2; if (ph < .25) vark(g, x + 6, y - 6, 7 * Math.sin(ph / .25 * Math.PI)); }
     }
   }
   let CRUMB = null;
@@ -841,7 +921,7 @@
     g.fillStyle = '#19161A'; g.fillRect(990, 640, 44, 5);
     L.lantern(g, 1010, 645, 30, T, 3, { color: RED, light: GOLD });
     for (const [k, x] of [30, 100, 980, 1050].entries()) L.diya(g, x, 1292, 12, T, 60 + k, { flameSize: 17 });
-    L.toran(g, { x0: 40, x1: 1040, y: 1374, t: T, seed: 3, flower: 11, strands: 9, strandLen: 3, sway: .8 });
+    ownMarigolds(() => L.toran(g, { x0: 40, x1: 1040, y: 1374, t: T, seed: 3, flower: 11, strands: 9, strandLen: 3, sway: .8 }));
   }
 
   /* ======================= BAR C: LED van at street level ======================= */
@@ -902,7 +982,7 @@
     g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(912, 812, 7, 140); g.fillStyle = 'rgba(0,0,0,.12)'; g.fillRect(906, 812, 18, 70);
     g.fillStyle = '#3B363B'; g.fillRect(866, 770, 70, 44); topEdge(g, 866, 770, 70, .7); g.strokeStyle = '#211E22'; g.lineWidth = 2; g.beginPath(); g.arc(892, 792, 14, 0, TAU); g.stroke(); for (let k = 0; k < 4; k++) { g.fillStyle = '#211E22'; g.fillRect(914, 778 + k * 8, 14, 2); }
     grime(g, -200, 160, 2000, 1300, 1);
-    for (const [x0, x1] of [[260, 630], [650, 1070]]) L.toran(g, { x0: x0 + 10, x1: x1 - 10, y: 1050, t: 0, seed: x0, flower: 9, strands: 5, strandLen: 2, sway: 0 });
+    ownMarigolds(() => { for (const [x0, x1] of [[260, 630], [650, 1070]]) L.toran(g, { x0: x0 + 10, x1: x1 - 10, y: 1050, t: 0, seed: x0, flower: 9, strands: 5, strandLen: 2, sway: 0 }); });
   });
   const C_FEST = [];   // light strings pulled into V's by small kandils (the chevron motif), two rows per building
   for (const [x0, x1, y, d, kd] of [[-200, 250, 432, 52, 1], [250, 640, 374, 58, 1], [640, 1080, 464, 50, 1], [-200, 250, 600, 40, 0], [250, 640, 560, 44, 0], [640, 1080, 640, 40, 0], [1080, 1470, 400, 52, 1]]) {
@@ -925,14 +1005,14 @@
     // diyas on the shop steps either side of the van (none on the road under the chassis)
     for (const [k, [x, y]] of [[16, 1428], [44, 1430], [1066, 1428]].entries()) L.diya(g, x, y, 11, T, 80 + k, { flameSize: 16 });
   }
-  const BOX_SLOTS = [140, 280, 420], BOX_LAND = [10.0, 10.1, 10.2], BOX_HOP = [11.2, 11.333, 11.467, 11.6], BW = 126, BH = 60;
+  const BOX_SLOTS = [140, 280, 420], BOX_LAND = [10.0, 10.1, 10.2], BOX_HOP = [10.9, 11.033, 11.167, 11.7], BOX4 = 11.3, BW = 126, BH = 60;
   /** soan papdi carton (side face 126x60): Muslin board, printed Marigold band with a die-cut window onto the flaky
       cube, one flat MM Red ribbon with a small knot, Stone top-edge highlight */
-  const boxSprite = () => L.cached('s3-box2', 180, 120, g => {
+  const boxSprite = (old = false) => L.cached('s3-box2' + (old ? 'old' : ''), 180, 120, g => {
     g.translate(27, 50);
     g.fillStyle = MUSLIN; g.fillRect(0, 0, BW, BH);
     // printed band + thin key lines
-    g.fillStyle = '#F59E1B'; g.fillRect(0, 17, BW, 27);
+    g.fillStyle = old ? '#EDB86A' : '#F59E1B'; g.fillRect(0, 17, BW, 27);
     g.fillStyle = 'rgba(150,72,10,.55)'; g.fillRect(0, 17, BW, 1.5); g.fillRect(0, 42.5, BW, 1.5);
     g.fillStyle = 'rgba(238,236,232,.85)'; for (let x = 66; x < 120; x += 9) { g.beginPath(); g.moveTo(x, 30.5); g.lineTo(x + 3.5, 27); g.lineTo(x + 7, 30.5); g.lineTo(x + 3.5, 34); g.closePath(); g.fill(); }   // printed chevron border
     g.save(); g.translate(108, 25); g.scale(.55, .55); g.fillStyle = 'rgba(122,40,10,.55)'; L.butaPath(g, 14); g.fill(); g.restore();
@@ -957,14 +1037,30 @@
     topEdge(g, -2, 0, BW + 4, 1);
     const sg = g.createLinearGradient(BW - 26, 0, BW, 0); sg.addColorStop(0, 'rgba(0,0,0,0)'); sg.addColorStop(1, 'rgba(0,0,0,.14)'); g.fillStyle = sg; g.fillRect(BW - 26, 0, 26, BH);
     g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(0, BH - 2, BW, 2);
-    // ribbon: one flat 8 px band + a small knot
+    // ribbon: one flat 8 px band + a small knot (last year's box: sun-faded to 50 %)
+    g.save(); if (old) g.globalAlpha = .5;
     g.fillStyle = RED; g.fillRect(84, 0, 8, BH); g.fillStyle = 'rgba(0,0,0,.2)'; g.fillRect(90, 0, 2, BH);
     g.fillStyle = RED; g.beginPath(); g.roundRect(80, -5, 16, 11, 4); g.fill();   // small flat knot on the lid
     g.fillStyle = 'rgba(0,0,0,.22)'; g.fillRect(87.5, -4, 1.5, 9); g.fillStyle = 'rgba(255,255,255,.18)'; g.fillRect(82, -4, 12, 1.5);
+    g.restore();
     L.textureOverlay(g, 'paper', -4, -8, BW + 8, BH + 10, { alpha: .14, blend: 'multiply', scale: .4, seed: 6 });
+    if (old) {   // a year in the loft: dusty Stone-tinted lid, grimy board, a cobweb across the top-right corner
+      g.save(); g.globalCompositeOperation = 'source-atop';
+      g.fillStyle = 'rgba(140,135,131,.24)'; g.fillRect(-4, -8, BW + 8, BH + 10);
+      g.fillStyle = 'rgba(140,135,131,.62)'; g.fillRect(-4, -8, BW + 8, 16);
+      L.textureOverlay(g, 'powder', -4, -8, BW + 8, BH + 10, { alpha: .45, blend: 'multiply', scale: .25, seed: 12 });
+      g.restore();
+      g.fillStyle = 'rgba(201,196,191,.75)'; for (let k = 0; k < 40; k++) g.fillRect(-2 + rnd(661, k) * (BW + 4), -1 - rnd(662, k) * 3, 1.6, 1.6);   // dust on the lid edge
+      g.save(); g.translate(BW, 0); g.strokeStyle = 'rgba(244,242,238,.85)'; g.lineWidth = 1.3;
+      const rays = [Math.PI * .5, Math.PI * .62, Math.PI * .76, Math.PI * .9, Math.PI];   // corner web: 5 radials + 3 sagging rings
+      g.beginPath(); for (const a of rays) { g.moveTo(0, 0); g.lineTo(Math.cos(a) * 40, Math.sin(a) * 34); } g.stroke();
+      g.lineWidth = 1.1; for (const r of [12, 23, 34]) { g.beginPath(); rays.forEach((a, i) => { const x = Math.cos(a) * r, y = Math.sin(a) * r * .86; if (!i) g.moveTo(x, y); else { const pa = rays[i - 1], m = (a + pa) / 2; g.quadraticCurveTo(Math.cos(m) * r * .78, Math.sin(m) * r * .67, x, y); } }); g.stroke(); }
+      g.beginPath(); g.moveTo(-30, 0); g.quadraticCurveTo(-33, 9, -29, 17); g.stroke();   // one loose thread hanging off the lid
+      g.restore();
+    }
   });
-  function drawBox(g, x, yb, rot, sx, sy, a = 1) {   // (x, yb) = bottom-centre
-    g.save(); g.globalAlpha *= a; g.translate(x, yb); g.scale(sx, sy); g.translate(0, -BH / 2); g.rotate(rot); g.drawImage(boxSprite(), -90, -80); g.restore();
+  function drawBox(g, x, yb, rot, sx, sy, a = 1, old = false) {   // (x, yb) = bottom-centre
+    g.save(); g.globalAlpha *= a; g.translate(x, yb); g.scale(sx, sy); g.translate(0, -BH / 2); g.rotate(rot); g.drawImage(boxSprite(old), -90, -80); g.restore();
   }
   /** arrival arcs: tossed in from off-frame left (a neighbour's balcony), apex ~y 640, each landing on its tok.
       Anchored to the screen (like the van's entry) so the whip doesn't drag them backwards. */
@@ -1050,7 +1146,7 @@
     L.drawLogo(g, 'mark', { x: 425, y: -111, h: 50 / VS, anchor: 'center', way: 'onred' });
     g.restore();
     // grille garland, nimbu-mirchi (crisp, in screen units)
-    for (let k = 0; k < 6; k++) L.marigold(g, 546 * VS, (-142 + k * 11.5) * VS, 10, { tone: k % 2 ? 'yellow' : 'orange', seed: k });
+    for (let k = 0; k < 6; k++) marigold(g, 546 * VS, (-142 + k * 11.5) * VS, 10, k % 2 ? 'yellow' : 'orange', k);
     g.strokeStyle = '#1A171B'; g.lineWidth = 2; g.beginPath(); g.moveTo(548 * VS, -52 * VS); g.lineTo(548 * VS + Math.sin(T * 3) * 3, -30 * VS); g.stroke();
     const nx = 548 * VS + Math.sin(T * 3) * 3, ny = -30 * VS;
     g.fillStyle = '#8FA03A'; g.beginPath(); g.arc(nx, ny + 7, 8, 0, TAU); g.fill();
@@ -1071,7 +1167,7 @@
     const o1 = { font: 'dev', size: 60, weight: 700 }, o2 = { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
     // line 2 in three runs so the '4' can be MM Red and pulse; the whole line is held to maxWidth 560
     const wA = L.measure(g, C2A, o2), w4 = L.measure(g, C2B, o2), wD = L.measure(g, C2C, o2), fit = Math.min(1, 560 / (wA + w4 + wD));
-    const x0 = 349 - (wA + w4 + wD) * fit / 2, pulse = T < 11.6 ? 1 : keys(T - 11.6, [[0, 1], [.1, 1.15], [.22, 1]]);
+    const x0 = 349 - (wA + w4 + wD) * fit / 2, pulse = T < BOX_HOP[3] ? 1 : keys(T - BOX_HOP[3], [[0, 1], [.1, 1.15], [.22, 1]]);
     const i4 = textImg(C2B, o2, RED, 6, 'rgba(28,26,26,.9)');
     g.save(); g.beginPath(); g.rect(px, py, pw, ph); g.clip();
     g.fillStyle = '#121014'; g.fillRect(px, py, pw, ph);
@@ -1106,16 +1202,15 @@
     for (let k = 0; k < 4; k++) {
       const slot = BOX_SLOTS[k === 3 ? 1 : k], hx = BOX_HOP[k];
       let x = st.x + slot, y = rackY + st.pitch * (slot - 198), rot = 0, sx = 1, sy = 1, onRack = true;
-      if (k === 3) {   // the mystery 4th box: pops out of nowhere in a powder puff, hops straight away
-        if (T < 11.533) continue;
-        const u = T - 11.533; if (u < .067) { const s = keys(u, [[0, 0], [.033, 1.15], [.067, 1]]); sx = sy = s; }
-        if (u < .36) {
-          const v = u / .36, e = E.outCubic(v);
-          for (let j = 0; j < 5; j++) { const a = rnd(931, j) * TAU, r = (30 + 50 * rnd(932, j)) * (.4 + .8 * e), s = (70 + 40 * rnd(933, j)) * (.5 + .7 * e);
-            g.save(); g.globalAlpha = .7 * (1 - v) * (1 - v); g.translate(x + Math.cos(a) * r * 1.2, y - 30 + Math.sin(a) * r * .6 - 24 * v); g.rotate(a); g.drawImage(puffSprite(j % 3), -s, -s * .8, s * 2, s * 1.6); g.restore(); }
-          g.save(); g.globalCompositeOperation = 'lighter';
-          for (let j = 0; j < 5; j++) { const a = -Math.PI * (.15 + .7 * rnd(934, j)), r = 40 + 90 * e * (.6 + .5 * rnd(935, j)); sparkle(g, x + Math.cos(a) * r * 1.3, y - 30 + Math.sin(a) * r, (8 + 8 * rnd(936, j)) * (1 - v), (1 - v)); }
-          g.restore();
+      if (k === 3) {   // the mystery 4th box: LAST YEAR'S, popped onto the empty rack in a cloud of loft dust at 11.300;
+        // it sits there, wobbling sheepishly, for 0.4 s, then hops off after the others at 11.700
+        if (T < BOX4) continue;
+        const u = T - BOX4; if (u < .067) { const s = keys(u, [[0, 0], [.033, 1.15], [.067, 1]]); sx = sy = s; }
+        else if (T < hx - .067) { const w = u - .067; rot = .055 * Math.sin(w * 30) * Math.exp(-1.5 * w); y -= Math.abs(Math.sin(w * 15)) * 2.5 * Math.exp(-3 * w); }
+        if (u < .5) {
+          const v = u / .5, e = E.outCubic(v);
+          for (let j = 0; j < 7; j++) { const a = rnd(931, j) * TAU, r = (30 + 60 * rnd(932, j)) * (.4 + .8 * e), s = (60 + 50 * rnd(933, j)) * (.5 + .8 * e);
+            g.save(); g.globalAlpha = .75 * (1 - v) * (1 - v); g.translate(x + Math.cos(a) * r * 1.3, y - 30 + Math.sin(a) * r * .55 - 30 * v); g.rotate(a); g.drawImage(puffSprite(j % 3), -s, -s * .8, s * 2, s * 1.6); g.restore(); }
         }
       } else if (T < BOX_LAND[k]) {   // in flight: tossed in from the left
         const a = boxArc(k, T); if (!a) continue;
@@ -1129,7 +1224,7 @@
             if (fy > rackY + 4) continue; g.fillStyle = L.rgba(j % 2 ? '#F5C76A' : '#E9B655', 1 - u / .3); g.fillRect(fx - 1.5, fy - 1.5, 3, 3); }
         }
       }
-      if (k < 3 && T >= hx - .067 && T < hx) { sy = .86; sx = 1.07; }
+      if (T >= hx - .067 && T < hx) { sy = .86; sx = 1.07; rot = 0; }
       if (T >= hx) {   // hop off to the right on a parabola (apex y ~640), tumbling
         const u = T - hx; if (u > .75) continue;
         const yb0 = y, xs = x, g0 = 3600, vy0 = Math.sqrt(2 * g0 * Math.max(40, yb0 - BH / 2 - 640));
@@ -1137,7 +1232,7 @@
         if (u < .1) { sy = 1.12 - 1.2 * u; sx = 1 / sy; }
       }
       if (onRack) { g.fillStyle = 'rgba(0,0,0,.32)'; g.fillRect(x - BW / 2 * sx, y - 2, BW * sx, 4); }
-      drawBox(g, x, y, rot, sx, sy);
+      drawBox(g, x, y, rot, sx, sy, 1, k === 3);
     }
   }
   function drawExhaust(g, T, st) {
@@ -1171,9 +1266,9 @@
     drawCDecor(g, T, vx, vy);
     const st = vanState(T);
     if (T >= WBC - .02) { drawExhaust(g, T, st); drawVan(g, T, st, c); drawBoxes(g, T, st); }
-    const fa = prog(T, 11.6, 11.8, E.outQuad);
+    const fa = prog(T, BOX4, BOX4 + .2, E.outQuad);   // explains box #4 the moment it appears: 34 px, holds 0.83 s
     if (fa > 0) {
-      const oh = { font: 'dev', size: 28, weight: 500 }, oe = { font: 'lat', size: 28, weight: 500 }, wh = L.measure(g, FINE_C_HI, oh), we = L.measure(g, FINE_C_EN, oe), x0 = 540 - (wh + we) / 2;
+      const oh = { font: 'dev', size: 34, weight: 500 }, oe = { font: 'lat', size: 34, weight: 500 }, wh = L.measure(g, FINE_C_HI, oh), we = L.measure(g, FINE_C_EN, oe), x0 = 540 - (wh + we) / 2;
       L.text(g, FINE_C_HI, x0, 1530, Object.assign({}, oh, { align: 'left', color: MIST, alpha: fa, maxWidth: wh + 2 }));
       L.text(g, FINE_C_EN, x0 + wh, 1530, Object.assign({}, oe, { align: 'left', color: MIST, alpha: fa, maxWidth: we + 2 }));
     }
@@ -1193,10 +1288,38 @@
   });
   // marigold strands per wire span [u along the span, flowers]: A hold 3 strands top-left, B hold none, C hold 2 long ones
   const NEAR_STRANDS = { 0: [[.52, 5], [.55, 7], [.6, 4]], 1: [[.366, 6], [.39, 4], [.414, 7]], 2: [[.3, 5], [.34, 6]], 4: [[.38, 4], [.42, 6], [.45, 5], [.5, 7]], 5: [[.508, 9], [.528, 6]] };
+  /** private marigold sprite, cached by its EXACT radius and seed. (L.marigold caches by round(r) and seed % 6 but draws
+      with the first caller's exact r and seed, so its sprite depends on render order; this keeps S3 frame-order free.) */
+  function marigold(g, x, y, r, tone, seed) {
+    const sz = Math.ceil(r * 2.4);
+    const c = L.cached(`s3mg-${tone}-${r.toFixed(3)}-${seed}`, sz, sz, m => {
+      m.translate(sz / 2, sz / 2);
+      const base = tone === 'yellow' ? ['#C98A00', '#F2B21B', '#FFD447'] : ['#B9420A', '#F07A12', '#FFA23A'];
+      for (let ring = 0; ring < 5; ring++) {
+        const rr = r * (1 - ring * .17), n = 14 + ring * 2;
+        for (let i = 0; i < n; i++) {
+          const a = i / n * TAU + ring * .4 + rnd(seed, ring * 50 + i) * .25, pr = rr * .32, px = Math.cos(a) * (rr - pr * .9), py = Math.sin(a) * (rr - pr * .9);
+          const gg = m.createRadialGradient(px, py, 0, px, py, pr * 1.2); gg.addColorStop(0, base[2]); gg.addColorStop(.7, base[1]); gg.addColorStop(1, base[0]);
+          m.fillStyle = gg; m.beginPath(); m.ellipse(px, py, pr * 1.05, pr * .7, a, 0, TAU); m.fill();
+          m.strokeStyle = 'rgba(90,30,0,.25)'; m.lineWidth = .8; m.stroke();
+        }
+      }
+      const cg = m.createRadialGradient(0, 0, 0, 0, 0, r * .25); cg.addColorStop(0, base[0]); cg.addColorStop(1, base[1]);
+      m.fillStyle = cg; m.beginPath(); m.arc(0, 0, r * .22, 0, TAU); m.fill();
+    });
+    g.drawImage(c, x - sz / 2, y - sz / 2);
+  }
+  /** run fn with L.marigold routed to the private sprite above, for the duration of the call (L.toran draws its flowers
+      through L.marigold); restored synchronously, so nothing outside S3 sees it */
+  function ownMarigolds(fn) {
+    const lib = L.marigold;
+    L.marigold = (ctx, x, y, r, { tone = 'orange', seed = 1, rot = 0, alpha = 1 } = {}) => { ctx.save(); ctx.globalAlpha *= alpha; ctx.translate(x, y); if (rot) ctx.rotate(rot); marigold(ctx, 0, 0, r, tone, seed); ctx.restore(); };
+    try { fn(); } finally { L.marigold = lib; }
+  }
   /** marigold that smears into a streak at whip speed (opaque: alpha conserves coverage) */
   function mgold(g, x, y, r, tone, seed, vx, vy) {
     const lx = vx * DT, ly = vy * DT, len = Math.hypot(lx, ly);
-    if (len < r * .8) { L.marigold(g, x, y, r, { tone, seed }); return; }
+    if (len < r * .8) { marigold(g, x, y, r, tone, seed); return; }
     g.save(); g.globalAlpha *= Math.min(1, 2.2 * r / (2 * r + len)); g.strokeStyle = tone === 'orange' ? '#E2741C' : '#EDB33A'; g.lineWidth = r * 1.9; g.lineCap = 'round';
     g.beginPath(); g.moveTo(x - lx / 2, y - ly / 2); g.lineTo(x + lx / 2, y + ly / 2); g.stroke(); g.restore();
   }
@@ -1244,7 +1367,7 @@
       if (va < 2650 && vb > 1250) { g2.save(); g2.translate(WHIP, 0); drawB(g2, T, v1x); g2.restore(); }
       if (va < 4600 && vb > 2600) { g2.save(); g2.translate(2 * WHIP, DIP); drawC(g2, T, c, v1x, v1y); g2.restore(); }
     });
-    { const fg = g.createLinearGradient(0, 1560, 0, 1940); fg.addColorStop(0, 'rgba(10,8,12,0)'); fg.addColorStop(1, 'rgba(10,8,12,.62)'); g.fillStyle = fg; g.fillRect(-60, 1560, W + 120, 420); }
+    { const fg = g.createLinearGradient(0, 1560, 0, 1940); fg.addColorStop(0, 'rgba(16,12,22,0)'); fg.addColorStop(1, 'rgba(16,12,22,.45)'); g.fillStyle = fg; g.fillRect(-60, 1560, W + 120, 420); }
     if (c.e3 < .98) { g.save(); g.globalAlpha = 1 - c.e3; depth(g, c, NZ, g2 => drawNear(g2, T, c, -vel.x / NZ * zz(NZ), -vel.y / NZ * zz(NZ)));
       g.restore(); }
     g.restore();
@@ -1255,10 +1378,9 @@
   }
 
   function objSpeed(T) {
-    if (T >= 5.2 && T <= 5.63) return 2600;
     if (T >= 9.4 && T <= 9.76) return 3000;
     if (T >= 9.66 && T <= 10.3) return 1600;
-    if (T >= 11.12 && T <= 11.95) return 2200;
+    if (T >= 10.85 && T <= 11.95) return 2200;
     if (T >= 7.9 && T <= 9.45) for (const k of kajuTable()) if (T > k.te && T < k.tl + .15) return 1400;
     return 0;
   }

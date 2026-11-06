@@ -15,6 +15,7 @@ DUR=$(ffprobe -v error -show_entries format=duration -of default=nw=1:nk=1 out/v
 ffmpeg -y -loglevel error -i out/video_master.mp4 -i out/soundtrack.wav \
   -map 0:v:0 -map 1:a:0 \
   -c:v libx264 -preset slow -tune film -crf 18 -maxrate 6M -bufsize 12M -profile:v high -level 4.2 -pix_fmt yuv420p \
+  -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \
   -x264-params "aq-mode=3:deblock=-1,-1" -r 30 -g 60 \
   -c:a aac -b:a 192k -ar 48000 -ac 2 \
   -t "$DUR" -movflags +faststart \

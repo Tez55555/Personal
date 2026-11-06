@@ -2,14 +2,18 @@
    s5 · FULLY BOOKED   (global 15.600 – 18.000)
    The wish, as a callback to the hook's BOOKED stamp: "आपका पूरा साल… / Wishing you a year…" and a giant
    MM Red block-print stamp slams onto the whole lit city: FULLY BOOKED · खुशियों से · with happiness.
-   The block drops along z (15.700 – 15.967, opaque inked face, never through the copy band) and lands at 16.000 as a
-   print centred (540,960), so the M's three roofs + V strings stand clear above it. Slam, squash and shake are worked
+   Its shadow arrives first (15.600); the block then drops from behind the lens along z only (15.633 – 15.967: a huge
+   defocused ghost fading in, never an opaque pop, never translating through the copy band) and lands at 16.000 as a
+   print centred (540,960), so the M's three roofs + V strings stand clear above it. The print is ink on paper:
+   starved ink shows the Muslin through (lighter mottling, never dark holes), an eroded edge (the s1 stamp's noise),
+   and a 30% misregistered second strike. Slam, squash and shake are worked
    out from frame-quantised time (no sub-sample straddling). Then rockets on the groove, two burst waves on the beats
    (own closed-form renderer, colour map per storyboard), phuljhadis on the balconies on the 17.2 / 17.4 / 17.567 cues.
    The lit city, railing and camera are the shared world from s4 (window.MMS45); s4 draws it until 16.000,
    this scene from the 16.000 frame (it only overlays copy + the falling stamp during the 15.6–16.0 overlap).
-   17.700–18.000: s6 fades in over us; the shared world replicates its dolly, the near field fades out by 17.8 and the
-   city outside the three towers dims to 40% + defocuses (cached 6/14 px snapshots) while the stamp lifts.
+   17.700–18.000: s6 fades in over us; the shared world replicates its dolly, the near field slides out, racks out of
+   focus and fades by 17.933, the city outside the three towers dims to 40% + defocuses (cached 6/14 px snapshots), and
+   the stamp lifts on the same dolly (17.767 – 17.900), gone before the towers are 60% of the way to their final size.
    ========================================================================== */
 (function () {
   'use strict';
@@ -20,6 +24,8 @@
   const GOLD = '#FFC24A', AMBER = '#FFB547', AMBER2 = '#FF9F1C', BULB = '#FFF4CF', WARMW = '#FFE7A3';
 
   const T_FALL = q(15.7), T_HIT = L.beat(26), T_W1 = L.beat(27), T_W2 = L.beat(28), T_LIFT = L.beat(29), T_END = 18.0;
+  const T_SHADOW = 15.6, T_AIR = q(15.6333), T_AIR_OPAQUE = q(15.7333);   // shadow first, then the slab drops in from behind the lens
+  const T_LIFT0 = q(17.7667), T_LIFT1 = q(17.9), T_X = 17.7;               // the lift rides s6's dolly and is gone by 17.900
 
   /* ---------------- finishing-pass cues ---------------- */
   // exposure 1.06 for 3 frames on the slam; bloom +20% while the sky is full (per-frame flashes, k = .5 at frame time)
@@ -36,42 +42,65 @@
     const st = grow ? { color: col, width: grow * 2 } : null;
     L.text(g, 'FULLY BOOKED', 0, LAY.title, { font: 'lat', size: 80, weight: 760, stretch: 'expanded', color: col, maxWidth: 700, stroke: st });
     g.fillRect(-300 - grow, LAY.rule - grow, 600 + 2 * grow, 5 + 2 * grow);                        // band rule
-    const bh = { font: 'dev', size: 44, weight: 600, color: col, stroke: st }, be = { font: 'lat', size: 40, weight: 600, color: col, stroke: st };
+    // band at weight 700: knock-out stems stay >= 6 px, so the line survives WhatsApp re-encoding
+    const bh = { font: 'dev', size: 44, weight: 700, color: col, stroke: st }, be = { font: 'lat', size: 40, weight: 700, color: col, stroke: st };
     const w1 = L.measure(g, 'खुशियों से', bh), w2 = L.measure(g, 'with happiness', be), gap = 46, x0 = -(w1 + gap + w2) / 2;
     L.text(g, 'खुशियों से', x0, LAY.band, Object.assign({ align: 'left', maxWidth: 260 }, bh));
     L.circle(g, x0 + w1 + gap / 2, LAY.band - 13, 4.5 + grow); g.fill();                           // the middle dot is drawn
     L.text(g, 'with happiness', x0 + w1 + gap, LAY.band, Object.assign({ align: 'left', maxWidth: 360 }, be));
   }
+  /* 2D value noise (deterministic) for the ink-starvation field */
+  function vnoise(x, y, seed) {
+    const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, u = xf * xf * (3 - 2 * xf), w = yf * yf * (3 - 2 * yf);
+    const h = (a, b) => rnd(seed, (a & 2047) * 2053 + (b & 2047));
+    return lerp(lerp(h(xi, yi), h(xi + 1, yi), u), lerp(h(xi, yi + 1), h(xi + 1, yi + 1), u), w);
+  }
+  /** Muslin starvation mottling (alpha field): thin ink lets the paper through in 3–8 px blobs, clustered in soft patches,
+      plus faint dry-brushed wood grain. Lighter, never dark: the print reads as ink on paper, not a sticker with dirt. */
+  const starveMask = v => L.cached('s5-starve-' + v, SW, SH, g => {
+    const im = g.createImageData(SW, SH), d = im.data, M = L.rgb(MUSLIN), sd = 600 + v * 17;
+    const maxA = v ? .085 : .14;                                        // wet ink (boil frames) starves less; it dries lighter
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+      const patch = vnoise(x / 46, y / 38, sd), blob = vnoise(x / 5.2, y / 4.4, sd + 1), fine = vnoise(x / 2.6, y / 2.6, sd + 2);
+      const grain = vnoise(x / 90, y / 2.2, sd + 3);                   // long horizontal fibres of the wooden block
+      let a = maxA * sm(.5, .74, .72 * blob + .28 * fine) * (.3 + .7 * sm(.32, .72, patch))
+            + .045 * sm(.55, .95, patch) + .05 * sm(.72, .9, grain) * (.4 + .6 * patch);
+      const i = (y * SW + x) * 4; d[i] = M[0]; d[i + 1] = M[1]; d[i + 2] = M[2]; d[i + 3] = Math.round(255 * Math.min(.22, a));
+    }
+    g.putImageData(im, 0, 0);
+  });
+  /** outer-edge erosion with the s1 stamp's own noise mask (its 'ink' texture, same placement), limited to a 9 px band */
+  const erodeMask = v => L.cached('s5-erode-' + v, SW, SH, g => {
+    const t = document.createElement('canvas'); t.width = SW; t.height = SH; const tg = t.getContext('2d');
+    tg.drawImage(L.textureCanvas('ink', 512, 7 + v * 3), -40 - v * 37, -60 - v * 23, 900, 520);
+    const n = tg.getImageData(0, 0, SW, SH).data, im = g.createImageData(SW, SH), d = im.data;
+    const x0 = SW / 2 - RW / 2, x1 = SW / 2 + RW / 2, y0 = SH / 2 - RH / 2, y1 = SH / 2 + RH / 2;
+    for (let y = 0; y < SH; y++) for (let x = 0; x < SW; x++) {
+      const dist = Math.min(x - x0, x1 - x, y - y0, y1 - y); if (dist < -2 || dist > 10) continue;
+      const i = (y * SW + x) * 4, nv = n[i] / 255, band = 1 - sm(.5, 9, dist);
+      const a = band * sm(.34, .5, nv + .12 * (rnd(611 + v, y * SW + x) - .5));
+      d[i + 3] = Math.round(255 * clamp(a));
+    }
+    g.putImageData(im, 0, 0);
+  });
   function inkLayer(g, v) {
-    // MM Red ink; the knock-outs reveal Muslin paper, the ink's own voids reveal whatever it was slammed onto
+    // MM Red ink; the knock-outs reveal Muslin paper
     g.save(); g.translate(SW / 2, SH / 2);
     g.fillStyle = RED; L.rrect(g, -RW / 2, -RH / 2, RW, RH, 7); g.fill();
     g.globalCompositeOperation = 'destination-out'; knockouts(g, '#000', 0);
     g.restore();
-    // block-print character: uneven ink, wood grain, voids (<= ~12%), chipped edges
+    // ink starvation: lighter Muslin mottling on the ink only
+    g.save(); g.globalCompositeOperation = 'source-atop'; g.drawImage(starveMask(v), 0, 0); g.restore();
+    // eroded outer edge (noise bites + a few chips), like the BOOKED impression
     g.save(); g.globalCompositeOperation = 'destination-out';
-    const ink = L.textureCanvas('ink', 512, 7 + v * 3);
-    g.globalAlpha = v ? .06 : .08; g.drawImage(ink, -60 - v * 41, -70 - v * 27, 1040, 560);
-    g.globalAlpha = .05; g.drawImage(L.textureCanvas('powder', 512, 21 + v), 0, 0, SW, SH);
+    g.drawImage(erodeMask(v), 0, 0);
     g.fillStyle = '#000';
-    for (let i = 0; i < 64; i++) {
-      const y = 50 + rnd(141 + v, i) * (SH - 100), x0 = rnd(142 + v, i) * SW, len = 40 + rnd(143 + v, i) * 260;
-      g.globalAlpha = .06 + rnd(144 + v, i) * .16; g.lineWidth = .6 + rnd(145 + v, i) * 1.8; g.strokeStyle = '#000';
-      g.beginPath(); g.moveTo(x0, y); g.bezierCurveTo(x0 + len * .3, y - 1.5, x0 + len * .7, y + 1.5, x0 + len, y); g.stroke();
-    }
-    for (let i = 0; i < 620; i++) {                                                              // voids, denser toward the edges
-      let x = rnd(151 + v, i), y = rnd(152 + v, i);
-      if (i % 3 === 0) { const e = rnd(159 + v, i) < .5 ? 0 : 1; if (rnd(160 + v, i) < .5) x = e ? 1 - Math.pow(x, 3) * .25 : Math.pow(x, 3) * .25; else y = e ? 1 - Math.pow(y, 3) * .3 : Math.pow(y, 3) * .3; }
-      x = SW / 2 - RW / 2 + x * RW; y = SH / 2 - RH / 2 + y * RH;
-      const r = .4 + Math.pow(rnd(153 + v, i), 3.4) * 3.2;
-      g.globalAlpha = .4 + rnd(154 + v, i) * .55; g.beginPath(); g.ellipse(x, y, r * (1 + rnd(161 + v, i)), r, rnd(162 + v, i) * 3, 0, TAU); g.fill();
-    }
-    for (let i = 0; i < 340; i++) {                                                               // edge erosion
+    for (let i = 0; i < 180; i++) {
       const side = i % 4, p = rnd(155 + v, i); let x, y;
       if (side === 0) { x = SW / 2 - RW / 2 + p * RW; y = SH / 2 - RH / 2; } else if (side === 1) { x = SW / 2 - RW / 2 + p * RW; y = SH / 2 + RH / 2; }
       else if (side === 2) { x = SW / 2 - RW / 2; y = SH / 2 - RH / 2 + p * RH; } else { x = SW / 2 + RW / 2; y = SH / 2 - RH / 2 + p * RH; }
-      x += (rnd(156 + v, i) - .5) * 7; y += (rnd(157 + v, i) - .5) * 7;
-      g.globalAlpha = .95; g.beginPath(); g.arc(x, y, .8 + rnd(158 + v, i) * 3, 0, TAU); g.fill();
+      x += (rnd(156 + v, i) - .5) * 5; y += (rnd(157 + v, i) - .5) * 5;
+      g.globalAlpha = .9; g.beginPath(); g.arc(x, y, .7 + rnd(158 + v, i) * 2.4, 0, TAU); g.fill();
     }
     g.restore();
     if (v) { g.save(); g.globalCompositeOperation = 'source-atop'; g.fillStyle = 'rgba(70,0,8,.08)'; g.fillRect(0, 0, SW, SH); g.restore(); }   // wet ink reads a touch darker
@@ -81,17 +110,17 @@
     g.translate(SW / 2, SH / 2); knockouts(g, MUSLIN, 1.5);
     g.globalCompositeOperation = 'source-atop'; g.globalAlpha = .1; g.drawImage(L.textureCanvas('paper', 512, 5), -SW / 2, -SH / 2, SW, SH);
   });
-  /** a printed impression: paper, ink, and a faint misregistered second strike */
-  const stampCanvas = v => L.cached('s5-stamp-' + v, SW, SH, g => {
+  /** a printed impression: paper, ink, and a misregistered second strike (30%, +2 / -1 px) */
+  const stampCanvas = v => L.cached('s5-stamp2-' + v, SW, SH, g => {
     g.drawImage(paperCanvas(), 0, 0);
-    g.globalAlpha = .3; g.drawImage(inkCanvas(v), 2, -1.5); g.globalAlpha = 1;
+    g.globalAlpha = .3; g.drawImage(inkCanvas(v), 2, -1); g.globalAlpha = 1;
     g.drawImage(inkCanvas(v), 0, 0);
   });
   /** the airborne BLOCK (not yet a print): a fully inked, opaque MM Red face, so nothing shows through while it falls */
   const blockCanvas = () => L.cached('s5-block', SW, SH, g => {
     g.translate(SW / 2, SH / 2); g.fillStyle = RED; L.rrect(g, -RW / 2, -RH / 2, RW, RH, 7); g.fill(); knockouts(g, MUSLIN, 0);
   });
-  const printSoft = b => L.cached('s5-print-soft-' + b, SW, SH, g => { g.filter = `blur(${b}px)`; g.drawImage(stampCanvas(0), 0, 0); g.filter = 'none'; });
+  const printSoft = b => L.cached('s5-print-soft2-' + b, SW, SH, g => { g.filter = `blur(${b}px)`; g.drawImage(stampCanvas(0), 0, 0); g.filter = 'none'; });
   const stampSoft = b => L.cached('s5-block-soft-' + b, SW, SH, g => { g.filter = `blur(${b}px)`; g.drawImage(blockCanvas(), 0, 0); g.filter = 'none'; });
   const shadowCanvas = b => L.cached('s5-shadow-' + b, SW + 200, SH + 200, g => { g.filter = `blur(${b}px)`; g.fillStyle = '#000'; L.rrect(g, 100 + SW / 2 - RW / 2, 100 + SH / 2 - RH / 2, RW, RH, 8); g.fill(); g.filter = 'none'; });
   // dark halo: generous at the sides and bottom (the low bursts), tight on top so the M's roofs + strings stay clean
@@ -121,46 +150,72 @@
     }
   }
 
-  /* The slam is worked out from FRAME-QUANTISED time, so the 4 motion-blur sub-samples of a frame always agree:
-     15.700 – 15.967 airborne (drops along z: scale 1.60 -> 1.08, rotation -12 -> -7.5, easeInCubic, it never
-     translates through the copy band), 16.000 landed with squash, then fixed per-frame shake offsets. */
+  /* The slam is worked out from FRAME-QUANTISED time, so the 4 motion-blur sub-samples of a frame always agree.
+     15.600 – 16.000  the shadow comes first (Rich Black multiply 0 -> .40, big + soft, tightening onto the footprint).
+     15.633 – 15.967  the slab drops from behind the lens along z only (scale 3.0 -> 1.0 over 15.633–16.000, inCubic;
+                      rotation -14 -> -7; alpha smoothstep 15.633–15.733): its first visible frames are a huge, defocused
+                      ghost that never pops in opaque, and it never translates through the copy band.
+     16.000           landed with squash, then fixed per-frame shake offsets.
+     17.767 – 17.900  the print lifts (scale 1 -> 1.15, soft) and fades, riding s6's dolly so it flies past the lens. */
   const SC = { x: 540, y: 960 };                         // landing centre: the M's roofs + V strings stand clear above it
-  const FF = Math.round(T_FALL * 30), FH = Math.round(T_HIT * 30);
+  const FA = Math.round(T_AIR * 30), FH = Math.round(T_HIT * 30);
   const SHAKE = [[10, -6], [-7, 5], [4, -3], [-2, 1]];  // 16.000, 16.033, 16.067, 16.100
   const shakeAt = T => { const k = Math.round(T * 30) - FH, v = SHAKE[k]; return v ? { x: v[0], y: v[1] } : { x: 0, y: 0 }; };
+  const airE = T => E.inCubic(prog(T, T_AIR, T_HIT));
   /** stamp transform at T: { s, sx, sy, rot, a, dy, soft, fall, tau } */
   function stampPose(T) {
     const fi = Math.round(T * 30);
-    if (fi < FF) return null;
+    if (fi < FA) return null;
     if (fi < FH) {
-      const p = (fi - FF) / (FH - 1 - FF), e = E.inCubic(p);
-      return { s: lerp(1.6, 1.08, e), sx: 1, sy: 1, rot: lerp(-12, -7.5, e), a: lerp(.94, 1, p), dy: 0, soft: p < .2 ? 6 : p < .5 ? 4 : p < .8 ? 2 : 0, fall: e, p };
+      const tq = fi / 30, e = airE(tq), sc = lerp(3, 1, e);
+      // defocus grows with closeness to the lens (cache px; on screen it is x scale)
+      const soft = sc > 2.4 ? 12 : sc > 1.95 ? 8 : sc > 1.55 ? 5 : sc > 1.2 ? 3 : 0;
+      // right at the lens a defocused slab is see-through (the background light wraps round it into the aperture):
+      // it solidifies as it falls into the focal plane, so the first frames stay a translucent ghost, never a red wall
+      const seeThru = lerp(.42, 1, sm(2.7, 1.6, sc));
+      return { s: sc, sx: 1, sy: 1, rot: lerp(-14, -7, e), a: sm(T_AIR, T_AIR_OPAQUE, tq) * seeThru, dy: 0, soft, fall: e, p: prog(tq, T_AIR, T_HIT) };
     }
     const k = fi - FH, tau = Math.max(0, T - T_HIT);
     let sx = 1, sy = 1, s = 1, rot = -7, a = 1, dy = 0, soft = 0;
     if (k === 0) { sx = 1.04; sy = .96; } else if (k === 1) { sx = .992; sy = 1.012; } else if (k === 2) { sx = 1.004; sy = .997; }
-    if (T > T_LIFT) { const u = prog(T, T_LIFT, T_END, E.inQuad); s = lerp(1, 1.15, u); a = 1 - u; dy = Math.round(-24 * u); rot = -7 + 1.2 * u; soft = 6 * u; }
+    // lift: alpha 1 -> 0 over 17.767–17.900, front-loaded ((1-u)^2) so the ghost has cleared the forming M by 17.867
+    if (T > T_LIFT0) { const u = prog(T, T_LIFT0, T_LIFT1, E.inQuad), l = prog(T, T_LIFT0, T_LIFT1); s = lerp(1, 1.15, u); a = (1 - l) * (1 - l); dy = -24 * u; rot = -7 + 1.2 * u; soft = 6 * Math.min(1, l * 1.6); }
     return { s, sx, sy, rot, a, dy, soft, fall: 1, p: 1, tau };
   }
+  /** s6's dolly, as the shared world applies it to the city layer, relative to the held wide at 17.700 */
+  function dollyXf(g, T) {
+    const NS = window.MMS45; if (T <= T_X || !NS || !NS.camAt) return;
+    const c0 = NS.camAt(T_X), c = NS.camAt(T);
+    g.translate(540, c.cy); g.scale(c.z, c.z); g.translate(-540, -c.cy);
+    g.translate(540, c0.cy); g.scale(1 / c0.z, 1 / c0.z); g.translate(-540, -c0.cy);
+  }
   function drawStampShadow(g, T, pose) {
-    if (!pose || T > T_LIFT + .2) return;
-    const air = pose.tau == null, e = pose.fall, k = air ? 1 : 1 - prog(T, T_LIFT, T_END);
-    const blurPick = air ? (pose.p < .6 ? 36 : 14) : 8;
-    const sc = air ? lerp(1.22, 1, E.inQuad(pose.p)) : lerp(1, 1.06, prog(T, T_LIFT, T_END));
-    g.save(); g.translate(SC.x + 16 * (1 - e) + 6, SC.y + 26 * (1 - e) + 10); g.rotate(-7 * DEG); g.scale(sc, sc);
-    g.globalAlpha = (air ? .45 * sm(0, 1, pose.p) : .32) * k;
-    g.drawImage(shadowCanvas(blurPick), -(SW + 200) / 2, -(SH + 200) / 2);
+    if (T < T_SHADOW || T > T_LIFT1) return;
+    const fi = Math.round(T * 30);
+    g.save();
+    if (fi < FH) {
+      // airborne: a big soft shadow that darkens and tightens onto the footprint as the block comes down
+      const e = airE(T), al = .40 * prog(T, T_SHADOW, T_HIT), sc = lerp(1.32, 1, E.inQuad(prog(T, T_SHADOW, T_HIT)));
+      g.translate(SC.x + 18 * (1 - e) + 6, SC.y + 30 * (1 - e) + 10); g.rotate(lerp(-11, -7, e) * DEG); g.scale(sc, sc);
+      const w = sm(.25, .9, e);                          // soft (36) -> tighter (14) as it approaches
+      g.globalAlpha = al * (1 - w); g.drawImage(shadowCanvas(36), -(SW + 200) / 2, -(SH + 200) / 2);
+      g.globalAlpha = al * w; g.drawImage(shadowCanvas(14), -(SW + 200) / 2, -(SH + 200) / 2);
+    } else {
+      const u = prog(T, T_LIFT0, T_LIFT0 + .1), sc = lerp(1, 1.08, u);
+      g.translate(SC.x + 6, SC.y + 10); g.rotate(-7 * DEG); g.scale(sc, sc);
+      g.globalAlpha = .32 * (1 - u); g.drawImage(shadowCanvas(u > .3 ? 14 : 8), -(SW + 200) / 2, -(SH + 200) / 2);
+    }
     g.restore();
   }
   function drawStamp(g, T, pose) {
     if (!pose || pose.a <= 0) return;
     // pivot snapped to whole pixels so the 4 px rules do not alias
-    g.save(); g.translate(Math.round(SC.x), Math.round(SC.y + pose.dy)); g.rotate(pose.rot * DEG); g.scale(pose.s * pose.sx, pose.s * pose.sy);
+    g.save(); g.translate(Math.round(SC.x), Math.round(SC.y) + pose.dy); g.rotate(pose.rot * DEG); g.scale(pose.s * pose.sx, pose.s * pose.sy);
     // dark halo so sparks never sit on the stamp's edge
     g.globalAlpha = .55 * pose.a * pose.fall; g.drawImage(haloCanvas(), -(SW + 260) / 2, -(SH + 260) / 2);
     g.globalAlpha = pose.a;
     let img;
-    if (pose.tau == null) img = pose.soft > 1 ? stampSoft(pose.soft > 5 ? 6 : pose.soft > 3 ? 4 : 2) : blockCanvas();
+    if (pose.tau == null) img = pose.soft > 0 ? stampSoft(pose.soft) : blockCanvas();
     else if (pose.soft > 1) img = printSoft(pose.soft > 4 ? 6 : pose.soft > 2.5 ? 4 : 2);
     else if (pose.tau != null && pose.tau < .37) img = stampCanvas(1 + (Math.floor(pose.tau * 15) % 3));   // wet ink "boils" on twos
     else img = stampCanvas(0);
@@ -358,9 +413,9 @@
         });
       }
       ctx.save(); ctx.translate(shake.x, shake.y);
-      drawStampShadow(ctx, T, pose);
+      ctx.save(); dollyXf(ctx, T); drawStampShadow(ctx, T, pose); ctx.restore();
       shockwave(ctx, T);
-      drawStamp(ctx, T, pose);
+      ctx.save(); dollyXf(ctx, T); drawStamp(ctx, T, pose); ctx.restore();
       drawCopy(ctx, T);
       ctx.restore();
     }
