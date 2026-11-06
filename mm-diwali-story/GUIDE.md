@@ -7,6 +7,12 @@ The soundtrack is synthesized in numpy (`audio/synth.py`). No stock media.
 ```
 brand/            exact MM logo geometry (logo-paths.js), brand fonts, logo SVGs, logo-sheet.png
 engine/lib.js     drawing library  -> window.L   (read it: every helper is documented inline)
+engine/elements.js crafted elements on L: hoarding (steel frame, gooseneck lamps, flex), skyline (Lucknow landmarks,
+                  windows switching on, rooftop jhalar), stringLights, lantern (akash kandil), marigold, mangoLeaf, toran,
+                  rangoli (from MM chevrons, powder texture), ledText (dot-matrix), textures (paper/ink/powder/flex),
+                  blockPrint (hand-stamped look with misregistration), butaPath (paisley)
+engine/post.js    cinematic finishing pass (motion blur, bloom, halation, grade, grain): steer per time via MM.postParams
+RESEARCH.md       what gets forwarded, what looks AI-made, music & story-format rules: READ IT
 engine/engine.js  frame loop       -> window.MM
 scenes/timeline.js  scene list with GLOBAL start/end seconds + global post FX
 scenes/<id>.js    one file per scene:  MM.scene('<id>', { draw(ctx, t, info) { ... } })
@@ -47,6 +53,14 @@ Rules that matter:
 8. **Stay in your lane.** Edit only your own scene file(s). Do not edit `engine/*`, `scenes/timeline.js`,
    `brand/*` or other scenes. If you need a helper, define it inside your scene file (prefix it to avoid clashes).
 
+## Light, colour & the finishing pass
+- The finishing pass blooms ONLY pixels with a channel >= ~247/255. So: type and logo white = `L.PAL.paper` (#F4F2EE, never glows);
+  lights, flames, bulb cores, firework heads = pure white / `#FFC24A` gold etc. (they bloom). Gold TYPE that should not glow: `L.PAL.goldInk`.
+- Additive light: `ctx.globalCompositeOperation = 'lighter'`, `L.glow`. Brand MM Red is the only red; festive light colours are for light only.
+- Motion blur is real (4 sub-frames, 180° shutter): fast moves look filmic; do not fake blur trails for camera moves.
+- `MM.postParams` (set in timeline.js) can vary exposure/bloom over time (e.g. a firework flash: exposure 1.15 for 3 frames).
+- Previews: `--raw` skips the finishing pass (fast); `--samples 1` keeps the look without motion blur. Check final look before you finish.
+
 ## Previewing (always look at your frames)
 
 ```bash
@@ -57,6 +71,13 @@ node render/render.js --video out/s2/s2.mp4 --from 2.6 --to 7 --workers 2       
 ```
 The renderer exits non-zero and prints `ERRORS:` if any scene throws. Times are GLOBAL seconds.
 Read the PNGs with your Read tool and judge them as a demanding art director would.
+
+## Sound (audio/compose.py)
+`audio/synth.py`: synthesized tabla (na/tin/ge/ke), dhol (boom/tik), clap, shaker, bells, chime, ghungroo, twinkle, tanpura, flute,
+shehnai, sitar/santoor plucks, pad, riser, whoosh, sub_boom, firework_launch/burst, crackle, sparkler, flip_clack, pop, ui_tap,
+match_strike, and `Mix(dur)` (stereo, reverb send, mastering to -14 LUFS / -1 dBFS).
+`audio/sampler.py`: sampled GM instruments via fluidsynth (GeneralUser GS): sitar, shehnai, flute, strings, choir, harp, celesta,
+tinkle_bell, taiko, timpani, orch_hit, reverse_cymbal ... with pitch bends (meend) and CC swells; GM percussion via `drums=True`.
 
 ## Quality bar
 

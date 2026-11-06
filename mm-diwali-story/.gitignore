@@ -3,3 +3,4 @@ out/*
 !out/MM-Diwali-Story-poster.png
 node_modules/
 __pycache__/
+audio/sf/*.sf2

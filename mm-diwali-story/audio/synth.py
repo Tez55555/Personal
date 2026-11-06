@@ -481,6 +481,19 @@ def fft_convolve(a, b):
     return np.fft.irfft(np.fft.rfft(a, N) * np.fft.rfft(b, N), N)[:n]
 
 
+def peak_limit(st, ceil, look_ms=4.0, release_ms=70.0):
+    """look-ahead brickwall peak limiter (stereo-linked). Guarantees |x| <= ceil."""
+    from scipy.ndimage import minimum_filter1d, uniform_filter1d
+    peak = np.max(np.abs(st), axis=0)
+    g0 = np.minimum(1.0, ceil / np.maximum(peak, 1e-12))
+    Lk = max(1, int(look_ms * SR / 1000))
+    g = minimum_filter1d(g0, size=2 * Lk + 1)
+    g = minimum_filter1d(g, size=max(1, int(release_ms * SR / 1000)), origin=-(max(1, int(release_ms * SR / 1000)) // 2) + 1)
+    g = uniform_filter1d(g, size=Lk)
+    g = np.minimum(g, g0)
+    return st * g
+
+
 class Mix:
     """stereo bus with a reverb send. add(sig, t, gain, pan[-1..1], send[0..1])"""
 
@@ -493,44 +506,66 @@ class Mix:
         self.sendR = np.zeros(self.n)
 
     def add(self, sig, t, gain=1.0, pan=0.0, send=0.0):
+        """sig: mono (n,) or stereo (2, n). pan: -1..1 (constant power for mono, balance for stereo)."""
+        sig = np.asarray(sig, dtype=float)
+        stereo = sig.ndim == 2
         if t < 0:
-            sig = sig[int(-t * SR):]
+            cut = int(-t * SR)
+            sig = sig[:, cut:] if stereo else sig[cut:]
             t = 0
         a = int(round(t * SR))
-        if a >= self.n or len(sig) == 0:
+        n = sig.shape[-1]
+        if a >= self.n or n == 0:
             return
-        sig = sig[:self.n - a] * gain
+        m = min(n, self.n - a)
         th = (np.clip(pan, -1, 1) + 1) * np.pi / 4
-        gl, gr = np.cos(th), np.sin(th)
-        self.L[a:a + len(sig)] += sig * gl
-        self.R[a:a + len(sig)] += sig * gr
+        if stereo:
+            gl, gr = (min(1.0, 1 - pan), min(1.0, 1 + pan))
+            l, r = sig[0, :m] * gain * gl, sig[1, :m] * gain * gr
+        else:
+            gl, gr = np.cos(th), np.sin(th)
+            l, r = sig[:m] * gain * gl, sig[:m] * gain * gr
+        self.L[a:a + m] += l
+        self.R[a:a + m] += r
         if send > 0:
-            self.sendL[a:a + len(sig)] += sig * gl * send
-            self.sendR[a:a + len(sig)] += sig * gr * send
+            self.sendL[a:a + m] += l * send
+            self.sendR[a:a + m] += r * send
 
-    def render(self, reverb=.9, target_rms_db=-15.0, ceiling_db=-1.0):
+    def render(self, reverb=.9, lufs=-14.0, ceiling_db=-1.0, air_db=1.5, warmth_db=1.0):
+        """reverb send -> mix -> mastering (EQ, glue compression, limiter) -> loudness-normalised to `lufs`."""
         irL, irR = make_ir()
         wl = fft_convolve(self.sendL, irL)[:self.n]
         wr = fft_convolve(self.sendR, irR)[:self.n]
-        L = self.L + wl * reverb
-        R = self.R + wr * reverb
-        L, R = fft_filter(L, lo=28), fft_filter(R, lo=28)
-        # loudness-ish normalisation, then soft-knee limiting
-        rms = np.sqrt(np.mean(np.concatenate([L, R]) ** 2)) + 1e-9
-        g = 10 ** (target_rms_db / 20) / rms
-        L, R = L * g, R * g
-        ceil = 10 ** (ceiling_db / 20)
-        drive = 1.0
-
-        def lim(x):
-            return np.tanh(x * drive / ceil) * ceil / np.tanh(drive) if drive != 1 else np.tanh(x / ceil) * ceil
-        L, R = lim(L), lim(R)
+        st = np.stack([self.L + wl * reverb, self.R + wr * reverb])
+        try:
+            import pedalboard as pb
+            import pyloudnorm as pyln
+            st = st / (np.max(np.abs(st)) + 1e-9) * 0.5
+            chain = pb.Pedalboard([
+                pb.HighpassFilter(cutoff_frequency_hz=28),
+                pb.LowShelfFilter(cutoff_frequency_hz=110, gain_db=warmth_db, q=0.7),
+                pb.PeakFilter(cutoff_frequency_hz=320, gain_db=-1.2, q=0.9),
+                pb.HighShelfFilter(cutoff_frequency_hz=9000, gain_db=air_db, q=0.7),
+                pb.Compressor(threshold_db=-20, ratio=2.2, attack_ms=18, release_ms=160),
+            ])
+            st = chain(st.astype(np.float32), SR).astype(np.float64)
+            meter = pyln.Meter(SR)
+            nb = n_samples(self.dur)
+            g = 1.0
+            for _ in range(4):  # normalise -> limit -> re-measure (the limiter lowers loudness a little)
+                y = peak_limit(st * g, 10 ** (ceiling_db / 20))
+                loud = meter.integrated_loudness(y[:, :nb].T)
+                if abs(loud - lufs) < .15:
+                    break
+                g *= 10 ** ((lufs - loud) / 20)
+            st = y
+        except ImportError:
+            st = st / (np.max(np.abs(st)) + 1e-9) * 10 ** (ceiling_db / 20)
         n = n_samples(self.dur)
-        L, R = L[:n], R[:n]
+        st = st[:, :n]
         f = min(n, n_samples(.5))
-        L[-f:] *= np.linspace(1, 0, f) ** 1.5
-        R[-f:] *= np.linspace(1, 0, f) ** 1.5
-        return np.stack([L, R])
+        st[:, -f:] *= np.linspace(1, 0, f) ** 1.5
+        return st
 
     def write(self, path, **kw):
         st = self.render(**kw)
@@ -543,4 +578,10 @@ class Mix:
             w.writeframes(pcm.tobytes())
         peak = 20 * np.log10(np.max(np.abs(st)) + 1e-9)
         rms = 20 * np.log10(np.sqrt(np.mean(st ** 2)) + 1e-9)
-        return {'path': path, 'seconds': st.shape[1] / SR, 'peak_db': round(float(peak), 2), 'rms_db': round(float(rms), 2)}
+        out = {'path': path, 'seconds': st.shape[1] / SR, 'peak_db': round(float(peak), 2), 'rms_db': round(float(rms), 2)}
+        try:
+            import pyloudnorm as pyln
+            out['lufs'] = round(float(pyln.Meter(SR).integrated_loudness(st.T)), 2)
+        except ImportError:
+            pass
+        return out

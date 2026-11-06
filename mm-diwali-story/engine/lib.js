@@ -16,6 +16,9 @@
   L.PAL = {
     ink: '#2B2728', ink2: '#3A3536', rich: '#1C1A1A', red: '#D2232E', red2: '#C21E29',
     violet: '#3F3593', muslin: '#EEECE8', linen: '#E4E1DC', stone: '#8C8783', mist: '#C9C4BF', white: '#FFFFFF',
+    // 'paper' = type & logo white. It reads as white but sits just under the bloom threshold, so type never glows.
+    // Rule: any colour with a channel >= 247 (e.g. #FFFFFF, #FFC24A) is treated as LIGHT and blooms in the finishing pass.
+    paper: '#F4F2EE', goldInk: '#F2B23E',
     // Festive LIGHT colours (only for light, flame, sparks, glow; never for the logo).
     flame: '#FFE9A8', gold: '#FFC24A', amber: '#FF9F1C', marigold: '#FF7A00', ember: '#FF5A1F',
     rose: '#FF5C8A', magenta: '#E0218A', peacock: '#11A7B8', leaf: '#3FA34D', night: '#120F1A', dusk: '#1E1530',
@@ -315,8 +318,8 @@
   function logoPaths(name) { if (!_p2d[name]) _p2d[name] = LOGO[name].items.map(it => ({ role: it.role, path: new Path2D(it.d) })); return _p2d[name]; }
   const WAYS = {
     full: { ink: '#2B2728', pillar: '#D2232E', word: '#2B2728', since: '#D2232E' },
-    reverse: { ink: '#FFFFFF', pillar: '#D2232E', word: '#FFFFFF', since: '#FFFFFF' },
-    onred: { ink: '#FFFFFF', pillar: '#2B2728', word: '#FFFFFF', since: '#FFFFFF' },
+    reverse: { ink: '#F4F2EE', pillar: '#D2232E', word: '#F4F2EE', since: '#F4F2EE' },
+    onred: { ink: '#F4F2EE', pillar: '#2B2728', word: '#F4F2EE', since: '#F4F2EE' },
   };
   /**
    * Draw a logo lockup exactly (never distorted).
@@ -385,7 +388,7 @@
    * Returns measured width.
    */
   L.text = (ctx, str, x, y, o = {}) => {
-    const { color = '#FFFFFF', align = 'center', baseline = 'alphabetic', alpha = 1, tracking = 0, glow, stroke, maxWidth } = o;
+    const { color = '#F4F2EE', align = 'center', baseline = 'alphabetic', alpha = 1, tracking = 0, glow, stroke, maxWidth } = o;
     if (alpha <= 0) return 0;
     ctx.save(); let size = o.size || 80;
     L.setFont(ctx, Object.assign({}, o, { size }));

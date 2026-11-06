@@ -3,6 +3,7 @@
    Stills:   node render/render.js --stills 0.5,2,4.2 --outdir out/stills [--scale .5] [--only s1-hook,s2-x]
    Sheet:    node render/render.js --sheet out/sheet.png [--from 0 --to 24 --every .5 --cols 8] [--only ...]
    Video:    node render/render.js --video out/video.mp4 [--from 0 --to 24 --fps 30 --scale 1 --workers 3 --crf 17 --format png]
+   Flags: --raw (skip the GL finishing pass), --samples N (motion-blur sub-frames; default from MMPost.DEFAULTS)
    Exits non-zero if any scene threw (errors printed). */
 'use strict';
 const http = require('http'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
@@ -38,8 +39,9 @@ async function openPage(browser, port, scale) {
   return page;
 }
 
+const RAW = !!args.raw, SAMPLES = args.samples ? parseInt(args.samples) : undefined;
 async function grab(page, t, fmt) {
-  const b64 = await page.evaluate(([t, only, fmt]) => { MM.renderFrame(t, { only }); return MM.canvas.toDataURL(fmt === 'jpeg' ? 'image/jpeg' : 'image/png', .95).split(',')[1]; }, [t, only, fmt]);
+  const b64 = await page.evaluate(([t, only, fmt, raw, samples]) => { const c = MM.renderFrame(t, { only, raw, samples }); return c.toDataURL(fmt === 'jpeg' ? 'image/jpeg' : 'image/png', .95).split(',')[1]; }, [t, only, fmt, RAW, SAMPLES]);
   return Buffer.from(b64, 'base64');
 }
 
@@ -52,7 +54,7 @@ async function reportErrors(pages) {
 
 (async () => {
   const srv = await serve(); const port = srv.address().port;
-  const browser = await chromium.launch({ args: ['--disable-gpu-vsync', '--force-color-profile=srgb'] });
+  const browser = await chromium.launch({ args: ['--disable-accelerated-2d-canvas', '--disable-gpu-vsync', '--force-color-profile=srgb', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
   const t0 = Date.now();
   try {
     if (args.stills) {
