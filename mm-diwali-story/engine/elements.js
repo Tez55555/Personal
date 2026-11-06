@@ -205,13 +205,13 @@
     // night shading: unlit face is dark; lamps paint pools of warm light from the top
     ctx.globalCompositeOperation = 'multiply';
     const shade = ctx.createLinearGradient(0, y, 0, y + h);
-    const dark = L.lerp(night, night * .35, lit);
+    const dark = L.lerp(night, night * .22, lit);
     shade.addColorStop(0, `rgba(${Math.round(255 * (1 - dark * .55))},${Math.round(255 * (1 - dark * .62))},${Math.round(255 * (1 - dark * .45))},1)`);
     shade.addColorStop(1, `rgba(${Math.round(255 * (1 - dark))},${Math.round(255 * (1 - dark * 1.05))},${Math.round(255 * (1 - dark * .85))},1)`);
     ctx.fillStyle = shade; ctx.fillRect(x, y, w, h);
     ctx.globalCompositeOperation = 'screen';
     for (let k = 0; k < nL; k++) { const lx = x + w * (k + .5) / nL; const g = ctx.createRadialGradient(lx, y - h * .05, 0, lx, y + h * .2, h * .95);
-      g.addColorStop(0, `rgba(255,236,200,${.32 * lit})`); g.addColorStop(.5, `rgba(255,214,160,${.12 * lit})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); }
+      g.addColorStop(0, `rgba(255,238,206,${.38 * lit})`); g.addColorStop(.5, `rgba(255,220,170,${.14 * lit})`); g.addColorStop(1, 'rgba(0,0,0,0)'); ctx.fillStyle = g; ctx.fillRect(x, y, w, h); }
     ctx.restore();
     // frame
     ctx.strokeStyle = frame; ctx.lineWidth = 10; ctx.strokeRect(x - 5, y - 5, w + 10, h + 10);
@@ -350,5 +350,84 @@
         }
       }
     }
+  };
+})();
+
+/* ---------------- tri-vision & LED van (appended) ---------------- */
+(function () {
+  'use strict';
+  const L = window.L;
+  /**
+   * Tri-vision board: `slats` vertical triangular prisms that rotate to swap between faces.
+   * faces: array of draw functions (g, w, h) -> each painted once into a cached canvas (key must be unique per face set).
+   * from/to: face indices; p: 0..1 overall progress of the turn (each slat staggered left->right by `stagger`).
+   * (x,y,w,h) = face rect. Draw frame/lamps around it with L.hoarding(content: ...) or your own frame.
+   */
+  L.trivision = (ctx, { x, y, w, h, key, faces, from = 0, to = 1, p = 0, slats = 22, stagger = .5, shade = .55 } = {}) => {
+    const imgs = faces.map((fn, i) => L.cached(`tv-${key}-${i}-${w}x${h}`, w, h, g => fn(g, w, h)));
+    const sw = w / slats;
+    for (let i = 0; i < slats; i++) {
+      const d = i / Math.max(1, slats - 1) * stagger;
+      const q = L.ease.inOutCubic(L.clamp((p - d) / (1 - stagger)));
+      const sx = x + i * sw;
+      if (q <= 0 || q >= 1) { const img = imgs[q >= 1 ? to : from]; ctx.drawImage(img, i * sw, 0, sw, h, sx, y, sw + .6, h); continue; }
+      // prism turning: outgoing face shrinks to the right edge, incoming face grows from the left edge
+      const ang = q * 2 * Math.PI / 3; // 120 degrees per face
+      const wa = Math.max(0, Math.cos(ang)) * sw, wb = Math.max(0, Math.cos(2 * Math.PI / 3 - ang)) * sw;
+      const tot = wa + wb || 1; const k = sw / tot; // keep slat filled (perspective cheat)
+      const A = wa * k, B = wb * k;
+      ctx.drawImage(imgs[to], i * sw, 0, sw, h, sx, y, B + .6, h);
+      ctx.drawImage(imgs[from], i * sw, 0, sw, h, sx + B, y, A + .6, h);
+      ctx.save(); ctx.fillStyle = `rgba(0,0,0,${shade * (1 - Math.cos(ang - Math.PI / 3) * .9)})`; ctx.fillRect(sx, y, B, h);
+      ctx.fillStyle = `rgba(0,0,0,${shade * .5 * Math.sin(ang)})`; ctx.fillRect(sx + B, y, A, h);
+      ctx.fillStyle = 'rgba(255,240,210,.18)'; ctx.fillRect(sx + B - 1, y, 2, h); ctx.restore();
+    }
+    ctx.save(); ctx.strokeStyle = 'rgba(0,0,0,.35)'; ctx.lineWidth = 1; for (let i = 1; i < slats; i++) { ctx.beginPath(); ctx.moveTo(x + i * sw, y); ctx.lineTo(x + i * sw, y + h); ctx.stroke(); } ctx.restore();
+  };
+
+  /**
+   * LED ad van (Indian mini-truck with a lit LED box), side view facing right. (x, groundY) = rear-bottom of the van.
+   * s = scale (1 => ~560px long). screen(g, w, h, t) draws the LED panel content. drive: wheel rotation speed.
+   */
+  L.ledVan = (ctx, x, groundY, s, t, { screen, body = '#E9E4DA', cab = '#D2232E', drive = 1, bounce = 1, seed = 1, lit = 1 } = {}) => {
+    ctx.save(); ctx.translate(x, groundY); ctx.scale(s, s);
+    const by = -Math.abs(Math.sin(t * 9 + seed)) * 2.5 * bounce * drive;
+    // shadow
+    ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.beginPath(); ctx.ellipse(280, 4, 300, 14, 0, 0, 6.2832); ctx.fill();
+    ctx.save(); ctx.translate(0, by);
+    // chassis
+    ctx.fillStyle = '#17141A'; ctx.fillRect(10, -70, 520, 26);
+    // LED box
+    const bx = 14, bw = 360, bh = 230, byy = -70 - bh;
+    ctx.fillStyle = '#121014'; ctx.fillRect(bx - 6, byy - 6, bw + 12, bh + 12);
+    ctx.save(); ctx.beginPath(); ctx.rect(bx, byy, bw, bh); ctx.clip(); ctx.translate(bx, byy);
+    if (screen) screen(ctx, bw, bh, t); else { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, bw, bh); }
+    ctx.restore();
+    // LED pixel grid + glass sheen
+    ctx.save(); ctx.globalAlpha = .22 * lit; ctx.strokeStyle = '#000'; ctx.lineWidth = 1.2;
+    for (let gx = bx; gx < bx + bw; gx += 6) { ctx.beginPath(); ctx.moveTo(gx, byy); ctx.lineTo(gx, byy + bh); ctx.stroke(); }
+    for (let gy = byy; gy < byy + bh; gy += 6) { ctx.beginPath(); ctx.moveTo(bx, gy); ctx.lineTo(bx + bw, gy); ctx.stroke(); }
+    ctx.restore();
+    L.glow(ctx, bx + bw / 2, byy + bh / 2, 300, '#FFC24A', .1 * lit);
+    // cab (Tata-407-style), facing right
+    ctx.fillStyle = cab; ctx.beginPath(); ctx.moveTo(390, -70); ctx.lineTo(390, -228); ctx.lineTo(470, -228); ctx.lineTo(525, -150); ctx.lineTo(540, -150); ctx.lineTo(540, -70); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(0,0,0,.18)'; ctx.fillRect(390, -110, 150, 40);
+    const wg = ctx.createLinearGradient(400, -220, 520, -150); wg.addColorStop(0, '#2B3445'); wg.addColorStop(1, '#5D6E86');
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(405, -215); ctx.lineTo(465, -215); ctx.lineTo(510, -158); ctx.lineTo(405, -158); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.beginPath(); ctx.moveTo(420, -212); ctx.lineTo(440, -212); ctx.lineTo(425, -162); ctx.lineTo(410, -162); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#F4F2EE'; ctx.fillRect(470, -128, 20, 4); // door handle
+    // marigold garland on the grille (Diwali!)
+    for (let k = 0; k < 6; k++) L.marigold(ctx, 532, -146 + k * 13, 7, { tone: k % 2 ? 'yellow' : 'orange', seed: k });
+    // headlight
+    L.glow(ctx, 540, -95, 90, '#FFE9C8', .5 * lit); ctx.fillStyle = '#FFFFFF'; ctx.fillRect(534, -102, 7, 12);
+    ctx.restore();
+    // wheels (outside the bounce)
+    for (const wx of [110, 450]) {
+      ctx.save(); ctx.translate(wx, -32); ctx.fillStyle = '#0C0B0E'; L.circle(ctx, 0, 0, 34); ctx.fill();
+      ctx.fillStyle = '#4A4550'; L.circle(ctx, 0, 0, 16); ctx.fill(); ctx.rotate(t * 14 * drive);
+      ctx.strokeStyle = '#8C8783'; ctx.lineWidth = 3; for (let k = 0; k < 5; k++) { ctx.rotate(6.2832 / 5); ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(14, 0); ctx.stroke(); }
+      ctx.restore();
+    }
+    ctx.restore();
   };
 })();
