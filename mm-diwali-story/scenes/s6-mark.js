@@ -116,11 +116,11 @@
     draw(ctx, t, { T }) {
       const { sharp, soft } = cityImages();
       // ---- camera: dolly-in 17.700–18.200 from the s5 wide framing (scale .52, roofs at y ~702) to identity
-      const p = L.prog(T, 17.7, 18.2, L.ease.outCubic);
+      const p = L.prog(T, 17.7, 18.2, L.ease.inOutCubic); // eases in, so the handover from s5's held wide has no speed kink
       const k = L.lerp(.52, 1, p), Y = L.lerp(702.4, ROOF, p);
       const cam = c => { c.translate(540, Y); c.scale(k, k); c.translate(-540, -ROOF); };
       // ---- s5 hand-over: fade our frame in over the stamp lift
-      const enter = L.smoothstep(17.7, 18.0, T);
+      const enter = L.smoothstep(17.8, 18.0, T); // s5's stamp lifts away first (17.8), then our world takes over
       const leave = 1 - L.smoothstep(20.2, 20.5, T); // s7 takes over (it paints its own background on top)
       ctx.save(); ctx.globalAlpha = enter;
 
