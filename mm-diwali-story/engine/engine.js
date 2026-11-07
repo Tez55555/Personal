@@ -10,6 +10,8 @@
 (function () {
   'use strict';
   const MM = window.MM = window.MM || {};
+  // language cut: ?lang=en renders the English version (default 'hi' = Hindi-first original). Scenes branch on L.EN.
+  MM.LANG = new URLSearchParams(location.search).get('lang') || 'hi'; L.EN = MM.LANG === 'en';
   MM.scenes = {}; MM.errors = []; MM.timeline = MM.timeline || []; MM.duration = MM.duration || 24; MM.fps = MM.fps || 30;
   MM.background = '#120F1A';
   MM.scene = (id, def) => { MM.scenes[id] = def; };

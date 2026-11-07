@@ -471,17 +471,24 @@
   /* ======================= MM MEDIA (lit until 12.400) ======================= */
   const faceTri = () => L.cached('s45-tri', 180, 115, g => {
     g.fillStyle = MUSLIN; g.fillRect(0, 0, 180, 115);
+    if (L.EN) {   // English cut: the same two-line gag as s3, in miniature
+      const o = { font: 'lat', size: 15, weight: 780, color: INK };
+      L.text(g, 'House: spotless.', 90, 46, Object.assign({ maxWidth: 160 }, o));
+      const w1 = L.measure(g, 'Back: ', o), w2 = L.measure(g, 'finished.', o), x0 = 90 - (w1 + w2) / 2;
+      L.text(g, 'Back: ', x0, 66, Object.assign({ align: 'left', maxWidth: w1 + 2 }, o)); L.text(g, 'finished.', x0 + w1, 66, Object.assign({ align: 'left', maxWidth: w2 + 2 }, o, { color: RED }));
+    } else {
     const o = { font: 'dev', size: 17, weight: 800, color: INK };
     const w1 = L.measure(g, 'घर साफ़। कमर ', o), w2 = L.measure(g, 'हाफ़।', o), x0 = 90 - (w1 + w2) / 2;
     L.text(g, 'घर साफ़। कमर ', x0, 52, Object.assign({ align: 'left', maxWidth: 140 }, o)); L.text(g, 'हाफ़।', x0 + w1, 52, Object.assign({ align: 'left', maxWidth: 60 }, o, { color: RED }));
     L.text(g, 'House: spotless. Back: finished.', 90, 72, { font: 'lat', size: 8, weight: 600, color: STONE, maxWidth: 150 });
+    }
     g.fillStyle = 'rgba(0,0,0,.12)'; for (let i = 1; i < 16; i++) g.fillRect(i * 180 / 16, 0, .8, 115);
     g.fillStyle = INK; g.fillRect(122, 100, 52, 11); L.drawLogo(g, 'mark', { x: 132, y: 105.5, h: 7, way: 'reverse' });
   });
   const faceLed = () => L.cached('s45-led', 140, 90, g => {
     g.fillStyle = '#0B0A0D'; g.fillRect(0, 0, 140, 90);
-    L.text(g, 'डाइट: मंडे से।', 70, 34, { font: 'dev', size: 15, weight: 700, color: '#FFE2B0', maxWidth: 120 });
-    L.text(g, 'काजू कतली: अभी से।', 70, 58, { font: 'dev', size: 16, weight: 800, color: RED, maxWidth: 126 });
+    L.text(g, L.EN ? 'Diet: from Monday.' : 'डाइट: मंडे से।', 70, 34, { font: L.EN ? 'lat' : 'dev', size: L.EN ? 13 : 15, weight: 700, color: '#FFE2B0', maxWidth: 122 });
+    L.text(g, L.EN ? 'Kaju katli: right now.' : 'काजू कतली: अभी से।', 70, 58, { font: L.EN ? 'lat' : 'dev', size: L.EN ? 14 : 16, weight: 800, color: RED, maxWidth: 128 });
     g.fillStyle = 'rgba(0,0,0,.45)'; for (let y = 0; y < 90; y += 3) g.fillRect(0, y, 140, 1); for (let x = 0; x < 140; x += 3) g.fillRect(x, 0, 1, 90);
     for (let i = 0; i < 6; i++) { g.fillStyle = MUSLIN; g.save(); g.translate(96 + i * 7, 78 - (i % 2) * 4); g.rotate(.3); g.fillRect(-3, -2, 6, 4); g.restore(); }
   });
@@ -494,8 +501,8 @@
   });
   const faceVan = () => L.cached('s45-van', 360, 230, g => {
     g.fillStyle = '#0B0A0D'; g.fillRect(0, 0, 360, 230);
-    L.text(g, 'सोन पापड़ी के डिब्बे:', 180, 80, { font: 'dev', size: 40, weight: 700, color: '#FFE2B0', maxWidth: 320 });
-    L.text(g, 'आए 3, गए 4।', 180, 150, { font: 'dev', size: 56, weight: 800, color: '#FFF1DA', maxWidth: 320 });
+    L.text(g, L.EN ? 'Soan papdi boxes:' : 'सोन पापड़ी के डिब्बे:', 180, 80, { font: L.EN ? 'lat' : 'dev', size: L.EN ? 34 : 40, weight: 700, color: '#FFE2B0', maxWidth: 320 });
+    L.text(g, L.EN ? 'Got 3. Gave 4.' : 'आए 3, गए 4।', 180, 150, { font: L.EN ? 'lat' : 'dev', size: L.EN ? 50 : 56, weight: 800, color: '#FFF1DA', maxWidth: 320 });
   });
   function lampHead(g, x, y, T, on, die) {
     // a tiny gooseneck lamp; after the cut the filament cools orange and fades
@@ -1125,8 +1132,9 @@
   }
 
   /* ======================= COPY ======================= */
-  const L1 = 'मेरे दीये से,', L2 = 'आपके दीये तक।', EN = 'From my diya to yours.';
-  const O1 = { font: 'dev', size: 92, weight: 700, color: MUSLIN }, OEN = { font: 'lat', size: 46, weight: 600, color: MIST };
+  // English cut: the wish itself is English (two lines), no sub
+  const L1 = L.EN ? 'From my diya' : 'मेरे दीये से,', L2 = L.EN ? 'to yours.' : 'आपके दीये तक।', EN = L.EN ? '' : 'From my diya to yours.';
+  const O1 = L.EN ? { font: 'lat', size: 92, weight: 740, color: MUSLIN } : { font: 'dev', size: 92, weight: 700, color: MUSLIN }, OEN = { font: 'lat', size: 46, weight: 600, color: MIST };
   function wordsRise(g, str, y, T, t0, o, outA, outDy) {
     const words = L.layoutWords(g, str, 540, o);
     for (const wd of words) {

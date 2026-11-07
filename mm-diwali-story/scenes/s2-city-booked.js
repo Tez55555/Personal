@@ -9,6 +9,7 @@
 (function () {
   'use strict';
   const L = window.L, Ez = L.ease, H = window.MMH;
+  const HERE = L.EN ? 'Advertise here' : 'जगह खाली है', HF = L.EN ? 'lat' : 'dev';   // language cut
   const clamp = L.clamp, lerp = L.lerp, rnd = L.rnd, q = L.q;
   const C = H.C, TM = H.TM, U = H.util, DEG = U.DEG;
   const H2_D = H.H2_D;
@@ -25,11 +26,11 @@
       if (layout === 'port') {
         L.text(g, 'SPACE', w / 2, h * .2, { font: 'lat', size: w * .19, weight: 760, color: C.ink, maxWidth: w * .86 });
         L.text(g, 'AVAILABLE', w / 2, h * .3, { font: 'lat', size: w * .19, weight: 760, color: C.ink, maxWidth: w * .86 });
-        L.text(g, 'जगह खाली है', w / 2, h * .43, { font: 'dev', size: w * .13, weight: 700, color: C.stone, maxWidth: w * .8 });
+        L.text(g, HERE, w / 2, h * .43, { font: HF, size: w * .13, weight: 700, color: C.stone, maxWidth: w * .8 });
       } else if (layout === 'split') {
         const big = Math.min(h * .25, w * .055), cx = w * .7;
         L.text(g, 'SPACE AVAILABLE', cx, h * .5, { font: 'lat', size: big, weight: 760, color: C.ink, maxWidth: w * .5 });
-        L.text(g, 'जगह खाली है', cx, h * .5 + big * 1.25, { font: 'dev', size: big * .9, weight: 700, color: C.stone, maxWidth: w * .4 });
+        L.text(g, HERE, cx, h * .5 + big * 1.25, { font: HF, size: big * .9, weight: 700, color: C.stone, maxWidth: w * .4 });
         g.save(); g.strokeStyle = 'rgba(140,135,131,.7)'; g.lineWidth = 1.4; g.setLineDash([5, 3.5]);
         g.strokeRect(w * .05, h * .17, w * .36, h * .66); g.restore();
         L.text(g, 'YOUR AD HERE', w * .23, h * .53, { font: 'lat', size: h * .1, weight: 600, color: 'rgba(140,135,131,.75)', maxWidth: w * .3, tracking: 1 });
@@ -38,11 +39,11 @@
       } else if (layout === 'high') {                                                   // copy set high so the stamp clears the Hindi line
         const big = Math.min(h * .25, w * .085), y1 = h * .1 + big;
         L.text(g, 'SPACE AVAILABLE', w / 2, y1, { font: 'lat', size: big, weight: 760, color: C.ink, maxWidth: w * .84 });
-        L.text(g, 'जगह खाली है', w / 2, y1 + big * 1.08, { font: 'dev', size: big * .82, weight: 700, color: C.stone, maxWidth: w * .6 });
+        L.text(g, HERE, w / 2, y1 + big * 1.08, { font: HF, size: big * .82, weight: 700, color: C.stone, maxWidth: w * .6 });
       } else {
         const big = Math.min(h * .25, w * .085), y1 = h * .2 + big;
         L.text(g, 'SPACE AVAILABLE', w / 2, y1, { font: 'lat', size: big, weight: 760, color: C.ink, maxWidth: w * .84 });
-        L.text(g, 'जगह खाली है', w / 2, y1 + big * 1.12, { font: 'dev', size: big * .86, weight: 700, color: C.stone, maxWidth: w * .6 });
+        L.text(g, HERE, w / 2, y1 + big * 1.12, { font: HF, size: big * .86, weight: 700, color: C.stone, maxWidth: w * .6 });
       }
       L.textureOverlay(g, 'paper', 0, 0, w, h, { alpha: .14, blend: 'multiply', scale: .35, seed: 5 });
       for (let i = 0; i < 9; i++) { const x = rnd(950, i + id.length * 9) * w; const gr = g.createLinearGradient(0, 0, 0, h * .7); gr.addColorStop(0, 'rgba(96,78,62,.10)'); gr.addColorStop(1, 'rgba(96,78,62,0)'); g.fillStyle = gr; g.fillRect(x, 0, 1.2, h * .7); }
@@ -300,10 +301,10 @@
     ctx.save(); ctx.translate(540, 430); ctx.scale(1, .36);
     const hg = ctx.createRadialGradient(0, 0, 0, 0, 0, 640); hg.addColorStop(0, `rgba(22,20,24,${(.62 * ha).toFixed(3)})`); hg.addColorStop(.6, `rgba(22,20,24,${(.4 * ha).toFixed(3)})`); hg.addColorStop(1, 'rgba(22,20,24,0)');
     ctx.fillStyle = hg; ctx.fillRect(-700, -700, 1400, 1400); ctx.restore();
-    const o = { font: 'dev', size: 84, weight: 700, color: C.paper, maxWidth: 820 };
-    riseLine(ctx, 'दिवाली की रात,', 370, T, HL.l1, o, .2);
-    riseLine(ctx, 'पूरा शहर आपके नाम।', 470, T, HL.l2, o, .167);
-    const su = Ez.outCubic(clamp((T - HL.sub) / .2));
+    const o = L.EN ? { font: 'lat', size: 76, weight: 740, color: C.paper, maxWidth: 820 } : { font: 'dev', size: 84, weight: 700, color: C.paper, maxWidth: 820 };
+    riseLine(ctx, L.EN ? 'Diwali night.' : 'दिवाली की रात,', 370, T, HL.l1, o, .2);
+    riseLine(ctx, L.EN ? 'The city is all yours.' : 'पूरा शहर आपके नाम।', 470, T, HL.l2, L.EN ? Object.assign({}, o, { size: 64 }) : o, .167);
+    const su = L.EN ? 0 : Ez.outCubic(clamp((T - HL.sub) / .2));   // English cut: the hero IS English, no sub
     if (su > 0) L.text(ctx, 'Diwali night. The whole city’s yours.', 540, 555 + 12 * (1 - su), { font: 'lat', size: 44, weight: 600, color: C.mist, alpha: su, maxWidth: 820 });
     ctx.restore();
   };

@@ -26,16 +26,24 @@
   const GOLD = '#FFC24A', BULB = '#FFF4CF', AMBER = '#FFB547', WARMW = '#FFE7A3', TUBE = '#F4F6FF';
 
   /* ---------- copy (code points exactly as in storyboard.json) ---------- */
-  const HERO_A = 'घर साफ़। कमर हाफ़।', HAF = 'हाफ़', DANDA = '।';
-  const SUB_A = 'House: spotless. Back: finished.';
+  // English cut (L.EN): the hero lines are English and there is no sub. Gag A becomes two lines; the punch word
+  // ('finished', like 'हाफ़') is the one that cracks.
+  const EN = !!L.EN;
+  const HERO_A = EN ? 'Back: finished.' : 'घर साफ़। कमर हाफ़।', HAF = EN ? 'finished' : 'हाफ़', DANDA = EN ? '.' : '।';
+  const HERO_A0 = 'House: spotless.';                       // English line 1 (above the punch line)
+  const HO = EN ? { font: 'lat', size: 84, weight: 780 } : { font: 'dev', size: 92, weight: 800 };
+  const HY = EN ? 318 : 240, PI = EN ? 1 : 3;              // punch line baseline, punch word index
+  const SUB_A = EN ? ' ' : 'House: spotless. Back: finished.';
   const FINE_A_HI = '*नियम व शर्तें: मम्मी', FINE_A_EN = '  ·  *T&C: Mummy';
-  const B1 = 'डाइट: मंडे से।';
-  const B2 = 'काजू कतली: अभी से।';
-  const SUB_B = 'Diet: Monday. Kaju katli: right now.';
-  const C1 = 'सोन पापड़ी के डिब्बे:';
-  const C2A = 'आए 3, गए ', C2B = '4', C2C = '।';
-  const SUB_C = 'Soan papdi: got 3, gave 4.';
-  const FINE_C_HI = '*चौथा डिब्बा: रहस्य', FINE_C_EN = '  ·  *Box #4: a mystery';
+  const B1 = EN ? 'Diet: from Monday.' : 'डाइट: मंडे से।';
+  const B2 = EN ? 'Kaju katli: right now.' : 'काजू कतली: अभी से।';
+  const SUB_B = EN ? ' ' : 'Diet: Monday. Kaju katli: right now.';
+  const C1 = EN ? 'Soan papdi boxes:' : 'सोन पापड़ी के डिब्बे:';
+  const C2A = EN ? 'Got 3. Gave ' : 'आए 3, गए ', C2B = '4', C2C = EN ? '.' : '।';
+  const SUB_C = EN ? ' ' : 'Soan papdi: got 3, gave 4.';
+  const FINE_C_HI = EN ? '' : '*चौथा डिब्बा: रहस्य', FINE_C_EN = EN ? '*Box #4: a mystery' : '  ·  *Box #4: a mystery';
+  /** shrink a font spec so `str` fits `maxW` px (English lines are longer than their Hindi originals) */
+  const fitO = (str, o, maxW) => { const c = document.createElement('canvas').getContext('2d'), w = L.measure(c, str, o); return w > maxW ? Object.assign({}, o, { size: o.size * maxW / w }) : o; };
 
   /* ---------- small helpers ---------- */
   const keys = (T, ks, ease = E.inOutQuad) => {
@@ -315,7 +323,7 @@
 
   /* ======================= BAR A: tri-vision on a rooftop ======================= */
   const TV = { x: 120, y: 560, w: 840, h: 620, n: 16 }, LAMPS_A = [420, 660];   // lamps symmetric about 540, clear of the MM plate
-  const heroLay = g => L.layoutWords(g, HERO_A, 420, { font: 'dev', size: 92, weight: 800 });
+  const heroLay = g => L.layoutWords(g, HERO_A, 420, HO);
   function printToran(g, w) {
     g.strokeStyle = 'rgba(140,135,131,.8)'; g.lineWidth = 2; g.beginPath(); g.moveTo(0, 18); g.quadraticCurveTo(w / 2, 40, w, 18); g.stroke();
     const n = 28;
@@ -344,10 +352,11 @@
       for (let k = -10; k < 30; k++) { g.beginPath(); g.moveTo(k * 56, 452); g.lineTo(k * 56 + 168, 620); g.moveTo(k * 56, 620); g.lineTo(k * 56 + 168, 452); g.stroke(); }
       g.restore(); g.fillStyle = 'rgba(140,135,131,.55)'; g.fillRect(0, 452, TV.w, 3);
       printToran(g, TV.w);
-      const o = { font: 'dev', size: 92, weight: 800 }, lay = heroLay(g);
+      const o = HO, lay = heroLay(g);
+      if (EN) L.text(g, HERO_A0, 420, 214, Object.assign({}, o, { color: INK, maxWidth: 780 }));
       for (const wd of lay) {
-        if (wd.i === 3) { const wh = L.measure(g, HAF, o); if (full) L.text(g, HAF, wd.x, 240, Object.assign({}, o, { align: 'left', color: RED, maxWidth: wh + 2 })); L.text(g, DANDA, wd.x + wh, 240, Object.assign({}, o, { align: 'left', color: INK, maxWidth: 60 })); }
-        else L.text(g, wd.word, wd.x, 240, Object.assign({}, o, { align: 'left', color: INK, maxWidth: wd.w + 2 }));
+        if (wd.i === PI) { const wh = L.measure(g, HAF, o); if (full) L.text(g, HAF, wd.x, HY, Object.assign({}, o, { align: 'left', color: RED, maxWidth: wh + 2 })); L.text(g, DANDA, wd.x + wh, HY, Object.assign({}, o, { align: 'left', color: INK, maxWidth: 60 })); }
+        else L.text(g, wd.word, wd.x, HY, Object.assign({}, o, { align: 'left', color: INK, maxWidth: wd.w + 2 }));
       }
       L.text(g, SUB_A, 420, 330, { font: 'lat', size: 44, weight: 600, color: INK, maxWidth: 700 });
       L.textureOverlay(g, 'paper', 0, 0, TV.w, TV.h, { alpha: .07, blend: 'multiply', scale: .6, seed: 5 });
@@ -611,14 +620,14 @@
   }
   function drawFaceLive(g, T) {   // printed-surface animation (hero word, fine print, jhadu): lit with the face
     g.save(); g.translate(TV.x, TV.y);
-    const o = { font: 'dev', size: 92, weight: 800 }, lay = heroLay(g), wd = lay[3], wh = L.measure(g, HAF, o);
+    const o = HO, lay = heroLay(g), wd = lay[PI], wh = L.measure(g, HAF, o);
     const cr = crack(T);
-    g.save(); g.translate(wd.x + wh / 2, 240 + cr.dy); g.transform(1, 0, -Math.tan(cr.sk * DEG), 1, 0, 0); g.scale(1, cr.sy);
+    g.save(); g.translate(wd.x + wh / 2, HY + cr.dy); g.transform(1, 0, -Math.tan(cr.sk * DEG), 1, 0, 0); g.scale(1, cr.sy);
     L.text(g, HAF, 0, 0, Object.assign({}, o, { color: RED, maxWidth: wh + 2 }));
     g.restore();
     if (T >= 6.4 && T < 6.6) {   // 'krrk' ticks: three bold Ink strokes radiating off the top of 'हाफ़' (its back)
       const a = 1 - E.inQuad(clamp((T - 6.53) / .07)); g.strokeStyle = L.rgba(INK, .95 * a); g.lineWidth = 6; g.lineCap = 'round';
-      const cx = wd.x + wh * .62, cy = 150, grow = E.outCubic(clamp((T - 6.4) / .05));
+      const cx = wd.x + wh * .62, cy = HY - 90, grow = E.outCubic(clamp((T - 6.4) / .05));
       for (let j = 0; j < 3; j++) { const ang = -2.2 + j * .6, r0 = 10, r1 = 10 + 30 * grow; g.beginPath(); g.moveTo(cx + Math.cos(ang) * r0, cy + Math.sin(ang) * r0); g.lineTo(cx + Math.cos(ang) * r1, cy + Math.sin(ang) * r1); g.stroke(); }
     }
     // fine print, readable on a phone: 40 px Ink at 85 %, centred in the clear band under the sub; the two MM Red
@@ -627,13 +636,14 @@
     if (fa > 0) {
       const oh = { font: 'dev', size: 40, weight: 500 }, oe = { font: 'lat', size: 40, weight: 500 }, oa = { font: 'lat', size: 40, weight: 600 };
       const sa = L.measure(g, '*', oa), w1 = L.measure(g, FINE_A_HI.slice(1), oh), wm = L.measure(g, '  ·  ', oe), w2 = L.measure(g, FINE_A_EN.slice(6), oe);
-      let x = 420 - (2 * sa + w1 + wm + w2) / 2; const y = 440, al = .85 * fa;   // baseline 1000: descenders clear the floor rule
-      for (const [str, o, col, w] of [['*', oa, RED, sa], [FINE_A_HI.slice(1), oh, INK, w1], ['  ·  ', oe, INK, wm], ['*', oa, RED, sa], [FINE_A_EN.slice(6), oe, INK, w2]]) {
+      const runs = EN ? [['*', oa, RED, sa], [FINE_A_EN.slice(6), oe, INK, w2]] : [['*', oa, RED, sa], [FINE_A_HI.slice(1), oh, INK, w1], ['  ·  ', oe, INK, wm], ['*', oa, RED, sa], [FINE_A_EN.slice(6), oe, INK, w2]];
+      let x = 420 - runs.reduce((s, r) => s + r[3], 0) / 2; const y = 440, al = .85 * fa;   // baseline 1000: descenders clear the floor rule
+      for (const [str, o, col, w] of runs) {
         L.text(g, str, x, y, Object.assign({}, o, { align: 'left', color: col, alpha: col === RED ? fa : al, maxWidth: w + 2 })); x += w;
       }
       // the footnote mark on the hero, stamped in on the same beat
       const wD = L.measure(g, DANDA, o), sc = keys(T - 5.9, [[0, 1.6], [.1, .9], [.167, 1]]);
-      g.save(); g.translate(wd.x + wh + wD + 16, 240 - 40); g.scale(sc, sc);
+      g.save(); g.translate(wd.x + wh + wD + 16, HY - 40); g.scale(sc, sc);
       L.text(g, '*', 0, 22, { font: 'lat', size: 64, weight: 700, color: RED, alpha: fa, maxWidth: 40 }); g.restore();
     }
     g.restore();
@@ -742,7 +752,8 @@
       else { const col = k % 3 ? GOLDINK : '#D9721E'; for (let r = 0; r < 3; r++) for (let j = 0; j < 3 - r; j++) { const x = tx + 22 + j * 17 + r * 8.5, y = 1554 - r * 14; g.fillStyle = col; g.beginPath(); g.arc(x, y, 8.5, 0, TAU); g.fill(); g.fillStyle = 'rgba(255,240,200,.35)'; g.beginPath(); g.arc(x - 3, y - 3, 3, 0, TAU); g.fill(); } } }
   });
   function bLines() {   // LED copy rendered once
-    const o1 = { font: 'dev', size: 72, weight: 700 }, o2 = { font: 'dev', size: 84, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
+    const o1 = EN ? fitO(B1, { font: 'lat', size: 68, weight: 720 }, 680) : { font: 'dev', size: 72, weight: 700 };
+    const o2 = EN ? fitO(B2, { font: 'lat', size: 78, weight: 800 }, 700) : { font: 'dev', size: 84, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
     // line 2 (MM Red punch) gets a thin Rich Black ring, not a grey knockout; it sits OUT of the heavy dot mask
     return { o1, o2, os, l2: textImg(B2, o2, RED), sub: textImg(SUB_B, os, MIST), l2k: textImg(B2, o2, RED, 6, 'rgba(28,26,26,.9)'), subk: textImg(SUB_B, os, MIST, 10) };
   }
@@ -1164,7 +1175,8 @@
   function headLevel(T) { return (T >= 10.6 && T < 10.667) || (T >= 10.7 && T < 10.767) ? 1.9 : 1; }
   function drawVanPanel(g, T, lvl) {
     const px = 14 * VS, py = -300 * VS, pw = 360 * VS, ph = 230 * VS;
-    const o1 = { font: 'dev', size: 60, weight: 700 }, o2 = { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
+    const o1 = EN ? fitO(C1, { font: 'lat', size: 58, weight: 720 }, 600) : { font: 'dev', size: 60, weight: 700 };
+    const o2 = EN ? { font: 'lat', size: 104, weight: 800 } : { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
     // line 2 in three runs so the '4' can be MM Red and pulse; the whole line is held to maxWidth 560
     const wA = L.measure(g, C2A, o2), w4 = L.measure(g, C2B, o2), wD = L.measure(g, C2C, o2), fit = Math.min(1, 560 / (wA + w4 + wD));
     const x0 = 349 - (wA + w4 + wD) * fit / 2, pulse = T < BOX_HOP[3] ? 1 : keys(T - BOX_HOP[3], [[0, 1], [.1, 1.15], [.22, 1]]);

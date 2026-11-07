@@ -44,6 +44,7 @@
     g.fillRect(-300 - grow, LAY.rule - grow, 600 + 2 * grow, 5 + 2 * grow);                        // band rule
     // band at weight 700: knock-out stems stay >= 6 px, so the line survives WhatsApp re-encoding
     const bh = { font: 'dev', size: 44, weight: 700, color: col, stroke: st }, be = { font: 'lat', size: 40, weight: 700, color: col, stroke: st };
+    if (L.EN) { L.text(g, 'WITH HAPPINESS', 0, LAY.band, Object.assign({}, be, { size: 44, weight: 760, tracking: 4, maxWidth: 600 })); return; }   // English cut
     const w1 = L.measure(g, 'खुशियों से', bh), w2 = L.measure(g, 'with happiness', be), gap = 46, x0 = -(w1 + gap + w2) / 2;
     L.text(g, 'खुशियों से', x0, LAY.band, Object.assign({ align: 'left', maxWidth: 260 }, bh));
     L.circle(g, x0 + w1 + gap / 2, LAY.band - 13, 4.5 + grow); g.fill();                           // the middle dot is drawn
@@ -345,7 +346,7 @@
   }
 
   /* ---------------- copy ---------------- */
-  const OA = { font: 'dev', size: 84, weight: 700, color: PAPER }, OAe = { font: 'lat', size: 84, weight: 700, color: PAPER };
+  const OA0 = { font: 'dev', size: 84, weight: 700, color: PAPER }, OAe = { font: 'lat', size: L.EN ? 80 : 84, weight: L.EN ? 740 : 700, color: PAPER };
   const OEN = { font: 'lat', size: 44, weight: 600, color: MIST };
   function drawCopy(g, T) {
     if (T < T_FALL) return;
@@ -356,19 +357,19 @@
     const hg = g.createRadialGradient(0, 0, 0, 0, 0, 520); hg.addColorStop(0, rgbaRich(.55)); hg.addColorStop(.6, rgbaRich(.38)); hg.addColorStop(1, rgbaRich(0));
     g.globalAlpha = sm(T_FALL, T_FALL + .2, T) * outA; g.fillStyle = hg; g.fillRect(-540, -520, 1080, 1040); g.restore();
     // line A: per word, 2-frame stagger, .2 s; the ellipsis rides on the last word (Latin glyph)
-    const words = ['आपका', 'पूरा', 'साल'], ell = '…';
+    const words = L.EN ? ['Wishing', 'you', 'a', 'year'] : ['आपका', 'पूरा', 'साल'], ell = '…', OA = L.EN ? OAe : OA0, LASTW = words.length - 1;
     const ws = words.map(w => L.measure(g, w, OA)), sp = L.measure(g, ' ', OA), we = L.measure(g, ell, OAe);
-    let x = 540 - (ws.reduce((a, b) => a + b, 0) + sp * 2 + we) / 2;
+    let x = 540 - (ws.reduce((a, b) => a + b, 0) + sp * (words.length - 1) + we) / 2;
     words.forEach((w, i) => {
       const p = clamp((T - T_FALL - i * 2 / 30) / .2), e = E.outCubic(p);
       if (p > 0) {
         const y = 395 + (1 - e) * 30;
         L.text(g, w, x, y, Object.assign({}, OA, { align: 'left', alpha: e * outA, maxWidth: ws[i] + 4 }));
-        if (i === 2) L.text(g, ell, x + ws[i] + 2, y, Object.assign({}, OAe, { align: 'left', alpha: e * outA, maxWidth: we + 4 }));
+        if (i === LASTW) L.text(g, ell, x + ws[i] + 2, y, Object.assign({}, OAe, { align: 'left', alpha: e * outA, maxWidth: we + 4 }));
       }
       x += ws[i] + sp;
     });
-    const pe = E.outCubic(clamp((T - q(15.7667)) / .2));
+    const pe = L.EN ? 0 : E.outCubic(clamp((T - q(15.7667)) / .2));   // English cut: the hero is English, no sub
     if (pe > 0) L.text(g, 'Wishing you a year…', 540, 470 + (1 - pe) * 12, Object.assign({}, OEN, { alpha: pe * outA, maxWidth: 820 }));
   }
   const rgbaRich = a => `rgba(28,26,26,${a})`;

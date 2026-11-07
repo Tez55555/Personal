@@ -539,11 +539,12 @@
     L.text(g, 'BOOKED', 0, 2, { font: 'lat', size: 120, weight: 760, stretch: 'expanded', color: C.violet, maxWidth: 600 });
     g.fillRect(-324, 16, 648, 4);
     // band: 'बुक्ड · दीपावली 2026' (the middle dot is drawn: Anek Devanagari has no U+00B7)
-    const bo = { font: 'dev', size: 40, weight: 600, color: C.violet };
-    const w1 = L.measure(g, 'बुक्ड', bo), w2 = L.measure(g, 'दीपावली 2026', bo), gap = 40, x0 = -(w1 + gap + w2) / 2;
-    L.text(g, 'बुक्ड', x0, 69, Object.assign({ align: 'left', maxWidth: 200 }, bo));
+    const bo = L.EN ? { font: 'lat', size: 38, weight: 650, color: C.violet, tracking: 3 } : { font: 'dev', size: 40, weight: 600, color: C.violet };
+    const BA = L.EN ? 'DIWALI NIGHT' : 'बुक्ड', BB = L.EN ? '2026' : 'दीपावली 2026';
+    const w1 = L.measure(g, BA, bo), w2 = L.measure(g, BB, bo), gap = 40, x0 = -(w1 + gap + w2) / 2;
+    L.text(g, BA, x0, 69, Object.assign({ align: 'left', maxWidth: w1 + 4 }, bo));
     L.circle(g, x0 + w1 + gap / 2, 57, 4.2); g.fill();
-    L.text(g, 'दीपावली 2026', x0 + w1 + gap, 69, Object.assign({ align: 'left', maxWidth: 380 }, bo));
+    L.text(g, BB, x0 + w1 + gap, 69, Object.assign({ align: 'left', maxWidth: w2 + 4 }, bo));
     g.restore();
     if (solid) return;
   }
@@ -633,7 +634,8 @@
       // printed hairline border, typical of a "space available" flex
       g.strokeStyle = 'rgba(43,39,40,.5)'; g.lineWidth = 3; g.strokeRect(26, 26, FW - 52, FH - 52);
       L.text(g, 'SPACE AVAILABLE', FW / 2, 170, { font: 'lat', size: 78, weight: 760, color: C.ink, maxWidth: 780 });
-      L.text(g, 'जगह खाली है', FW / 2, 290, { font: 'dev', size: 76, weight: 700, color: C.stone, maxWidth: 700 });
+      if (L.EN) L.text(g, 'Advertise here', FW / 2, 285, { font: 'lat', size: 66, weight: 700, color: C.stone, maxWidth: 700 });
+      else L.text(g, 'जगह खाली है', FW / 2, 290, { font: 'dev', size: 76, weight: 700, color: C.stone, maxWidth: 700 });
       // weathering
       L.textureOverlay(g, 'paper', 0, 0, FW, FH, { alpha: .09, blend: 'multiply', scale: .42, seed: 4 });
       L.textureOverlay(g, 'flex', 0, 0, FW, FH, { alpha: .08, blend: 'multiply', scale: .3, seed: 2 });
@@ -845,7 +847,7 @@
     if (T >= TM.write0) writeOn(g, T);
     if (T >= TM.hi0) {
       const u = Ez.outCubic(clamp((T - TM.hi0) / (TM.hi1 - TM.hi0)));
-      L.text(g, 'आपके लिए', 540, 1244 + 12 * (1 - u), { font: 'tiro', italic: true, size: 60, color: C.red, alpha: u, maxWidth: 400 });
+      L.text(g, L.EN ? '(yes, you.)' : 'आपके लिए', 540, 1244 + 12 * (1 - u), { font: 'tiro', italic: true, size: 60, color: C.red, alpha: u, maxWidth: 400 });
     }
   }
   function wetSheen(g, T) {
