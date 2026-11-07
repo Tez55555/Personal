@@ -1,0 +1,35 @@
+{
+ "_doc": "Edit lists. segs = source [start, end] seconds played back to back; xf = dissolve length in frames at each join. Joins sit on the 100 BPM grid (beat = 0.6 s) so the soundtrack cut keeps the groove.",
+ "main": {
+  "segs": [
+   [
+    0,
+    2.7
+   ],
+   [
+    5.1,
+    17.2
+   ],
+   [
+    19.6,
+    24.4
+   ]
+  ],
+  "xf": 4,
+  "note": "drops the city-booked montage and the towers-become-the-mark climax"
+ },
+ "short": {
+  "segs": [
+   [
+    12.7,
+    17.2
+   ],
+   [
+    19.6,
+    24.4
+   ]
+  ],
+  "xf": 4,
+  "note": "no billboards: match -> diya -> light spreads -> wish -> FULLY BOOKED -> end card"
+ }
+}
