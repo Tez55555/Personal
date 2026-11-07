@@ -44,7 +44,7 @@
     g.fillRect(-300 - grow, LAY.rule - grow, 600 + 2 * grow, 5 + 2 * grow);                        // band rule
     // band at weight 700: knock-out stems stay >= 6 px, so the line survives WhatsApp re-encoding
     const bh = { font: 'dev', size: 44, weight: 700, color: col, stroke: st }, be = { font: 'lat', size: 40, weight: 700, color: col, stroke: st };
-    if (L.EN) { L.text(g, 'WITH HAPPINESS', 0, LAY.band, Object.assign({}, be, { size: 44, weight: 760, tracking: 4, maxWidth: 600 })); return; }   // English cut
+    if (L.EN && !L.MIX) { L.text(g, 'WITH HAPPINESS', 0, LAY.band, Object.assign({}, be, { size: 44, weight: 760, tracking: 4, maxWidth: 600 })); return; }   // English cut
     const w1 = L.measure(g, 'खुशियों से', bh), w2 = L.measure(g, 'with happiness', be), gap = 46, x0 = -(w1 + gap + w2) / 2;
     L.text(g, 'खुशियों से', x0, LAY.band, Object.assign({ align: 'left', maxWidth: 260 }, bh));
     L.circle(g, x0 + w1 + gap / 2, LAY.band - 13, 4.5 + grow); g.fill();                           // the middle dot is drawn
@@ -369,8 +369,8 @@
       }
       x += ws[i] + sp;
     });
-    const pe = L.EN ? 0 : E.outCubic(clamp((T - q(15.7667)) / .2));   // English cut: the hero is English, no sub
-    if (pe > 0) L.text(g, 'Wishing you a year…', 540, 470 + (1 - pe) * 12, Object.assign({}, OEN, { alpha: pe * outA, maxWidth: 820 }));
+    const pe = L.EN && !L.MIX ? 0 : E.outCubic(clamp((T - q(15.7667)) / .2));   // English: no sub; mix: a small Hindi line
+    if (pe > 0) L.text(g, L.MIX ? 'आपका पूरा साल…' : 'Wishing you a year…', 540, 470 + (1 - pe) * 12, Object.assign({}, OEN, L.MIX ? { font: 'dev', size: 48 } : {}, { alpha: pe * outA, maxWidth: 820 }));
   }
   const rgbaRich = a => `rgba(28,26,26,${a})`;
 

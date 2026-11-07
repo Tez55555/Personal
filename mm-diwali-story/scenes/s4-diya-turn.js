@@ -483,7 +483,7 @@
     L.text(g, 'House: spotless. Back: finished.', 90, 72, { font: 'lat', size: 8, weight: 600, color: STONE, maxWidth: 150 });
     }
     g.fillStyle = 'rgba(0,0,0,.12)'; for (let i = 1; i < 16; i++) g.fillRect(i * 180 / 16, 0, .8, 115);
-    g.fillStyle = INK; g.fillRect(122, 100, 52, 11); L.drawLogo(g, 'mark', { x: 132, y: 105.5, h: 7, way: 'reverse' });
+    if (!L.LITE) { g.fillStyle = INK; g.fillRect(122, 100, 52, 11); L.drawLogo(g, 'mark', { x: 132, y: 105.5, h: 7, way: 'reverse' }); }
   });
   const faceLed = () => L.cached('s45-led', 140, 90, g => {
     g.fillStyle = '#0B0A0D'; g.fillRect(0, 0, 140, 90);
@@ -575,7 +575,7 @@
       if (life.on) cone(g, lx + 8, y - 13, lx - 30, lx + 46, y + h * .6, .14 * life.on);
       lampHead(g, lx + 8, y - 14, T, life.on, life.die);
     }
-    g.fillStyle = INK; g.fillRect(x + w - 44, y + h + 8, 40, 10); L.drawLogo(g, 'mark', { x: x + w - 36, y: y + h + 13, h: 6.5, way: 'reverse' });
+    if (!L.LITE) { g.fillStyle = INK; g.fillRect(x + w - 44, y + h + 8, 40, 10); L.drawLogo(g, 'mark', { x: x + w - 36, y: y + h + 13, h: 6.5, way: 'reverse' }); }
   }
   function drawVan(g, T, life) {
     // lit: the LED van parked on the street. After the cut it is a dark silhouette that slips out of frame left
@@ -1133,8 +1133,8 @@
 
   /* ======================= COPY ======================= */
   // English cut: the wish itself is English (two lines), no sub
-  const L1 = L.EN ? 'From my diya' : 'मेरे दीये से,', L2 = L.EN ? 'to yours.' : 'आपके दीये तक।', EN = L.EN ? '' : 'From my diya to yours.';
-  const O1 = L.EN ? { font: 'lat', size: 92, weight: 740, color: MUSLIN } : { font: 'dev', size: 92, weight: 700, color: MUSLIN }, OEN = { font: 'lat', size: 46, weight: 600, color: MIST };
+  const L1 = L.EN ? 'From my diya' : 'मेरे दीये से,', L2 = L.EN ? 'to yours.' : 'आपके दीये तक।', EN = L.MIX ? 'मेरे दीये से, आपके दीये तक।' : L.EN ? '' : 'From my diya to yours.';
+  const O1 = L.EN ? { font: 'lat', size: 92, weight: 740, color: MUSLIN } : { font: 'dev', size: 92, weight: 700, color: MUSLIN }, OEN = L.MIX ? { font: 'dev', size: 48, weight: 600, color: MIST } : { font: 'lat', size: 46, weight: 600, color: MIST };
   function wordsRise(g, str, y, T, t0, o, outA, outDy) {
     const words = L.layoutWords(g, str, 540, o);
     for (const wd of words) {

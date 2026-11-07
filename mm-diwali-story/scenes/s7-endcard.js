@@ -23,22 +23,23 @@
   const T_SIGN = [19.9, 20.267], T_TAG = 20.0, T_LABEL = 20.2, T_SEAL = 20.8;
   const DIYA_T = { l: 20.8, c: 20.933, r: 21.067 };   // sonic logo #2: D5 (left pillar), A5 + bell (red pillar), D6 (right)
   const NAMES = [['Mummy-Papa…', 20.5, 21.0], ['Bestie…', 21.0, 21.4], ['Boss…', 21.4, 21.8], ['Pados wale uncle…', 21.8, 22.6], ['Sabko!', 22.6, 99]];
-  if (L.EN) ['Mom & Dad…', 'Bestie…', 'Boss…', 'Neighbour uncle…', 'Everyone!'].forEach((s, i) => { NAMES[i][0] = s; });   // English cut (same times)
+  const E7 = L.EN && !L.MIX;   // pure-English card; 'mix' keeps the bilingual card (Hindi greeting, Hinglish ticker)
+  if (E7) ['Mom & Dad…', 'Bestie…', 'Boss…', 'Neighbour uncle…', 'Everyone!'].forEach((s, i) => { NAMES[i][0] = s; });   // English cut (same times)
   const T_SABKO = 22.6, T_DONE = 22.767, T_SEAM = [24.1, 24.4];
 
   // ---- layout ----
   // lockup: bilingual, reverse, w 560 centred (540,1243.6): a signature-sized sign-off, not an ad. Mark slot = left 110/596.739.
   // English cut: the English horizontal lockup (mark + MM Advertising + since 1998) at the same height (93.84 px)
-  const LOCK_NAME = L.EN ? 'horizontal' : 'bilingual', LOCK_H = 560 * 100 / 596.739, LOCK_WORDS = L.EN ? ['word', 'since'] : ['word'];
-  const LOCK = { x: 540, y: 1243.6, w: L.EN ? LOCK_H * 6.33772 : 560 };
+  const LOCK_NAME = E7 ? 'horizontal' : 'bilingual', LOCK_H = 560 * 100 / 596.739, LOCK_WORDS = E7 ? ['word', 'since'] : ['word'];
+  const LOCK = { x: 540, y: 1243.6, w: E7 ? LOCK_H * 6.33772 : 560 };
   const MARK_FROM = { x: 540, y: 796.36, w: 520 }, MARK_TO = { x: 540 - LOCK.w / 2 + LOCK_H * 1.1 / 2, y: 1243.6, w: LOCK_H * 1.1 };
   const TOR = { x0: 90, x1: 990, yTop: 268, h: 56, offset: 21.1, redIndex: 19 };
   const ts = TOR.h / 100, tStep = 46.25 * ts, tStart = TOR.x0 - ((TOR.offset % tStep) + tStep) % tStep - tStep;
   const ANCH = [90, 315, 540, 765, 990], ANCH_Y = TOR.yTop + TOR.h + 3, SAG = 46, STRAND_N = [5, 4, 3, 4, 5];
   const HAPPY = { y: 524, o: { font: 'lat', size: 122, weight: 770, color: PAPER, maxWidth: 900 } };
-  const SHUBH = L.EN ? { y: 648, str: 'and a bright new year', o: { font: 'lat', size: 58, weight: 620, color: MUSLIN, maxWidth: 820 } }
+  const SHUBH = E7 ? { y: 648, str: 'and a bright new year', o: { font: 'lat', size: 58, weight: 620, color: MUSLIN, maxWidth: 820 } }
                      : { y: 660, str: 'शुभ दीपावली', o: { font: 'dev', size: 104, weight: 700, color: MUSLIN, maxWidth: 880 } };
-  const SIGN = L.EN ? { str: 'Sponsored by: Your Loved Ones', cx: 418, y: 790, o: { font: 'tiro', italic: true, size: 46, color: MUSLIN, maxWidth: 680 } }
+  const SIGN = E7 ? { str: 'Sponsored by: Your Loved Ones', cx: 418, y: 790, o: { font: 'tiro', italic: true, size: 46, color: MUSLIN, maxWidth: 680 } }
                     : { str: 'Sponsored by: Aapke Apne', cx: 446, y: 790, o: { font: 'tiro', italic: true, size: 52, color: MUSLIN, maxWidth: 860 } };
   const SEAL = { x: 858, y: 772, w: 230, h: 84, rot: -8 * DEG };
   const LABEL = { y: 905, a: { font: 'lat', size: 46, weight: 600, color: PAPER }, b: { font: 'dev', size: 48, weight: 600, color: PAPER } };
@@ -302,7 +303,7 @@
         k.globalCompositeOperation = 'destination-out';
         k.strokeStyle = '#000'; k.lineWidth = 2.5; L.rrect(k, 6, 6, SEAL.w - 12, SEAL.h - 12, 3); k.stroke();
         L.text(k, 'BOOKED', SEAL.w / 2, 43, { font: 'lat', size: 39, weight: 780, tracking: 3, color: '#000' });
-        if (L.EN) L.text(k, 'FOR YOU', SEAL.w / 2, 71, { font: 'lat', size: 24, weight: 760, tracking: 4, color: '#000' });
+        if (E7) L.text(k, 'FOR YOU', SEAL.w / 2, 71, { font: 'lat', size: 24, weight: 760, tracking: 4, color: '#000' });
         else L.text(k, 'आपके नाम', SEAL.w / 2, 73, { font: 'dev', size: 28, weight: 700, color: '#000' });
         // uneven ink: the wood grain of the block (luminance -> alpha mask, so the bite is patchy, not a uniform fade)
         k.drawImage(inkMask(), -30, -50, 300, 260);
@@ -385,7 +386,7 @@
 
       // ---------------- forward label: the invitation (Paper, outweighs the credit block)
       { const p = L.prog(T, T_LABEL, T_LABEL + .2, L.ease.outCubic);
-        if (p > 0 && L.EN) L.text(ctx, 'Forward the light', 540, LABEL.y + (1 - p) * 16, Object.assign({}, LABEL.a, { size: 52, alpha: p, maxWidth: 820 }));
+        if (p > 0 && E7) L.text(ctx, 'Forward the light', 540, LABEL.y + (1 - p) * 16, Object.assign({}, LABEL.a, { size: 52, alpha: p, maxWidth: 820 }));
         else if (p > 0) { const { a, b } = LABEL, s1 = 'Forward the light', s2 = 'रोशनी आगे बढ़ाइए', dot = '  ·  ';
           const w1 = L.measure(ctx, s1, a), wd = L.measure(ctx, dot, a), w2 = L.measure(ctx, s2, b); const x = 540 - (w1 + wd + w2) / 2; const y = LABEL.y + (1 - p) * 16;
           L.text(ctx, s1, x, y, Object.assign({}, a, { align: 'left', alpha: p })); L.text(ctx, dot, x + w1, y, Object.assign({}, a, { align: 'left', alpha: p * .7 })); L.text(ctx, s2, x + w1 + wd, y, Object.assign({}, b, { align: 'left', alpha: p })); } }
@@ -406,7 +407,7 @@
         } }
 
       // ---------------- credit + lockup + tagline
-      L.text(ctx, 'MEDIA PARTNER', 540, 1150, { font: 'lat', size: 30, weight: 600, color: STONE, tracking: 6, alpha: L.prog(T, T_MEDIA, T_MEDIA + .2), maxWidth: 600 });
+      if (!L.LITE) L.text(ctx, 'MEDIA PARTNER', 540, 1150, { font: 'lat', size: 30, weight: 600, color: STONE, tracking: 6, alpha: L.prog(T, T_MEDIA, T_MEDIA + .2), maxWidth: 600 });
       const m = markAt(T);
       if (m && m.g < 1) {
         // the mark glides + scales uniformly from the s6 climax into its lockup slot (drawn without motion blur: samples 1)

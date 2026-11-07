@@ -10,8 +10,11 @@
 (function () {
   'use strict';
   const MM = window.MM = window.MM || {};
-  // language cut: ?lang=en renders the English version (default 'hi' = Hindi-first original). Scenes branch on L.EN.
-  MM.LANG = new URLSearchParams(location.search).get('lang') || 'hi'; L.EN = MM.LANG === 'en';
+  // ---- version flags (URL): lang = hi (Hindi-first original) | en (all English) | mix (English-led + small Hindi lines);
+  //      lite = 1 (less brand: no MM plates / van logo / MEDIA PARTNER); cut = full | main | short (edit list in scenes/cuts.json)
+  const QS = new URLSearchParams(location.search);
+  MM.LANG = QS.get('lang') || 'hi'; L.EN = MM.LANG === 'en' || MM.LANG === 'mix'; L.MIX = MM.LANG === 'mix';
+  L.LITE = QS.get('lite') === '1'; MM.CUT = QS.get('cut') || 'full';
   MM.scenes = {}; MM.errors = []; MM.timeline = MM.timeline || []; MM.duration = MM.duration || 24; MM.fps = MM.fps || 30;
   MM.background = '#120F1A';
   MM.scene = (id, def) => { MM.scenes[id] = def; };
@@ -55,11 +58,35 @@
   };
 
   /** final frame: motion-blurred sub-frames + cinematic finishing pass. Returns the canvas holding the frame. */
+  /* ---- edit list: a cut plays source segments back to back; each join is a centred dissolve of `xf` frames ---- */
+  MM.edl = null;
+  MM.applyCut = spec => {
+    const X = (spec.xf || 0) / MM.fps; let o = 0;
+    const parts = spec.segs.map(([a, b]) => { const p = { a, b, o }; o += b - a; return p; });
+    MM.edl = { parts, X }; MM.srcDuration = MM.duration; MM.duration = +o.toFixed(4);
+  };
+  /** output time -> [[sourceTime, weight], ...]: one entry, or two inside a dissolve */
+  MM.srcTimes = T => {
+    if (!MM.edl) return [[T, 1]];
+    const { parts, X } = MM.edl;
+    for (let k = 0; k < parts.length; k++) {
+      const p = parts[k], end = p.o + (p.b - p.a);
+      if (k < parts.length - 1 && X > 0 && T >= end - X / 2 && T < end + X / 2) {
+        const n = parts[k + 1], w = L.smoothstep(end - X / 2, end + X / 2, T);
+        return [[p.a + (T - p.o), 1 - w], [n.a + (T - end), w]];
+      }
+      if (T < end || k === parts.length - 1) return [[p.a + (T - p.o), 1]];
+    }
+  };
   MM.renderFrame = (T, opts = {}) => {
-    if (!MM.postGL || opts.raw) { MM.renderScenes(T, opts); return canvas; }
-    const P = MM.params(T, opts.post); const S = Math.max(1, Math.round(opts.samples || P.samples));
+    const srcs = MM.srcTimes(T), main = srcs.reduce((a, b) => (b[1] > a[1] ? b : a));
+    if (!MM.postGL || opts.raw) { MM.renderScenes(main[0], opts); return canvas; }
+    const P = MM.params(main[0], opts.post); const S = Math.max(1, Math.round(opts.samples || P.samples));
     MM.postGL.clear();
-    for (let i = 0; i < S; i++) { const tt = S === 1 ? T : T + ((i + .5) / S - .5) * P.shutter / MM.fps; MM.renderScenes(Math.max(0, tt), opts); MM.postGL.add(1 / S); }
+    for (let i = 0; i < S; i++) {
+      const dt = S === 1 ? 0 : ((i + .5) / S - .5) * P.shutter / MM.fps;
+      for (const [st, w] of srcs) { if (w < .002) continue; MM.renderScenes(Math.max(0, st + dt), opts); MM.postGL.add(w / S); }
+    }
     MM.postGL.finish(P, T);
     return MM.postGL.canvas;
   };
@@ -92,6 +119,10 @@
       try { await loadScript('../scenes/' + f); } catch (e) { MM.errors.push(String(e)); }
     }
     if (window.MM_AFTER_LOAD) window.MM_AFTER_LOAD();
+    if (MM.CUT !== 'full') {
+      try { const cuts = await (await fetch('../scenes/cuts.json')).json(); if (cuts[MM.CUT]) MM.applyCut(cuts[MM.CUT]); else MM.errors.push('unknown cut ' + MM.CUT); }
+      catch (e) { MM.errors.push('cuts.json: ' + e); }
+    }
     MM.isReady = true;
   };
 

@@ -9,7 +9,7 @@
 (function () {
   'use strict';
   const L = window.L, Ez = L.ease, H = window.MMH;
-  const HERE = L.EN ? 'Advertise here' : 'जगह खाली है', HF = L.EN ? 'lat' : 'dev';   // language cut
+  const HERE = L.EN && !L.MIX ? 'Advertise here' : 'जगह खाली है', HF = L.EN && !L.MIX ? 'lat' : 'dev';   // language cut
   const clamp = L.clamp, lerp = L.lerp, rnd = L.rnd, q = L.q;
   const C = H.C, TM = H.TM, U = H.util, DEG = U.DEG;
   const H2_D = H.H2_D;
@@ -102,7 +102,7 @@
     g.scale(4, 4); g.fillStyle = C.ink; g.fillRect(0, 0, MPW, MPH); g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(0, 0, MPW, 1.2);
     L.drawLogo(g, 'mark', { x: MPW / 2, y: MPH / 2 + .4, h: MK_H, anchor: 'center', way: 'reverse' });
   });
-  function markPlate(g, x, y, blur) { U.setBlur(g, blur || 0); g.drawImage(markPlateImg(), x, y, MPW, MPH); g.filter = 'none'; }
+  function markPlate(g, x, y, blur) { if (L.LITE) return; U.setBlur(g, blur || 0); g.drawImage(markPlateImg(), x, y, MPW, MPH); g.filter = 'none'; }
   /** mini stamp: the same rubber-stamp prop as the hook (U.stamp3D), scaled. Before `at`: it slams in (apparent scale
       1.3 -> 1 in .1 s, as the hook stamp; leaning on its knob -> flat, real perspective about the camera's optical centre). From `at`: the
       dense impression (clipped to the face), 16 violet specks and a violet ring racing out from the stamp's edge; the
@@ -304,8 +304,8 @@
     const o = L.EN ? { font: 'lat', size: 76, weight: 740, color: C.paper, maxWidth: 820 } : { font: 'dev', size: 84, weight: 700, color: C.paper, maxWidth: 820 };
     riseLine(ctx, L.EN ? 'Diwali night.' : 'दिवाली की रात,', 370, T, HL.l1, o, .2);
     riseLine(ctx, L.EN ? 'The city is all yours.' : 'पूरा शहर आपके नाम।', 470, T, HL.l2, L.EN ? Object.assign({}, o, { size: 64 }) : o, .167);
-    const su = L.EN ? 0 : Ez.outCubic(clamp((T - HL.sub) / .2));   // English cut: the hero IS English, no sub
-    if (su > 0) L.text(ctx, 'Diwali night. The whole city’s yours.', 540, 555 + 12 * (1 - su), { font: 'lat', size: 44, weight: 600, color: C.mist, alpha: su, maxWidth: 820 });
+    const su = L.EN && !L.MIX ? 0 : Ez.outCubic(clamp((T - HL.sub) / .2));   // English cut: no sub; mix: a small Hindi line
+    if (su > 0) L.text(ctx, L.MIX ? 'पूरा शहर आपके नाम।' : 'Diwali night. The whole city’s yours.', 540, 555 + 12 * (1 - su), { font: L.MIX ? 'dev' : 'lat', size: L.MIX ? 46 : 44, weight: 600, color: C.mist, alpha: su, maxWidth: 820 });
     ctx.restore();
   };
 

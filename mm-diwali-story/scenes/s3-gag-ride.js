@@ -28,19 +28,20 @@
   /* ---------- copy (code points exactly as in storyboard.json) ---------- */
   // English cut (L.EN): the hero lines are English and there is no sub. Gag A becomes two lines; the punch word
   // ('finished', like 'हाफ़') is the one that cracks.
-  const EN = !!L.EN;
+  const EN = !!L.EN, MIX = !!L.MIX;   // MIX: English hero + a small Hindi line under it
   const HERO_A = EN ? 'Back: finished.' : 'घर साफ़। कमर हाफ़।', HAF = EN ? 'finished' : 'हाफ़', DANDA = EN ? '.' : '।';
   const HERO_A0 = 'House: spotless.';                       // English line 1 (above the punch line)
   const HO = EN ? { font: 'lat', size: 84, weight: 780 } : { font: 'dev', size: 92, weight: 800 };
-  const HY = EN ? 318 : 240, PI = EN ? 1 : 3;              // punch line baseline, punch word index
-  const SUB_A = EN ? ' ' : 'House: spotless. Back: finished.';
+  const HY = EN ? (MIX ? 292 : 318) : 240, PI = EN ? 1 : 3, HY0 = MIX ? 196 : 214;              // punch line baseline, punch word index
+  const SUB_A = EN ? (MIX ? 'घर साफ़। कमर हाफ़।' : ' ') : 'House: spotless. Back: finished.';
   const FINE_A_HI = '*नियम व शर्तें: मम्मी', FINE_A_EN = '  ·  *T&C: Mummy';
   const B1 = EN ? 'Diet: from Monday.' : 'डाइट: मंडे से।';
   const B2 = EN ? 'Kaju katli: right now.' : 'काजू कतली: अभी से।';
-  const SUB_B = EN ? ' ' : 'Diet: Monday. Kaju katli: right now.';
+  const SUB_B = EN ? (MIX ? 'डाइट: मंडे से। काजू कतली: अभी से।' : ' ') : 'Diet: Monday. Kaju katli: right now.';
   const C1 = EN ? 'Soan papdi boxes:' : 'सोन पापड़ी के डिब्बे:';
   const C2A = EN ? 'Got 3. Gave ' : 'आए 3, गए ', C2B = '4', C2C = EN ? '.' : '।';
-  const SUB_C = EN ? ' ' : 'Soan papdi: got 3, gave 4.';
+  const SUB_C = EN ? (MIX ? 'सोन पापड़ी: आए 3, गए 4।' : ' ') : 'Soan papdi: got 3, gave 4.';
+  const OS_MIX = { font: 'dev', size: 44, weight: 600 };
   const FINE_C_HI = EN ? '' : '*चौथा डिब्बा: रहस्य', FINE_C_EN = EN ? '*Box #4: a mystery' : '  ·  *Box #4: a mystery';
   /** shrink a font spec so `str` fits `maxW` px (English lines are longer than their Hindi originals) */
   const fitO = (str, o, maxW) => { const c = document.createElement('canvas').getContext('2d'), w = L.measure(c, str, o); return w > maxW ? Object.assign({}, o, { size: o.size * maxW / w }) : o; };
@@ -85,6 +86,7 @@
   /** crisp cached sprite under a scaled transform: undo the scale locally */
   function unscaled(g, s, fn) { g.save(); g.scale(1 / s, 1 / s); fn(g); g.restore(); }
   function plate(g, x, y, w, h) {   // MM media-owner plate (Ink, Stone top edge, reverse lockup)
+    if (L.LITE) return;   // less-brand versions: no plates
     g.fillStyle = '#242022'; g.fillRect(x, y, w, h); topEdge(g, x, y, w);
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(x, y + h - 2, w, 2);
     L.drawLogo(g, 'horizontal_nosince', { x: x + w / 2, y: y + h / 2 + 1, h: Math.min(30, h - 10), anchor: 'center', way: 'reverse' });
@@ -353,12 +355,12 @@
       g.restore(); g.fillStyle = 'rgba(140,135,131,.55)'; g.fillRect(0, 452, TV.w, 3);
       printToran(g, TV.w);
       const o = HO, lay = heroLay(g);
-      if (EN) L.text(g, HERO_A0, 420, 214, Object.assign({}, o, { color: INK, maxWidth: 780 }));
+      if (EN) L.text(g, HERO_A0, 420, HY0, Object.assign({}, o, { color: INK, maxWidth: 780 }));
       for (const wd of lay) {
         if (wd.i === PI) { const wh = L.measure(g, HAF, o); if (full) L.text(g, HAF, wd.x, HY, Object.assign({}, o, { align: 'left', color: RED, maxWidth: wh + 2 })); L.text(g, DANDA, wd.x + wh, HY, Object.assign({}, o, { align: 'left', color: INK, maxWidth: 60 })); }
         else L.text(g, wd.word, wd.x, HY, Object.assign({}, o, { align: 'left', color: INK, maxWidth: wd.w + 2 }));
       }
-      L.text(g, SUB_A, 420, 330, { font: 'lat', size: 44, weight: 600, color: INK, maxWidth: 700 });
+      L.text(g, SUB_A, 420, MIX ? 374 : 330, { font: MIX ? 'dev' : 'lat', size: 44, weight: MIX ? 650 : 600, color: INK, alpha: MIX ? .88 : 1, maxWidth: 700 });
       L.textureOverlay(g, 'paper', 0, 0, TV.w, TV.h, { alpha: .07, blend: 'multiply', scale: .6, seed: 5 });
     });
   }
@@ -753,7 +755,7 @@
   });
   function bLines() {   // LED copy rendered once
     const o1 = EN ? fitO(B1, { font: 'lat', size: 68, weight: 720 }, 680) : { font: 'dev', size: 72, weight: 700 };
-    const o2 = EN ? fitO(B2, { font: 'lat', size: 78, weight: 800 }, 700) : { font: 'dev', size: 84, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
+    const o2 = EN ? fitO(B2, { font: 'lat', size: 78, weight: 800 }, 700) : { font: 'dev', size: 84, weight: 800 }, os = MIX ? fitO(SUB_B, OS_MIX, 680) : { font: 'lat', size: 40, weight: 600 };
     // line 2 (MM Red punch) gets a thin Rich Black ring, not a grey knockout; it sits OUT of the heavy dot mask
     return { o1, o2, os, l2: textImg(B2, o2, RED), sub: textImg(SUB_B, os, MIST), l2k: textImg(B2, o2, RED, 6, 'rgba(28,26,26,.9)'), subk: textImg(SUB_B, os, MIST, 10) };
   }
@@ -1154,7 +1156,7 @@
     g.fillStyle = '#1E1B1F'; g.beginPath(); g.arc(539, -112, 8.5, 0, TAU); g.fill();
     g.fillStyle = 'rgba(255,159,28,.9)'; g.fillRect(540, -132, 5, 8);
     g.fillStyle = '#1E1B1F'; g.fillRect(398, -50, 44, 5);
-    L.drawLogo(g, 'mark', { x: 425, y: -111, h: 50 / VS, anchor: 'center', way: 'onred' });
+    if (!L.LITE) L.drawLogo(g, 'mark', { x: 425, y: -111, h: 50 / VS, anchor: 'center', way: 'onred' });
     g.restore();
     // grille garland, nimbu-mirchi (crisp, in screen units)
     for (let k = 0; k < 6; k++) marigold(g, 546 * VS, (-142 + k * 11.5) * VS, 10, k % 2 ? 'yellow' : 'orange', k);
@@ -1176,7 +1178,7 @@
   function drawVanPanel(g, T, lvl) {
     const px = 14 * VS, py = -300 * VS, pw = 360 * VS, ph = 230 * VS;
     const o1 = EN ? fitO(C1, { font: 'lat', size: 58, weight: 720 }, 600) : { font: 'dev', size: 60, weight: 700 };
-    const o2 = EN ? { font: 'lat', size: 104, weight: 800 } : { font: 'dev', size: 108, weight: 800 }, os = { font: 'lat', size: 40, weight: 600 };
+    const o2 = EN ? { font: 'lat', size: 104, weight: 800 } : { font: 'dev', size: 108, weight: 800 }, os = MIX ? fitO(SUB_C, OS_MIX, 600) : { font: 'lat', size: 40, weight: 600 };
     // line 2 in three runs so the '4' can be MM Red and pulse; the whole line is held to maxWidth 560
     const wA = L.measure(g, C2A, o2), w4 = L.measure(g, C2B, o2), wD = L.measure(g, C2C, o2), fit = Math.min(1, 560 / (wA + w4 + wD));
     const x0 = 349 - (wA + w4 + wD) * fit / 2, pulse = T < BOX_HOP[3] ? 1 : keys(T - BOX_HOP[3], [[0, 1], [.1, 1.15], [.22, 1]]);

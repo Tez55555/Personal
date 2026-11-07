@@ -634,7 +634,7 @@
       // printed hairline border, typical of a "space available" flex
       g.strokeStyle = 'rgba(43,39,40,.5)'; g.lineWidth = 3; g.strokeRect(26, 26, FW - 52, FH - 52);
       L.text(g, 'SPACE AVAILABLE', FW / 2, 170, { font: 'lat', size: 78, weight: 760, color: C.ink, maxWidth: 780 });
-      if (L.EN) L.text(g, 'Advertise here', FW / 2, 285, { font: 'lat', size: 66, weight: 700, color: C.stone, maxWidth: 700 });
+      if (L.EN && !L.MIX) L.text(g, 'Advertise here', FW / 2, 285, { font: 'lat', size: 66, weight: 700, color: C.stone, maxWidth: 700 });
       else L.text(g, 'जगह खाली है', FW / 2, 290, { font: 'dev', size: 76, weight: 700, color: C.stone, maxWidth: 700 });
       // weathering
       L.textureOverlay(g, 'paper', 0, 0, FW, FH, { alpha: .09, blend: 'multiply', scale: .42, seed: 4 });
@@ -744,13 +744,15 @@
     g.fillStyle = 'rgba(140,135,131,.55)'; g.fillRect(84, 1298, 912, 2);
     g.fillStyle = 'rgba(0,0,0,.5)'; for (let x = 88; x < 994; x += 9) g.fillRect(x, 1304, 4, 24);
     g.fillStyle = 'rgba(140,135,131,.22)'; g.fillRect(84, 1330, 912, 2);
-    // media-owner plate (hangs from the catwalk)
+    // media-owner plate (hangs from the catwalk) — omitted in the less-brand versions
+    if (!L.LITE) {
     g.strokeStyle = '#0E0C0D'; g.lineWidth = 3; g.beginPath(); g.moveTo(700, 1334); g.lineTo(700, 1344); g.moveTo(945, 1334); g.lineTo(945, 1344); g.stroke();
     g.fillStyle = C.ink; L.rrect(g, 670, 1342, 305, 56, 4); g.fill();
     g.fillStyle = 'rgba(140,135,131,.6)'; g.fillRect(674, 1342, 297, 2);
     L.drawLogo(g, 'mark', { x: 686, y: 1348, h: 44, anchor: 'topleft', way: 'reverse' });
     L.text(g, 'MM Advertising', 748, 1381, { font: 'lat', size: 28, weight: 650, color: C.paper, align: 'left', maxWidth: 216 });
     g.fillStyle = 'rgba(140,135,131,.8)'; for (const bx of [678, 965]) { L.circle(g, bx, 1350, 2); g.fill(); L.circle(g, bx, 1390, 2); g.fill(); }
+    }
     // ---- face
     g.save(); g.beginPath(); g.rect(FX, FY, FW, FH); g.clip();
     g.drawImage(faceBase(), FX, FY);
@@ -847,7 +849,7 @@
     if (T >= TM.write0) writeOn(g, T);
     if (T >= TM.hi0) {
       const u = Ez.outCubic(clamp((T - TM.hi0) / (TM.hi1 - TM.hi0)));
-      L.text(g, L.EN ? '(yes, you.)' : 'आपके लिए', 540, 1244 + 12 * (1 - u), { font: 'tiro', italic: true, size: 60, color: C.red, alpha: u, maxWidth: 400 });
+      L.text(g, L.EN && !L.MIX ? '(yes, you.)' : 'आपके लिए', 540, 1244 + 12 * (1 - u), { font: 'tiro', italic: true, size: 60, color: C.red, alpha: u, maxWidth: 400 });
     }
   }
   function wetSheen(g, T) {

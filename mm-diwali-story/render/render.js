@@ -3,7 +3,7 @@
    Stills:   node render/render.js --stills 0.5,2,4.2 --outdir out/stills [--scale .5] [--only s1-hook,s2-x]
    Sheet:    node render/render.js --sheet out/sheet.png [--from 0 --to 24 --every .5 --cols 8] [--only ...]
    Video:    node render/render.js --video out/video.mp4 [--from 0 --to 24 --fps 30 --scale 1 --workers 3 --crf 17 --format png]
-   Flags: --lang en (English cut; default hi), --raw (skip the GL finishing pass), --samples N (motion-blur sub-frames; default from MMPost.DEFAULTS)
+   Flags: --lang hi|en|mix, --cut full|main|short (scenes/cuts.json), --lite (less brand), --raw (skip the GL finishing pass), --samples N (motion-blur sub-frames; default from MMPost.DEFAULTS)
    Exits non-zero if any scene threw (errors printed). */
 'use strict';
 const http = require('http'), fs = require('fs'), path = require('path'), { spawn } = require('child_process');
@@ -32,7 +32,7 @@ async function openPage(browser, port, scale) {
   const logs = [];
   page.on('pageerror', e => logs.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error') logs.push('console: ' + m.text()); });
-  await page.goto(`http://127.0.0.1:${port}/engine/index.html?lang=${args.lang || 'hi'}`);
+  await page.goto(`http://127.0.0.1:${port}/engine/index.html?lang=${args.lang || 'hi'}&lite=${args.lite ? 1 : 0}&cut=${args.cut || 'full'}`);
   await page.waitForFunction(() => window.MM && window.MM.isReady, null, { timeout: 60000 });
   await page.evaluate(s => MM.setScale(s), scale);
   page._logs = logs;
